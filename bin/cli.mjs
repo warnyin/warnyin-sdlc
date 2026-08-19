@@ -12,7 +12,8 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { parseFrontmatter } from '../lib/frontmatter.mjs';
 import { parseDelta, mergeDelta } from '../lib/delta.mjs';
-import { validateAll, formatIssues, listChangeDirs } from '../scripts/validate.mjs';
+import { mergeHookSettings } from '../lib/settings-merge.mjs';
+import { validateAll, formatIssues, listChangeDirs } from '../lib/validate.mjs';
 
 const PKG_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PAYLOAD = path.join(PKG_ROOT, 'payload');
@@ -142,8 +143,25 @@ function scaffoldSdlc(projectRoot, tools, manifest) {
   seed('harness.md', 'harness.md');
 
   // Playbook + hook scripts are payload-owned (manifest-tracked, refreshed by `update`).
+  // lib/ is mirrored next to the hooks so they share the CLI's exact validator logic.
   copyTree(path.join(PAYLOAD, 'playbook'), path.join(sdlcRoot, '.playbook'), { manifest, projectRoot });
   copyTree(path.join(PAYLOAD, 'hooks'), path.join(sdlcRoot, '.hooks'), { manifest, projectRoot });
+  copyTree(path.join(PKG_ROOT, 'lib'), path.join(sdlcRoot, '.hooks', 'lib'), { manifest, projectRoot });
+}
+
+export function installClaudeHooks(projectRoot) {
+  const settingsPath = path.join(projectRoot, '.claude', 'settings.json');
+  let current = {};
+  if (fs.existsSync(settingsPath)) {
+    try {
+      current = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    } catch {
+      throw new Error(`.claude/settings.json is not valid JSON — fix it, then re-run init`);
+    }
+  }
+  const merged = mergeHookSettings(current);
+  fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+  fs.writeFileSync(settingsPath, JSON.stringify(merged, null, 2) + '\n');
 }
 
 function installClaudeAdapter(projectRoot, manifest) {
@@ -157,7 +175,10 @@ export async function cmdInit(projectRoot, args) {
   const tools = await resolveTools(args);
   const manifest = new Map();
   scaffoldSdlc(projectRoot, tools, manifest);
-  if (tools.includes('claude')) installClaudeAdapter(projectRoot, manifest);
+  if (tools.includes('claude')) {
+    installClaudeAdapter(projectRoot, manifest);
+    installClaudeHooks(projectRoot);
+  }
   // Other tool adapters land in M5; record the selection now.
   writeManifest(projectRoot, manifest);
   ensureGitignore(projectRoot);
