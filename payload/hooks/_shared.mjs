@@ -25,6 +25,9 @@ export function readStdinJson({ timeoutMs = 1000 } = {}) {
     const finish = () => {
       if (done) return;
       done = true;
+      // Release stdin so an open-idle stream cannot keep the event loop alive.
+      process.stdin.pause();
+      if (typeof process.stdin.unref === 'function') process.stdin.unref();
       try { resolve(data.trim() ? JSON.parse(data) : null); } catch { resolve(null); }
     };
     const timer = setTimeout(finish, timeoutMs);
