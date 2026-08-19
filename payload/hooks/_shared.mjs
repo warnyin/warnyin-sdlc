@@ -15,14 +15,24 @@ export function resolveRoots(importMetaUrl) {
   return { hooksDir, sdlcRoot, projectRoot };
 }
 
-export async function readStdinJson() {
-  try {
+// Reads the hook payload from stdin. Must NEVER hang: when a playbook or a
+// user script invokes a hook utility with stdin open-but-idle (no piped JSON),
+// resolve null after a short grace period instead of blocking forever.
+export function readStdinJson({ timeoutMs = 1000 } = {}) {
+  return new Promise((resolve) => {
     let data = '';
-    for await (const chunk of process.stdin) data += chunk;
-    return data.trim() ? JSON.parse(data) : null;
-  } catch {
-    return null;
-  }
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      try { resolve(data.trim() ? JSON.parse(data) : null); } catch { resolve(null); }
+    };
+    const timer = setTimeout(finish, timeoutMs);
+    if (typeof timer.unref === 'function') timer.unref();
+    process.stdin.on('data', (chunk) => { data += chunk; });
+    process.stdin.on('end', finish);
+    process.stdin.on('error', finish);
+  });
 }
 
 // Resolve symlinks on the deepest EXISTING ancestor, then re-attach the tail.
