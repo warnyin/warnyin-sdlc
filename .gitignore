@@ -1,5 +1,10 @@
 node_modules/
 *.pdf
-sdlc/.state/
-.claude/settings.local.json
+*.tgz
 .DS_Store
+
+# dogfood: installer-owned mirrors of payload/ — regenerate with `npm run setup:dogfood`
+sdlc/.state/
+sdlc/.playbook/
+sdlc/.hooks/
+.claude/

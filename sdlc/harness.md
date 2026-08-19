@@ -1,14 +1,15 @@
-# Harness — <project>
+# Harness — @warnyin/sdlc
 <!-- cap:60 · CONFIGURE-phase output; reviewed like code. Registry + tables only — doctrine lives in sdlc/.playbook/. -->
 
 ## Tools & MCP (what the agent may call)
 | Tool/MCP | Scope | Notes |
 |---|---|---|
-| <tool> | <what it may touch> | <when to use> |
+| node --test | tests/ | the only test runner |
+| node bin/cli.mjs | repo root or temp dirs | exercise the CLI under development |
 
 ## Sandbox & execution
-- test command: `<cmd>`
-- sandbox notes: <where code runs, what it cannot reach>
+- test command: `npm test`
+- sandbox notes: black-box tests spawn the real CLI into `mkdtemp` dirs; never write outside them.
 
 ## Guardrails (mirror of installed hooks — deterministic, the agent cannot skip them)
 - `sdlc/specs/**` and archive are write-locked outside ship.
@@ -23,11 +24,13 @@
 | test generation, review passes, mechanical/scaffold, eval judging, learning | cheap |
 
 ## Tier triage (stakes → tier)
-- vibe: reversible, no behavior-contract change, ≤2 files.
-- deep: security / payments / data-loss / irreversible surface, new capability, or multi-capability delta.
+- vibe: reversible, no behavior-contract change, ≤2 files (docs typo, test tweak).
+- deep: installer ownership/prune logic, hook guard behavior, delta-merge semantics,
+  anything touching user files in target projects.
 - otherwise: standard.
 
 ## Autonomy policy
 - auto-ship: vibe, standard.
-- escalate to human: hard-floor (security, payments, data-loss, irreversible), verify failed > 3 rounds,
-  token budget exceeded, information the agent cannot obtain or safely assume.
+- escalate to human: hard-floor (prune/guard/merge semantics = data-loss surface in user
+  projects), verify failed > 3 rounds, token budget exceeded, information the agent
+  cannot obtain or safely assume.

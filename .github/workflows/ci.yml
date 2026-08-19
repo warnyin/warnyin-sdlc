@@ -1,0 +1,38 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm test
+
+  pack-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: pack must exclude tests and dogfood, include payload
+        run: |
+          npm pack --dry-run --json > pack.json
+          node -e '
+            const files = JSON.parse(require("fs").readFileSync("pack.json"))[0].files.map(f => f.path);
+            const bad = files.filter(f => f.startsWith("tests/") || f.startsWith("sdlc/") || f.startsWith("docs/") || f.startsWith(".claude/"));
+            if (bad.length) { console.error("leaked into pack:", bad); process.exit(1); }
+            for (const need of ["bin/cli.mjs", "lib/caps.mjs", "payload/playbook/README.md", "payload/hooks/guard-writes.mjs"]) {
+              if (!files.includes(need)) { console.error("missing from pack:", need); process.exit(1); }
+            }
+            console.log("pack ok:", files.length, "files");
+          '
