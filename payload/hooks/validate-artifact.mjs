@@ -42,7 +42,8 @@ function steeringPointer(rel, sessionId) {
   const steeringDir = path.join(sdlcRoot, 'context', 'steering');
   if (!fs.existsSync(steeringDir)) return;
 
-  const seenPath = path.join(sdlcRoot, '.state', `pointers-${sessionId ?? 'nosession'}.json`);
+  const safeSession = String(sessionId ?? '').replace(/[^A-Za-z0-9_-]/g, '') || 'nosession';
+  const seenPath = path.join(sdlcRoot, '.state', `pointers-${safeSession}.json`);
   let seen = [];
   try { seen = JSON.parse(fs.readFileSync(seenPath, 'utf8')); } catch { /* first hit */ }
 

@@ -47,6 +47,35 @@ export function toPosixRel(projectRoot, absPath) {
   return rel.split(path.sep).join('/');
 }
 
+// Lexical (no-symlink-resolution) relative path: what the path CLAIMS to be.
+// Tried against both the raw and the realpathed project root so /tmp-style
+// root symlinks don't break matching. Guards must compare this against
+// toPosixRel — a divergence means a symlink sits inside the project.
+export function lexicalPosixRel(projectRoot, absPath) {
+  const abs = path.resolve(absPath);
+  const realRoot = realResolve(projectRoot);
+  for (const base of [path.resolve(projectRoot), realRoot]) {
+    const rel = path.relative(base, abs);
+    if (rel && !rel.startsWith('..') && !path.isAbsolute(rel)) {
+      return rel.split(path.sep).join('/');
+    }
+  }
+  // Root-level symlinks (/tmp → /private/tmp): find the SHALLOWEST ancestor of
+  // abs whose realpath IS the project root; the remaining tail is the lexical
+  // claim. In-project symlinks are deliberately not resolved here.
+  const segs = abs.split(path.sep);
+  for (let i = 1; i < segs.length; i++) {
+    const ancestor = segs.slice(0, i).join(path.sep) || path.sep;
+    let real;
+    try { real = fs.realpathSync.native(ancestor); } catch { continue; }
+    if (real === realRoot) {
+      const tail = segs.slice(i).join('/');
+      return tail || null;
+    }
+  }
+  return null;
+}
+
 // Gate state written by `journal.mjs open-<phase>` — {phase, change?, expires}.
 export function readPhase(sdlcRoot) {
   try {

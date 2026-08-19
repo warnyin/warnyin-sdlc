@@ -15,7 +15,7 @@ import { parseDelta, mergeDelta } from '../lib/delta.mjs';
 import { parseConfig } from '../lib/config.mjs';
 import { mergeHookSettings } from '../lib/settings-merge.mjs';
 import { buildReport, renderReport } from '../lib/observe.mjs';
-import { parseManifest, renderManifest, computeStale, containedIn, PRUNE_BLAST_CAP } from '../lib/manifest.mjs';
+import { parseManifest, renderManifest, computeStale, containedIn, hasSymlinkSegment, PRUNE_BLAST_CAP } from '../lib/manifest.mjs';
 import { validateAll, formatIssues, listChangeDirs } from '../lib/validate.mjs';
 
 const PKG_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -258,6 +258,14 @@ export function cmdUpdate(projectRoot, args) {
   const config = parseConfig(fs.readFileSync(path.join(sdlcRoot, 'config.yaml'), 'utf8'));
   const tools = args.tool?.length ? args.tool : (config.tools.length ? config.tools : ['claude']);
 
+  // Persist an explicit --tool override so declared and installed state never
+  // diverge (otherwise pruning tool-specific files leaves config.yaml stale).
+  if (args.tool?.length) {
+    const configPath = path.join(sdlcRoot, 'config.yaml');
+    const raw = fs.readFileSync(configPath, 'utf8');
+    fs.writeFileSync(configPath, raw.replace(/^tools:.*$/m, `tools: [${tools.join(', ')}]`));
+  }
+
   const oldManifest = readManifestFile(projectRoot);
   const ctx = { mode: 'update', manifest: new Map(), oldManifest, warnings: [] };
   scaffoldSdlc(projectRoot, tools, ctx);
@@ -271,9 +279,14 @@ export function cmdUpdate(projectRoot, args) {
     ctx.warnings.push(`prune skipped: ${stale.length} stale files exceed the blast cap (${PRUNE_BLAST_CAP}) — re-run with --force after reviewing`);
   } else {
     const realRoot = fs.realpathSync.native(projectRoot);
+    const nominalRoot = path.resolve(projectRoot);
     for (const { path: relPath, hash } of stale) {
       const abs = path.join(projectRoot, relPath);
       if (!fs.existsSync(abs)) continue;
+      if (hasSymlinkSegment(nominalRoot, abs)) {
+        ctx.warnings.push(`prune rejected: ${relPath} (symlink in path)`);
+        continue;
+      }
       const diskHash = sha256(normalizeEol(fs.readFileSync(abs, 'utf8')));
       if (diskHash !== hash) { ctx.warnings.push(`prune kept (modified): ${relPath}`); continue; }
       const realAbs = fs.realpathSync.native(abs);
@@ -351,6 +364,15 @@ export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
   const changeDir = path.join(sdlcRoot, 'changes', changeId);
   if (!fs.existsSync(changeDir)) throw new Error(`change "${changeId}" not found`);
 
+  // Atomicity: the archive destination must be checked BEFORE any write —
+  // otherwise a same-day id collision would mutate specs and stamp the change
+  // while reporting failure.
+  const date = new Date().toISOString().slice(0, 10);
+  const destDir = path.join(sdlcRoot, 'changes', 'archive', `${date}-${changeId}`);
+  if (fs.existsSync(destDir)) {
+    throw new Error(`archive target already exists: ${toPosix(path.relative(projectRoot, destDir))} — nothing was merged`);
+  }
+
   const issues = validateAll(sdlcRoot, { strict, changeId });
   const errors = issues.filter((i) => i.level === 'error');
   if (errors.length) {
@@ -389,9 +411,6 @@ export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
   writeFileNormalized(path.join(changeDir, 'change.md'), stamped);
   appendJournal(changeDir, { event: 'ship', change: changeId, specs: merged.map((m) => m.capability) });
 
-  const date = new Date().toISOString().slice(0, 10);
-  const destDir = path.join(sdlcRoot, 'changes', 'archive', `${date}-${changeId}`);
-  if (fs.existsSync(destDir)) throw new Error(`archive target already exists: ${toPosix(path.relative(projectRoot, destDir))}`);
   fs.renameSync(changeDir, destDir);
 
   console.log(`shipped: ${changeId}`);

@@ -34,3 +34,13 @@ contract; if an artifact loses its reason, delete it.
   a missing MODIFIED/REMOVED key aborts the whole ship.
 - **caps.mjs is canonical**: templates quote caps in comments; `caps-sync.test.mjs`
   fails the build on drift.
+
+## Known limitations (accepted for v1)
+
+- **Hook matchers cover Edit/Write/MultiEdit/NotebookEdit only** — a `Bash` tool call
+  can write to `sdlc/specs/**` or `.state/phase.json` without interception (Claude Code
+  matchers see tool names, not file effects). Mitigations: the rules-card forbids it in
+  prose, `validate --strict` gates ship regardless of how files were written, journals
+  make it auditable, and symlink tricks under sdlc/ are denied by the guards. A Bash
+  command-string heuristic was rejected as high-false-negative theater.
+- **`removeHookSettings` is not yet wired** — reserved for a future `uninstall` command.
