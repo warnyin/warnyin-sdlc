@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { parseFrontmatter } from '../lib/frontmatter.mjs';
 import { parseDelta, mergeDelta } from '../lib/delta.mjs';
 import { mergeHookSettings } from '../lib/settings-merge.mjs';
+import { buildReport, renderReport } from '../lib/observe.mjs';
 import { validateAll, formatIssues, listChangeDirs } from '../lib/validate.mjs';
 
 const PKG_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -283,6 +284,16 @@ export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
   return { archived: `${date}-${changeId}`, specs: merged.map((m) => m.capability) };
 }
 
+// ---------- observe ----------
+
+export function cmdObserve(projectRoot, { json = false } = {}) {
+  const sdlcRoot = path.join(projectRoot, 'sdlc');
+  requireSdlc(sdlcRoot);
+  const report = buildReport(sdlcRoot);
+  console.log(json ? JSON.stringify(report, null, 2) : renderReport(report));
+  return report;
+}
+
 // ---------- shared ----------
 
 function requireSdlc(sdlcRoot) {
@@ -305,6 +316,7 @@ usage: warnyin-sdlc <command> [options]
   init [--tool claude,cursor,...]   scaffold sdlc/ + adapters + hooks into this project
   validate [id] [--strict]          structural validation (caps, delta grammar, gates)
   status [--json]                   list active changes and their stage
+  observe [--json]                  tokens/cost per change, residency, steering hits, drift flags
   archive <id>                      merge delta specs into living specs and archive the change
   help                              this text
 `;
@@ -317,6 +329,7 @@ export async function main(argv = process.argv.slice(2), projectRoot = process.c
     if (cmd === 'init') await cmdInit(projectRoot, args);
     else if (cmd === 'validate') runValidate(projectRoot, args);
     else if (cmd === 'status') cmdStatus(projectRoot, { json: args.json });
+    else if (cmd === 'observe') cmdObserve(projectRoot, { json: args.json });
     else if (cmd === 'archive') cmdArchive(projectRoot, args._[1]);
     else { console.error(`unknown command: ${cmd}`); console.log(HELP); process.exitCode = 2; }
   } catch (err) {
