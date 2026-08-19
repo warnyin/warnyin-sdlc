@@ -33,6 +33,15 @@ function main() {
   process.exit(errors > 0 ? 1 : 0);
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+function isEntrypoint() {
+  if (!process.argv[1]) return false;
+  try {
+    return fs.realpathSync.native(path.resolve(process.argv[1])) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+}
+
+if (isEntrypoint()) {
   main();
 }

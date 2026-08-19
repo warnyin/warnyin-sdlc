@@ -465,6 +465,18 @@ export async function main(argv = process.argv.slice(2), projectRoot = process.c
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+// npx invokes the bin via a node_modules/.bin symlink, so argv[1] must be
+// realpath-resolved before comparing with import.meta.url (which the ESM
+// loader already resolves) — otherwise main() silently never runs.
+function isEntrypoint() {
+  if (!process.argv[1]) return false;
+  try {
+    return fs.realpathSync.native(path.resolve(process.argv[1])) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+}
+
+if (isEntrypoint()) {
   main();
 }

@@ -1,6 +1,6 @@
 {
   "name": "@warnyin/sdlc",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Spec-driven, AI-driven SDLC framework — token-lean specs, contract-first changes, autonomous pipeline with managed hooks. Operationalizes the Day-1 'New SDLC with Vibe Coding' work process.",
   "type": "module",
   "bin": {
