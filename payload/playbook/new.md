@@ -3,10 +3,9 @@
 1. Triage the tier with `sdlc/harness.md § Tier triage`. Hard-floor surface
    (security, payments, data-loss, irreversible) forces `deep` — no override
    without an explicit user instruction (record it in Assumptions).
-2. Create `sdlc/changes/<kebab-id>/change.md` from
-   `sdlc/.playbook`'s sibling template for that tier
-   (`change-vibe.md` | `change-standard.md` | `change-deep.md` in the templates
-   the installer seeded — copy the structure exactly, respect the cap comment).
+2. Create `sdlc/changes/<kebab-id>/change.md` from the tier's template at
+   `sdlc/.playbook/templates/change-{vibe|standard|deep}.md` — copy the
+   structure exactly, respect the cap comment.
 3. Ground the delta: grep `## Purpose` of every `sdlc/specs/*/spec.md`; open the
    FULL spec only for capabilities this change touches. Name each `## Delta:`
    after an existing capability, or a new kebab-case capability.

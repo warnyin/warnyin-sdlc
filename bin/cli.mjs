@@ -12,18 +12,21 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { parseFrontmatter } from '../lib/frontmatter.mjs';
 import { parseDelta, mergeDelta } from '../lib/delta.mjs';
+import { parseConfig } from '../lib/config.mjs';
 import { mergeHookSettings } from '../lib/settings-merge.mjs';
 import { buildReport, renderReport } from '../lib/observe.mjs';
+import { parseManifest, renderManifest, computeStale, containedIn, PRUNE_BLAST_CAP } from '../lib/manifest.mjs';
 import { validateAll, formatIssues, listChangeDirs } from '../lib/validate.mjs';
 
 const PKG_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PAYLOAD = path.join(PKG_ROOT, 'payload');
+const MARKER = '<!-- sdlc:start -->';
 
 export const TOOLS = Object.freeze([
   'claude', 'cursor', 'windsurf', 'copilot', 'cline', 'gemini', 'agents-md',
 ]);
 
-const TEXT_EXT = new Set(['.md', '.mjs', '.json', '.yaml', '.yml', '.txt']);
+const TEXT_EXT = new Set(['.md', '.mdc', '.mjs', '.json', '.yaml', '.yml', '.txt']);
 
 // ---------- small pure helpers ----------
 
@@ -40,7 +43,7 @@ export function sha256(content) {
 }
 
 export function parseArgs(argv) {
-  const args = { _: [], tool: null, strict: false, force: false, help: false };
+  const args = { _: [], tool: null, strict: false, force: false, json: false, help: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--tool') args.tool = (argv[++i] ?? '').split(',').map((s) => s.trim()).filter(Boolean);
@@ -54,7 +57,9 @@ export function parseArgs(argv) {
   return args;
 }
 
-// ---------- file ops (manifest-aware) ----------
+// ---------- payload-owned file installation (ownership semantics) ----------
+// install mode: missing → write · byte-equal → claim · different → user's, keep.
+// update mode:  additionally, disk == old manifest hash (ours, unmodified) → refresh.
 
 function writeFileNormalized(dest, content) {
   const ext = path.extname(dest);
@@ -64,36 +69,142 @@ function writeFileNormalized(dest, content) {
   return out;
 }
 
-// Copy a payload tree into the target. Existing byte-different files are the
-// user's and are never overwritten unless `overwrite` (update mode).
-export function copyTree(srcDir, destDir, { overwrite = false, manifest = null, projectRoot = null } = {}) {
+export function installFile(projectRoot, destRel, content, ctx) {
+  const relPosix = toPosix(destRel);
+  const dest = path.join(projectRoot, destRel);
+  const next = normalizeEol(content);
+  const nextHash = sha256(next);
+
+  if (!fs.existsSync(dest)) {
+    writeFileNormalized(dest, next);
+    ctx.manifest.set(relPosix, nextHash);
+    return 'written';
+  }
+  const current = normalizeEol(fs.readFileSync(dest, 'utf8'));
+  const currentHash = sha256(current);
+  if (currentHash === nextHash) {
+    ctx.manifest.set(relPosix, nextHash);
+    return 'current';
+  }
+  if (ctx.mode === 'update' && ctx.oldManifest?.get(relPosix) === currentHash) {
+    writeFileNormalized(dest, next);
+    ctx.manifest.set(relPosix, nextHash);
+    return 'updated';
+  }
+  ctx.warnings.push(`kept (user-modified): ${relPosix}`);
+  return 'kept';
+}
+
+function copyTree(srcDir, destDirRel, projectRoot, ctx) {
   if (!fs.existsSync(srcDir)) return;
   for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
     const src = path.join(srcDir, entry.name);
-    const dest = path.join(destDir, entry.name);
-    if (entry.isDirectory()) {
-      copyTree(src, dest, { overwrite, manifest, projectRoot });
-      continue;
-    }
-    const content = normalizeEol(fs.readFileSync(src, 'utf8'));
-    const exists = fs.existsSync(dest);
-    if (exists && !overwrite) {
-      const current = normalizeEol(fs.readFileSync(dest, 'utf8'));
-      if (current !== content) continue; // user-owned, leave alone
-    }
-    const written = writeFileNormalized(dest, content);
-    if (manifest && projectRoot) {
-      manifest.set(toPosix(path.relative(projectRoot, dest)), sha256(written));
-    }
+    const destRel = path.join(destDirRel, entry.name);
+    if (entry.isDirectory()) copyTree(src, destRel, projectRoot, ctx);
+    else installFile(projectRoot, destRel, fs.readFileSync(src, 'utf8'), ctx);
   }
 }
 
-export function writeManifest(projectRoot, manifest) {
+function payloadText(rel) {
+  return normalizeEol(fs.readFileSync(path.join(PAYLOAD, rel), 'utf8'));
+}
+
+// ---------- adapters ----------
+
+function renderAdapter(templateRel) {
+  return payloadText(templateRel).replace('{{RULES_CARD}}', payloadText('playbook/rules-card.md').trim());
+}
+
+// Marker adapters live inside user-owned files: append once, never rewrite.
+function appendWithMarker(projectRoot, destRel, content) {
+  const dest = path.join(projectRoot, destRel);
+  if (fs.existsSync(dest)) {
+    const current = fs.readFileSync(dest, 'utf8');
+    if (current.includes(MARKER)) return 'present';
+    const sep = current.endsWith('\n') ? '\n' : '\n\n';
+    fs.writeFileSync(dest, current + sep + normalizeEol(content));
+    return 'appended';
+  }
+  writeFileNormalized(dest, content);
+  return 'written';
+}
+
+export function installClaudeHooks(projectRoot) {
+  const settingsPath = path.join(projectRoot, '.claude', 'settings.json');
+  let current = {};
+  if (fs.existsSync(settingsPath)) {
+    try {
+      current = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    } catch {
+      throw new Error('.claude/settings.json is not valid JSON — fix it, then re-run init');
+    }
+  }
+  const merged = mergeHookSettings(current);
+  fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+  fs.writeFileSync(settingsPath, JSON.stringify(merged, null, 2) + '\n');
+}
+
+function installToolAdapters(projectRoot, tools, ctx) {
+  if (tools.includes('claude')) {
+    copyTree(path.join(PAYLOAD, 'adapters/claude/commands'), path.join('.claude', 'commands'), projectRoot, ctx);
+    copyTree(path.join(PAYLOAD, 'adapters/claude/skills'), path.join('.claude', 'skills'), projectRoot, ctx);
+    copyTree(path.join(PAYLOAD, 'adapters/claude/agents'), path.join('.claude', 'agents'), projectRoot, ctx);
+    installClaudeHooks(projectRoot);
+  }
+  if (tools.includes('cursor')) {
+    installFile(projectRoot, path.join('.cursor', 'rules', 'sdlc.mdc'), renderAdapter('adapters/cursor.mdc'), ctx);
+  }
+  if (tools.includes('windsurf')) {
+    installFile(projectRoot, path.join('.windsurf', 'rules', 'sdlc.md'), renderAdapter('adapters/windsurf.md'), ctx);
+  }
+  if (tools.includes('copilot')) {
+    appendWithMarker(projectRoot, path.join('.github', 'copilot-instructions.md'), renderAdapter('adapters/copilot.md'));
+  }
+  if (tools.includes('cline')) {
+    appendWithMarker(projectRoot, '.clinerules', renderAdapter('adapters/cline.md'));
+  }
+  if (tools.includes('gemini')) {
+    appendWithMarker(projectRoot, 'GEMINI.md', renderAdapter('adapters/gemini.md'));
+  }
+  if (tools.includes('agents-md')) {
+    appendWithMarker(projectRoot, 'AGENTS.md', renderAdapter('adapters/agents-md.md'));
+  }
+}
+
+// ---------- scaffold ----------
+
+function scaffoldSdlc(projectRoot, tools, ctx) {
+  const sdlcRoot = path.join(projectRoot, 'sdlc');
+  for (const dir of ['context/steering', 'specs', 'changes/archive', 'evals', '.state']) {
+    fs.mkdirSync(path.join(sdlcRoot, dir), { recursive: true });
+  }
+
+  // Seeds are user-owned from birth: created once, never manifested/overwritten.
+  const seed = (rel, templateName, transform = (s) => s) => {
+    const dest = path.join(sdlcRoot, rel);
+    if (fs.existsSync(dest)) return;
+    writeFileNormalized(dest, transform(payloadText(`templates/${templateName}`)));
+  };
+  seed('config.yaml', 'config.yaml', (s) => s.replace('tools: []', `tools: [${tools.join(', ')}]`));
+  seed('context/constitution.md', 'constitution.md');
+  seed('harness.md', 'harness.md');
+
+  // Payload-owned trees (manifested, refreshed by `update`).
+  copyTree(path.join(PAYLOAD, 'playbook'), path.join('sdlc', '.playbook'), projectRoot, ctx);
+  copyTree(path.join(PAYLOAD, 'templates'), path.join('sdlc', '.playbook', 'templates'), projectRoot, ctx);
+  copyTree(path.join(PAYLOAD, 'hooks'), path.join('sdlc', '.hooks'), projectRoot, ctx);
+  copyTree(path.join(PKG_ROOT, 'lib'), path.join('sdlc', '.hooks', 'lib'), projectRoot, ctx);
+}
+
+export function writeManifestFile(projectRoot, manifest) {
   const statePath = path.join(projectRoot, 'sdlc', '.state');
   fs.mkdirSync(statePath, { recursive: true });
-  const lines = ['# @warnyin/sdlc manifest — sha256  path (posix, relative to project root)'];
-  for (const [p, hash] of [...manifest.entries()].sort()) lines.push(`${hash}  ${p}`);
-  fs.writeFileSync(path.join(statePath, 'manifest'), lines.join('\n') + '\n');
+  fs.writeFileSync(path.join(statePath, 'manifest'), renderManifest(manifest));
+}
+
+export function readManifestFile(projectRoot) {
+  const p = path.join(projectRoot, 'sdlc', '.state', 'manifest');
+  return fs.existsSync(p) ? parseManifest(fs.readFileSync(p, 'utf8')) : new Map();
 }
 
 export function ensureGitignore(projectRoot) {
@@ -126,66 +237,61 @@ export async function resolveTools(args, { interactive = process.stdin.isTTY && 
   return picked;
 }
 
-function scaffoldSdlc(projectRoot, tools, manifest) {
-  const sdlcRoot = path.join(projectRoot, 'sdlc');
-  for (const dir of ['context/steering', 'specs', 'changes/archive', 'evals', '.state']) {
-    fs.mkdirSync(path.join(sdlcRoot, dir), { recursive: true });
-  }
-
-  const seed = (rel, templateName, transform = (s) => s) => {
-    const dest = path.join(sdlcRoot, rel);
-    if (fs.existsSync(dest)) return;
-    const tpl = fs.readFileSync(path.join(PAYLOAD, 'templates', templateName), 'utf8');
-    writeFileNormalized(dest, transform(tpl));
-  };
-
-  seed('config.yaml', 'config.yaml', (s) => s.replace('tools: []', `tools: [${tools.join(', ')}]`));
-  seed('context/constitution.md', 'constitution.md');
-  seed('harness.md', 'harness.md');
-
-  // Playbook + hook scripts are payload-owned (manifest-tracked, refreshed by `update`).
-  // lib/ is mirrored next to the hooks so they share the CLI's exact validator logic.
-  copyTree(path.join(PAYLOAD, 'playbook'), path.join(sdlcRoot, '.playbook'), { manifest, projectRoot });
-  copyTree(path.join(PAYLOAD, 'hooks'), path.join(sdlcRoot, '.hooks'), { manifest, projectRoot });
-  copyTree(path.join(PKG_ROOT, 'lib'), path.join(sdlcRoot, '.hooks', 'lib'), { manifest, projectRoot });
-}
-
-export function installClaudeHooks(projectRoot) {
-  const settingsPath = path.join(projectRoot, '.claude', 'settings.json');
-  let current = {};
-  if (fs.existsSync(settingsPath)) {
-    try {
-      current = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-    } catch {
-      throw new Error(`.claude/settings.json is not valid JSON — fix it, then re-run init`);
-    }
-  }
-  const merged = mergeHookSettings(current);
-  fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
-  fs.writeFileSync(settingsPath, JSON.stringify(merged, null, 2) + '\n');
-}
-
-function installClaudeAdapter(projectRoot, manifest) {
-  const src = path.join(PAYLOAD, 'adapters', 'claude');
-  copyTree(path.join(src, 'commands'), path.join(projectRoot, '.claude', 'commands'), { manifest, projectRoot });
-  copyTree(path.join(src, 'skills'), path.join(projectRoot, '.claude', 'skills'), { manifest, projectRoot });
-  copyTree(path.join(src, 'agents'), path.join(projectRoot, '.claude', 'agents'), { manifest, projectRoot });
-}
-
 export async function cmdInit(projectRoot, args) {
   const tools = await resolveTools(args);
-  const manifest = new Map();
-  scaffoldSdlc(projectRoot, tools, manifest);
-  if (tools.includes('claude')) {
-    installClaudeAdapter(projectRoot, manifest);
-    installClaudeHooks(projectRoot);
-  }
-  // Other tool adapters land in M5; record the selection now.
-  writeManifest(projectRoot, manifest);
+  const ctx = { mode: 'install', manifest: new Map(), oldManifest: readManifestFile(projectRoot), warnings: [] };
+  scaffoldSdlc(projectRoot, tools, ctx);
+  installToolAdapters(projectRoot, tools, ctx);
+  writeManifestFile(projectRoot, ctx.manifest);
   ensureGitignore(projectRoot);
+  for (const w of ctx.warnings) console.warn(`  ${w}`);
   console.log(`sdlc/ initialized for: ${tools.join(', ')}`);
   console.log('Next: open your coding agent and run /sdlc:init to write your constitution and harness.');
   return { tools };
+}
+
+// ---------- update + prune ----------
+
+export function cmdUpdate(projectRoot, args) {
+  const sdlcRoot = path.join(projectRoot, 'sdlc');
+  requireSdlc(sdlcRoot);
+  const config = parseConfig(fs.readFileSync(path.join(sdlcRoot, 'config.yaml'), 'utf8'));
+  const tools = args.tool?.length ? args.tool : (config.tools.length ? config.tools : ['claude']);
+
+  const oldManifest = readManifestFile(projectRoot);
+  const ctx = { mode: 'update', manifest: new Map(), oldManifest, warnings: [] };
+  scaffoldSdlc(projectRoot, tools, ctx);
+  installToolAdapters(projectRoot, tools, ctx);
+
+  // Prune: old-manifest entries no longer in the payload, guarded six ways.
+  const { stale, rejected, overCap } = computeStale(oldManifest, new Set(ctx.manifest.keys()));
+  for (const r of rejected) ctx.warnings.push(`prune rejected: ${r.path} (${r.reason})`);
+  let pruned = 0;
+  if (overCap && !args.force) {
+    ctx.warnings.push(`prune skipped: ${stale.length} stale files exceed the blast cap (${PRUNE_BLAST_CAP}) — re-run with --force after reviewing`);
+  } else {
+    const realRoot = fs.realpathSync.native(projectRoot);
+    for (const { path: relPath, hash } of stale) {
+      const abs = path.join(projectRoot, relPath);
+      if (!fs.existsSync(abs)) continue;
+      const diskHash = sha256(normalizeEol(fs.readFileSync(abs, 'utf8')));
+      if (diskHash !== hash) { ctx.warnings.push(`prune kept (modified): ${relPath}`); continue; }
+      const realAbs = fs.realpathSync.native(abs);
+      if (!containedIn(realRoot, realAbs)) { ctx.warnings.push(`prune rejected: ${relPath} (escapes project)`); continue; }
+      fs.rmSync(abs);
+      pruned++;
+      let dir = path.dirname(abs);
+      while (containedIn(realRoot, dir)) {
+        try { fs.rmdirSync(dir); } catch { break; }
+        dir = path.dirname(dir);
+      }
+    }
+  }
+
+  writeManifestFile(projectRoot, ctx.manifest);
+  for (const w of ctx.warnings) console.warn(`  ${w}`);
+  console.log(`updated for: ${tools.join(', ')} · payload files: ${ctx.manifest.size} · pruned: ${pruned}`);
+  return { pruned, warnings: ctx.warnings };
 }
 
 // ---------- status ----------
@@ -219,6 +325,16 @@ export function cmdStatus(projectRoot, { json = false } = {}) {
     console.log(`${changes.length} active · ${archived} archived`);
   }
   return { changes, archived };
+}
+
+// ---------- observe ----------
+
+export function cmdObserve(projectRoot, { json = false } = {}) {
+  const sdlcRoot = path.join(projectRoot, 'sdlc');
+  requireSdlc(sdlcRoot);
+  const report = buildReport(sdlcRoot);
+  console.log(json ? JSON.stringify(report, null, 2) : renderReport(report));
+  return report;
 }
 
 // ---------- archive (= mechanical part of ship) ----------
@@ -284,16 +400,6 @@ export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
   return { archived: `${date}-${changeId}`, specs: merged.map((m) => m.capability) };
 }
 
-// ---------- observe ----------
-
-export function cmdObserve(projectRoot, { json = false } = {}) {
-  const sdlcRoot = path.join(projectRoot, 'sdlc');
-  requireSdlc(sdlcRoot);
-  const report = buildReport(sdlcRoot);
-  console.log(json ? JSON.stringify(report, null, 2) : renderReport(report));
-  return report;
-}
-
 // ---------- shared ----------
 
 function requireSdlc(sdlcRoot) {
@@ -314,6 +420,7 @@ const HELP = `@warnyin/sdlc — spec-driven AI-SDLC framework
 usage: warnyin-sdlc <command> [options]
 
   init [--tool claude,cursor,...]   scaffold sdlc/ + adapters + hooks into this project
+  update [--tool ...] [--force]     refresh payload-owned files, prune stale ones (guarded)
   validate [id] [--strict]          structural validation (caps, delta grammar, gates)
   status [--json]                   list active changes and their stage
   observe [--json]                  tokens/cost per change, residency, steering hits, drift flags
@@ -327,6 +434,7 @@ export async function main(argv = process.argv.slice(2), projectRoot = process.c
   if (args.help || !cmd || cmd === 'help') { console.log(HELP); return; }
   try {
     if (cmd === 'init') await cmdInit(projectRoot, args);
+    else if (cmd === 'update') cmdUpdate(projectRoot, args);
     else if (cmd === 'validate') runValidate(projectRoot, args);
     else if (cmd === 'status') cmdStatus(projectRoot, { json: args.json });
     else if (cmd === 'observe') cmdObserve(projectRoot, { json: args.json });

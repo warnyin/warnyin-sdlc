@@ -1,0 +1,7 @@
+---
+description: Warnyin SDLC workflow rules (spec-driven, contract-first)
+alwaysApply: true
+---
+Stage playbooks: `sdlc/.playbook/` (start at README.md) — read the stage playbook before acting.
+
+{{RULES_CARD}}
