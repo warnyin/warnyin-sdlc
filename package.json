@@ -16,7 +16,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "node --test \"tests/*.test.mjs\"",
+    "test": "node --test",
     "setup:dogfood": "node bin/cli.mjs init --tool claude && node bin/cli.mjs update"
   },
   "engines": {
