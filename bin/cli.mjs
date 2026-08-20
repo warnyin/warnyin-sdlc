@@ -437,6 +437,11 @@ export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
   // while reporting failure.
   const date = new Date().toISOString().slice(0, 10);
   const destDir = path.join(sdlcRoot, 'changes', 'archive', `${date}-${changeId}`);
+  // `init` scaffolds changes/archive/, but git does not track empty directories:
+  // it is absent for anyone who cloned before the first change shipped. Prepare
+  // it here, with the other destination checks, so a bad archive path fails
+  // while the specs are still untouched instead of ENOENT-ing at the rename.
+  fs.mkdirSync(path.dirname(destDir), { recursive: true });
   if (fs.existsSync(destDir)) {
     throw new Error(`archive target already exists: ${toPosix(path.relative(projectRoot, destDir))} — nothing was merged`);
   }
