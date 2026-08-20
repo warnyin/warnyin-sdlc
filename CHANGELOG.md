@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.3.0 (2026-08-21)
+
+- **`/sdlc:auto` resumes an open change** instead of always starting at `new`. It
+  resolves its entry stage from `sdlc status` first: an argument naming an active
+  change maps that change's status to the entry stage and the pipeline starts
+  there, keeping the tier, Delta and Assumptions it was already triaged with. Only
+  an argument matching no active change starts at `new`. The entry stage is stated
+  in the plan line, so a resume is never silent. The status → stage table stays in
+  `next.md` alone rather than being copied into a second place that can drift.
+- **Fix (ownership)**: `installFile` dropped a file's manifest entry whenever it
+  kept the file. The next run then saw a path it had never installed, which
+  permanently disarmed `update`'s refresh branch — the file froze at its old
+  payload version and every later run relabelled it user-modified. That affects
+  anyone who re-runs `init` to upgrade before `update`. A kept file now carries
+  its recorded hash forward; prune is unaffected (its guard compares the file on
+  disk against that same hash) and in fact strictly safer, since a kept file is no
+  longer even a prune candidate.
+- A file whose content still matches its recorded hash is reported as
+  `kept (ours, older version — run update to refresh)` instead of
+  `kept (user-modified)`, which sent people hunting for an edit they never made.
+
 ## 0.2.2 (2026-08-20)
 
 - `init` (and `update`) now drop a `.gitkeep` in `sdlc/changes/archive/`, so the
