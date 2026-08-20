@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.2 (2026-08-20)
+
+- `init` (and `update`) now drop a `.gitkeep` in `sdlc/changes/archive/`, so the
+  directory survives a commit and is still there after a clone. 0.2.1 made
+  `archive` recover from the missing directory; this stops it going missing.
+  The marker is not payload-owned — prune never reclaims it and the installer
+  never warns about it.
+
 ## 0.2.1 (2026-08-20)
 
 - **Fix**: `archive` failed with `ENOENT` on the first change a repo ever ships.
