@@ -30,6 +30,7 @@ Then in your coding agent:
 ```
 /sdlc:init                      # interview → constitution + harness (the one human gate)
 /sdlc:auto Add rate limiting    # AI runs new → contract → build → verify → ship
+/sdlc:auto add-rate-limiting    # already opened it with /sdlc:new? auto resumes from there
 ```
 
 ## How it works

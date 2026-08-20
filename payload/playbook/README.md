@@ -9,7 +9,7 @@ new → [design] → contract → build → verify → [review] → ship
 | Command | Day-1 phase | Reads | Writes | Gate (automatic unless noted) |
 |---|---|---|---|---|
 | /sdlc:init | Configure harness | interview | constitution, harness.md | human approves (once) |
-| /sdlc:auto | whole loop | — | everything below | escalation only |
+| /sdlc:auto | whole loop | status (resumes an open change) | everything below | escalation only |
 | /sdlc:new | Requirements | specs Purpose headers | change.md | validator: delta + assumptions |
 | /sdlc:design | Architecture | change + touched specs | change.md § Design | escalate irreversible only |
 | /sdlc:contract | Contract-first | change.md | contract/*, failing tests | adversarial panel + validator |

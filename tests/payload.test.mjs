@@ -71,3 +71,27 @@ test('agents declare model + tools frontmatter; reviewers are read-only', () => 
     }
   }
 });
+
+test('auto resumes from live state and defers the status mapping to next.md', () => {
+  const playbookDir = path.join(PKG_ROOT, 'payload/playbook');
+  const auto = fs.readFileSync(path.join(playbookDir, 'auto.md'), 'utf8');
+  const next = fs.readFileSync(path.join(playbookDir, 'next.md'), 'utf8');
+
+  // auto must consult live state before assuming a change has to be opened.
+  assert.match(auto, /sdlc status/, 'auto must read status before choosing an entry stage');
+  assert.match(auto, /RESUME/, 'auto must name the resume path explicitly');
+  assert.match(auto, /never rewrites an existing `change\.md`/,
+    'a resumed change keeps the tier and Delta it was triaged with');
+
+  // Single source of truth: the status -> stage table lives in next.md only.
+  assert.match(auto, /`next\.md` §2/, 'auto must defer to next.md for the mapping');
+  assert.ok(/^2\. For each active change map status/m.test(next),
+    'next.md §2 must still be the status -> command mapping auto points at');
+  assert.doesNotMatch(auto, /`contracted` →/, 'the mapping must not be duplicated into auto.md');
+});
+
+test('the auto command stub advertises that it takes a change id too', () => {
+  const stub = fs.readFileSync(
+    path.join(PKG_ROOT, 'payload/adapters/claude/commands/sdlc/auto.md'), 'utf8');
+  assert.match(stub, /argument-hint: "<title\|change-id>"/);
+});
