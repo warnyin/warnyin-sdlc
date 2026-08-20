@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.1 (2026-08-20)
+
+- **Fix**: `archive` failed with `ENOENT` on the first change a repo ever ships.
+  `init` scaffolds `sdlc/changes/archive/`, but git does not track empty
+  directories, so the folder is absent for everyone who clones before that first
+  ship. The rename is now preceded by a `mkdir -p` of the archive root.
+
+  The failure landed mid-phase-2, after the delta had been merged into the living
+  specs, evals promoted, `status: shipped` stamped and the ship event journalled —
+  a repo left half-shipped while the CLI reported total failure. The directory is
+  now prepared next to the other destination checks, before phase 1 computes a
+  single merge, so an unusable archive path aborts with the specs untouched.
+
 ## 0.2.0 (2026-08-20)
 
 `init` is now an installer you can actually see working — still zero dependencies.
