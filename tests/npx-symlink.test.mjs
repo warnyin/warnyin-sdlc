@@ -18,6 +18,6 @@ test('CLI still works when invoked through a symlink (npx .bin path)', (t) => {
     cwd: dir, encoding: 'utf8',
   });
   assert.equal(res.status, 0, res.stderr);
-  assert.match(res.stdout, /sdlc\/ initialized for: claude/);
+  assert.match(res.stdout, /SDLC Setup Complete/);
   assert.ok(fs.existsSync(path.join(dir, 'sdlc/config.yaml')));
 });

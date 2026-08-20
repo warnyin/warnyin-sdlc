@@ -7,7 +7,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import process from 'node:process';
-import readline from 'node:readline';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { parseFrontmatter } from '../lib/frontmatter.mjs';
@@ -17,6 +16,9 @@ import { mergeHookSettings } from '../lib/settings-merge.mjs';
 import { buildReport, renderReport } from '../lib/observe.mjs';
 import { parseManifest, renderManifest, computeStale, containedIn, hasSymlinkSegment, PRUNE_BLAST_CAP } from '../lib/manifest.mjs';
 import { validateAll, formatIssues, listChangeDirs } from '../lib/validate.mjs';
+import { detectTools, toolName } from './detect.mjs';
+import { colorEnabled, createStyle, symbolsFor, summarizeInstall, startHints } from './ui.mjs';
+import { multiSelect } from './multiselect.mjs';
 
 const PKG_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PAYLOAD = path.join(PKG_ROOT, 'payload');
@@ -43,10 +45,13 @@ export function sha256(content) {
 }
 
 export function parseArgs(argv) {
-  const args = { _: [], tool: null, strict: false, force: false, json: false, help: false };
+  const args = { _: [], tool: null, toolProvided: false, strict: false, force: false, json: false, help: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--tool') args.tool = (argv[++i] ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+    if (a === '--tool' || a === '--tools') {
+      args.toolProvided = true;
+      args.tool = (argv[++i] ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+    }
     else if (a === '--strict') args.strict = true;
     else if (a === '--force') args.force = true;
     else if (a === '--json') args.json = true;
@@ -69,6 +74,11 @@ function writeFileNormalized(dest, content) {
   return out;
 }
 
+function tally(ctx, outcome) {
+  if (ctx.stats) ctx.stats[outcome] = (ctx.stats[outcome] ?? 0) + 1;
+  return outcome;
+}
+
 export function installFile(projectRoot, destRel, content, ctx) {
   const relPosix = toPosix(destRel);
   const dest = path.join(projectRoot, destRel);
@@ -78,21 +88,21 @@ export function installFile(projectRoot, destRel, content, ctx) {
   if (!fs.existsSync(dest)) {
     writeFileNormalized(dest, next);
     ctx.manifest.set(relPosix, nextHash);
-    return 'written';
+    return tally(ctx, 'written');
   }
   const current = normalizeEol(fs.readFileSync(dest, 'utf8'));
   const currentHash = sha256(current);
   if (currentHash === nextHash) {
     ctx.manifest.set(relPosix, nextHash);
-    return 'current';
+    return tally(ctx, 'current');
   }
   if (ctx.mode === 'update' && ctx.oldManifest?.get(relPosix) === currentHash) {
     writeFileNormalized(dest, next);
     ctx.manifest.set(relPosix, nextHash);
-    return 'updated';
+    return tally(ctx, 'updated');
   }
   ctx.warnings.push(`kept (user-modified): ${relPosix}`);
-  return 'kept';
+  return tally(ctx, 'kept');
 }
 
 function copyTree(srcDir, destDirRel, projectRoot, ctx) {
@@ -218,35 +228,88 @@ export function ensureGitignore(projectRoot) {
 
 // ---------- init ----------
 
-export async function resolveTools(args, { interactive = process.stdin.isTTY && process.stdout.isTTY } = {}) {
-  if (args.tool?.length) {
-    const bad = args.tool.filter((t) => !TOOLS.includes(t));
-    if (bad.length) throw new Error(`unknown tool(s): ${bad.join(', ')} — valid: ${TOOLS.join(', ')}`);
-    return args.tool;
+// `all` / `none` are reserved words, never combinable with a list — mixing
+// them would leave the caller guessing which one won.
+export function resolveToolList(picked) {
+  const reserved = picked.filter((t) => t === 'all' || t === 'none');
+  if (reserved.length && picked.length > 1) {
+    throw new Error(`"${reserved[0]}" cannot be combined with other tools`);
   }
-  if (!interactive) return ['claude'];
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  const answer = await new Promise((resolve) => {
-    rl.question(`Tools to set up [${TOOLS.join(', ')}] (comma-separated, default: claude): `, resolve);
-  });
-  rl.close();
-  const picked = answer.split(',').map((s) => s.trim()).filter(Boolean);
-  if (!picked.length) return ['claude'];
+  if (picked[0] === 'all') return [...TOOLS];
+  if (picked[0] === 'none') return [];
+  if (!picked.length) throw new Error(`--tool requires a value: all, none, or any of ${TOOLS.join(', ')}`);
   const bad = picked.filter((t) => !TOOLS.includes(t));
-  if (bad.length) throw new Error(`unknown tool(s): ${bad.join(', ')}`);
+  if (bad.length) throw new Error(`unknown tool(s): ${bad.join(', ')} — valid: ${TOOLS.join(', ')}, all, none`);
+  return [...new Set(picked)];
+}
+
+export async function resolveTools(args, {
+  interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY),
+  projectRoot = process.cwd(),
+  style = createStyle(false),
+} = {}) {
+  if (args.toolProvided) return resolveToolList(args.tool ?? []);
+  if (!interactive) return ['claude'];
+
+  const detected = detectTools(projectRoot);
+  if (detected.length) {
+    console.log(style.dim(`Detected in this project: ${detected.map(toolName).join(', ')} (pre-selected)`));
+  }
+  const choices = TOOLS.map((tool) => ({
+    value: tool,
+    name: toolName(tool),
+    note: detected.includes(tool) ? 'detected' : '',
+    // First-time setup with nothing detected still needs a sane default.
+    preSelected: detected.length ? detected.includes(tool) : tool === 'claude',
+  }));
+  const picked = await multiSelect({ choices, style, symbols: symbolsFor() });
+  if (picked === null) throw new Error('cancelled — nothing was installed');
   return picked;
 }
 
+function printInitSummary(tools, ctx, style, symbols, { configExisted }) {
+  const s = summarizeInstall(ctx.manifest.keys(), tools);
+  const stats = ctx.stats;
+  const line = (text) => console.log(`  ${text}`);
+
+  console.log('');
+  console.log(`  ${style.green(symbols.tick)} ${style.bold('SDLC Setup Complete')}`);
+  console.log('');
+  line(`Tools: ${tools.length ? tools.map(toolName).join(', ') : style.dim('none (framework only)')}`);
+  if (s.commands || s.skills || s.agents) {
+    line(`${s.commands} commands, ${s.skills} skills and ${s.agents} agents in .claude/`);
+  }
+  for (const a of s.adapters.filter((a) => a.tool !== 'claude')) {
+    line(`Rules for ${toolName(a.tool)}: ${a.path}`);
+  }
+  line(`${s.hooks} hooks in sdlc/.hooks/`);
+  line(`Playbook: sdlc/.playbook/ (${s.playbook} stages + ${s.templates} templates)`);
+  line(`Config: sdlc/config.yaml${configExisted ? ' (kept)' : ''}`);
+  line(style.dim(`Files: ${stats.written} written · ${stats.current} unchanged · ${stats.updated} refreshed · ${stats.kept} kept (yours)`));
+  console.log('');
+  console.log(`  ${style.bold('Getting started:')}`);
+  startHints(tools).forEach((hint, i) => line(`  ${i + 1}. ${hint}`));
+  console.log('');
+}
+
 export async function cmdInit(projectRoot, args) {
-  const tools = await resolveTools(args);
-  const ctx = { mode: 'install', manifest: new Map(), oldManifest: readManifestFile(projectRoot), warnings: [] };
+  const style = createStyle(colorEnabled());
+  const symbols = symbolsFor();
+  const tools = await resolveTools(args, { projectRoot, style });
+  const configExisted = fs.existsSync(path.join(projectRoot, 'sdlc', 'config.yaml'));
+  const ctx = {
+    mode: 'install',
+    manifest: new Map(),
+    oldManifest: readManifestFile(projectRoot),
+    warnings: [],
+    stats: { written: 0, current: 0, updated: 0, kept: 0 },
+  };
   scaffoldSdlc(projectRoot, tools, ctx);
   installToolAdapters(projectRoot, tools, ctx);
   writeManifestFile(projectRoot, ctx.manifest);
   ensureGitignore(projectRoot);
-  for (const w of ctx.warnings) console.warn(`  ${w}`);
-  console.log(`sdlc/ initialized for: ${tools.join(', ')}`);
-  console.log('Next: open your coding agent and run /sdlc:init to write your constitution and harness.');
+  for (const w of ctx.warnings) console.warn(`  ${style.yellow(symbols.warn)} ${w}`);
+  printInitSummary(tools, ctx, style, symbols, { configExisted });
   return { tools };
 }
 
@@ -255,12 +318,17 @@ export async function cmdInit(projectRoot, args) {
 export function cmdUpdate(projectRoot, args) {
   const sdlcRoot = path.join(projectRoot, 'sdlc');
   requireSdlc(sdlcRoot);
-  const config = parseConfig(fs.readFileSync(path.join(sdlcRoot, 'config.yaml'), 'utf8'));
-  const tools = args.tool?.length ? args.tool : (config.tools.length ? config.tools : ['claude']);
+  const configRaw = fs.readFileSync(path.join(sdlcRoot, 'config.yaml'), 'utf8');
+  const config = parseConfig(configRaw);
+  // An explicit `tools: []` (from `init --tool none`) is a decision, not a gap:
+  // only a config that never declared the key at all falls back to claude.
+  const tools = args.toolProvided
+    ? resolveToolList(args.tool ?? [])
+    : (/^tools:/m.test(configRaw) ? config.tools : ['claude']);
 
   // Persist an explicit --tool override so declared and installed state never
   // diverge (otherwise pruning tool-specific files leaves config.yaml stale).
-  if (args.tool?.length) {
+  if (args.toolProvided) {
     const configPath = path.join(sdlcRoot, 'config.yaml');
     const raw = fs.readFileSync(configPath, 'utf8');
     fs.writeFileSync(configPath, raw.replace(/^tools:.*$/m, `tools: [${tools.join(', ')}]`));
@@ -438,7 +506,7 @@ const HELP = `@warnyin/sdlc — spec-driven AI-SDLC framework
 
 usage: warnyin-sdlc <command> [options]
 
-  init [--tool claude,cursor,...]   scaffold sdlc/ + adapters + hooks into this project
+  init [--tool all|none|a,b]      scaffold sdlc/ + adapters + hooks (interactive picker when omitted)
   update [--tool ...] [--force]     refresh payload-owned files, prune stale ones (guarded)
   validate [id] [--strict]          structural validation (caps, delta grammar, gates)
   status [--json]                   list active changes and their stage

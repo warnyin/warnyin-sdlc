@@ -35,7 +35,12 @@ covered by `files` in `package.json`.
 ### Three layers
 
 1. **`bin/cli.mjs`** — installer + lifecycle mechanics. Owns ownership semantics, scaffolding,
-   adapter rendering, and `archive`.
+   adapter rendering, and `archive`. Its terminal presentation lives in sibling CLI-only modules:
+   `bin/detect.mjs` (which tools a project already uses + where each adapter lands),
+   `bin/ui.mjs` (colour gating, glyphs, post-install summary), `bin/multiselect.mjs` (the
+   checkbox picker, written as a pure reducer plus a thin raw-mode loop so it is testable
+   without a TTY). **These must not move into `lib/`** — `lib/` is copied into user projects and
+   the hooks that import it never see a `node_modules/`.
 2. **`lib/*.mjs`** — pure-ish logic shared by three consumers: the CLI, `scripts/validate.mjs`,
    and the *installed* hooks. `lib/` is copied verbatim into `sdlc/.hooks/lib/` at install time,
    so **every `lib/` module must import only `node:*`** and must not assume repo-relative paths.

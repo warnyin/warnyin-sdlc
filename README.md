@@ -13,7 +13,16 @@ Kiro (steering + enforced hooks) — tuned for minimum context residency.
 
 ```bash
 cd your-project
-npx @warnyin/sdlc init          # pick tools: claude, cursor, windsurf, copilot, cline, gemini, agents-md
+npx @warnyin/sdlc init          # interactive picker; tools already in the project are pre-selected
+```
+
+The picker is a checkbox list — arrows move, `space` toggles, typing filters, `ctrl+a` selects
+everything on screen, `enter` confirms. Skip it in CI or scripts:
+
+```bash
+npx @warnyin/sdlc init --tool claude,cursor   # explicit list
+npx @warnyin/sdlc init --tool all             # every supported tool
+npx @warnyin/sdlc init --tool none            # sdlc/ framework only, no agent adapters
 ```
 
 Then in your coding agent:
@@ -49,7 +58,7 @@ sdlc/
 ## CLI
 
 ```
-warnyin-sdlc init [--tool ...]      scaffold + adapters + hooks
+warnyin-sdlc init [--tool all|none|a,b]   scaffold + adapters + hooks (picker when omitted)
 warnyin-sdlc update [--force]       refresh payload, guarded prune of stale files
 warnyin-sdlc validate [id] [--strict]
 warnyin-sdlc status | observe [--json]
