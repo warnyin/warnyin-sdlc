@@ -101,7 +101,20 @@ export function installFile(projectRoot, destRel, content, ctx) {
     ctx.manifest.set(relPosix, nextHash);
     return tally(ctx, 'updated');
   }
-  ctx.warnings.push(`kept (user-modified): ${relPosix}`);
+  // Keeping the content must not forget the ownership. Dropping the entry made
+  // the next run see a file we had never installed, which permanently disarmed
+  // update's refresh branch (disk hash === old manifest hash) — the file froze
+  // at its old payload version and every later run relabelled it user-modified.
+  // The recorded hash stays the one we last wrote, so prune's "disk must match
+  // the manifest" guard still refuses to touch a file the user really did edit.
+  const owned = ctx.oldManifest?.get(relPosix);
+  if (owned) ctx.manifest.set(relPosix, owned);
+  // Matching the recorded hash proves nobody touched it — `install` simply does
+  // not refresh. Calling that "user-modified" sent people hunting for an edit
+  // they never made.
+  ctx.warnings.push(owned === currentHash
+    ? `kept (ours, older version — run \`npx @warnyin/sdlc update\` to refresh): ${relPosix}`
+    : `kept (user-modified): ${relPosix}`);
   return tally(ctx, 'kept');
 }
 

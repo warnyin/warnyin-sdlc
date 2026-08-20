@@ -111,3 +111,61 @@ test('update: reads tools from config.yaml', (t) => {
   assert.equal(res.status, 0, res.stderr);
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/sdlc.mdc')), 'cursor adapter reinstalled from config tools');
 });
+
+// `npm run setup:dogfood` and any "re-run init to upgrade" habit is init-then-update.
+// A keep used to drop the file's manifest entry, which disarmed update's refresh
+// branch (`disk hash === old manifest hash`) permanently — the file froze at the
+// old payload version and every later update called it user-modified.
+test('init before update: a keep must not cost the file its ownership record', (t) => {
+  const dir = makeTempProject(t);
+  runCli(dir, ['init', '--tool', 'claude']);
+
+  const rel = 'sdlc/.playbook/new.md';
+  const abs = path.join(dir, rel);
+  const stale = fs.readFileSync(abs, 'utf8') + '\nSTALE PAYLOAD DRIFT\n';
+  fs.writeFileSync(abs, stale);
+  const manifestPath = path.join(dir, 'sdlc/.state/manifest');
+  const manifest = parseManifest(fs.readFileSync(manifestPath, 'utf8'));
+  manifest.set(rel, sha(stale)); // ours, unmodified — just an older payload version
+  fs.writeFileSync(manifestPath, [...manifest.entries()].map(([p, h]) => `${h}  ${p}`).join('\n') + '\n');
+
+  const initRes = runCli(dir, ['init', '--tool', 'claude']);
+  const afterInit = parseManifest(fs.readFileSync(manifestPath, 'utf8'));
+  assert.ok(afterInit.has(rel), 'init must carry the entry forward when it keeps a file');
+  assert.ok(initRes.stderr.includes(`kept (ours, older version`),
+    'a file matching its recorded hash was not edited by anyone — do not say it was');
+  assert.ok(!initRes.stderr.includes(`kept (user-modified): ${rel}`), initRes.stderr);
+
+  const res = runCli(dir, ['update']);
+  assert.equal(res.status, 0, res.stderr);
+  assert.ok(!fs.readFileSync(abs, 'utf8').includes('STALE PAYLOAD DRIFT'), 'update must still refresh it');
+});
+
+test('a kept user-modified file stays owned, so prune never even considers it stale', (t) => {
+  const dir = makeTempProject(t);
+  runCli(dir, ['init', '--tool', 'claude']);
+
+  const rel = 'sdlc/.playbook/principles.md';
+  fs.writeFileSync(path.join(dir, rel), '# my own principles\n');
+  const res = runCli(dir, ['update']);
+  assert.equal(res.status, 0, res.stderr);
+  assert.ok(res.stderr.includes(`kept (user-modified): ${rel}`), res.stderr);
+
+  const manifest = parseManifest(fs.readFileSync(path.join(dir, 'sdlc/.state/manifest'), 'utf8'));
+  assert.ok(manifest.has(rel), 'the file is still ours; only its content is theirs');
+  const { stale } = computeStale(manifest, new Set(manifest.keys()));
+  assert.deepEqual(stale, [], 'a kept file must never be a prune candidate');
+  assert.equal(fs.readFileSync(path.join(dir, rel), 'utf8'), '# my own principles\n');
+});
+
+test('a file that was never ours is not adopted into the manifest by a keep', (t) => {
+  const dir = makeTempProject(t);
+  // The user's own cursor rules file, written before sdlc ever ran here.
+  fs.mkdirSync(path.join(dir, '.cursor/rules'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.cursor/rules/sdlc.mdc'), '# mine, predating sdlc\n');
+
+  runCli(dir, ['init', '--tool', 'cursor']);
+  const manifest = parseManifest(fs.readFileSync(path.join(dir, 'sdlc/.state/manifest'), 'utf8'));
+  assert.ok(!manifest.has('.cursor/rules/sdlc.mdc'), 'never installed by us, never claimed');
+  assert.equal(fs.readFileSync(path.join(dir, '.cursor/rules/sdlc.mdc'), 'utf8'), '# mine, predating sdlc\n');
+});
