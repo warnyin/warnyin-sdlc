@@ -189,6 +189,12 @@ function scaffoldSdlc(projectRoot, tools, ctx) {
     fs.mkdirSync(path.join(sdlcRoot, dir), { recursive: true });
   }
 
+  // git does not track empty directories, so changes/archive/ vanishes for
+  // anyone who clones before the first change ships. Not manifested: an empty
+  // marker is nothing for prune to reclaim or for the installer to warn about.
+  const gitkeep = path.join(sdlcRoot, 'changes', 'archive', '.gitkeep');
+  if (!fs.existsSync(gitkeep)) fs.writeFileSync(gitkeep, '');
+
   // Seeds are user-owned from birth: created once, never manifested/overwritten.
   const seed = (rel, templateName, transform = (s) => s) => {
     const dest = path.join(sdlcRoot, rel);
