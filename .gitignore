@@ -8,3 +8,6 @@ sdlc/.state/
 sdlc/.playbook/
 sdlc/.hooks/
 .claude/
+
+# never commit a registry token
+.npmrc
