@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.5.2 (2026-08-25)
+
+- **Fix (delta)**: a `### MODIFIED Requirement:` body replaces the requirement wholesale,
+  so one that carried over only some of the spec's scenarios dropped the rest in silence —
+  no error, no warning, `spec merged` printed either way. Both shapes are now reported:
+  the scenario name gone from the replacement body, and the name surviving while WHEN/THEN
+  clauses it promised have no counterpart (the one a name-level comparison cannot see).
+  `archive` prints the report before it writes a byte and counts it in the summary;
+  `validate` reports the same at warn level, so the loss is visible while the change folder
+  is still readable rather than after ship archived it. A warning, never an error — removing
+  a scenario is sometimes the point of the change, and only the silence was ever the bug.
+  A reworded clause reports the same as a deleted one: nothing mechanical can tell "said
+  better" from "promises less". Cosmetic churn — indentation, bullet marker, clause order,
+  heading case, whitespace — is normalized away and never warns. (#1)
+
 ## 0.5.1 (2026-08-25)
 
 - **Fix (cost)**: `costUsd()` never charged cache-write tokens, the highest-rate of
