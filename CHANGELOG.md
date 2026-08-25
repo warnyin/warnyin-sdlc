@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.5.0 (2026-08-25)
+
+- **`--auto` on every pipeline stage.** `/sdlc:auto` already ran the whole pipeline,
+  but it stopped at every escalation — so you were pulled back in three or four times
+  per change and typed each stage anyway. Now all seven stage commands take `--auto`:
+  the run gathers what it needs, confirms once, and goes to ship. The confirmation is
+  decidable item by item — scope as understood, the tier and why, every ambiguity with
+  the assumption to be acted on, and each escalation as its own refusable line, the
+  ship row naming the hard-floor surface it covers instead of hiding behind a general
+  "run without me". Nothing is written before you confirm, down to the active-change
+  pointer, so declining leaves the repository untouched. The approval covers that run
+  only — not config, not the next change, not a resume. Anything outside what you
+  confirmed still stops and asks.
+- Escalations passed unattended are journalled, counted by `/sdlc:observe` as
+  `unattended×N`, and listed in the digest: the record shows where a human would
+  normally have stood and, that run, did not.
+- **Verify and review outcomes now record how they were produced** (`mode=panel|solo`).
+  A journal that says "verify passed" hides the thing a reader most needs later —
+  whether that verdict came from independent reviewers or from the same loop that
+  wrote the code. `observe` marks such changes `self-judged`, and the digest must name
+  self-produced outcomes. Absent provenance reads as unknown, never as `panel`, so
+  older journals are not retroactively dressed up as independently reviewed; where
+  provenance is mixed, the weakest link decides.
+- Where a panel cannot run, the playbooks now say to judge in the main loop and record
+  that — not to skip the stage. A review that never happened is worse than one
+  labelled honestly.
+- The constitution gains a hard rule: human-written text SHALL NOT reach a shell as an
+  argument. It is the defect that got past two separate gates in 0.4.0.
+
 ## 0.4.0 (2026-08-25)
 
 - **New stage command `/sdlc:feedback`** — reports a bug, a rough edge, or a missing
