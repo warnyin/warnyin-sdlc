@@ -11,6 +11,8 @@
 - Every behavior change SHALL update BOTH the payload source and its tests in the same change.
 - Caps SHALL change only in `lib/caps.mjs` + template comments together (caps-sync test).
 - The agent SHALL NOT add npm dependencies.
+- Human-written text SHALL NOT reach a shell as an argument — pass it on stdin, or
+  author a constrained substitute (see `feedback-channel`).
 
 ## Workflow
 - Changes flow: new → [design] → contract → build → verify → [review] → ship.

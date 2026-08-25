@@ -18,6 +18,9 @@ Precondition: `status: verified` (+ review passed when it ran).
 4. **Digest** — write `sdlc/changes/archive/<date>-<id>/digest.md` (≤15 lines):
    what shipped, spec deltas merged, assumptions made, verify rounds, tokens/cost
    (from journal `session` events), learner proposals awaiting the human.
+   When any verify or review note carries `mode=solo`, the digest SHALL say which
+   outcomes were self-produced. A reader months from now cannot otherwise tell a
+   panel's verdict from the author's own.
 5. Close the gate: `node sdlc/.hooks/journal.mjs close`. Tell the user in one
    line: shipped + where the digest is.
 
