@@ -6,6 +6,6 @@ tools: [claude]            # filled by `warnyin-sdlc init`
 # null. Sessions on a model with no entry here stay uncosted rather than guessed —
 # this project's journal records `claude-opus-5`, so add its rates to see cost.
 prices:
-  claude-sonnet-5: { input: 3, output: 15, cacheRead: 0.3 }
+  claude-sonnet-5: { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 }
 # Optional per-artifact cap overrides (see lib/caps.mjs for defaults).
 # caps: {}

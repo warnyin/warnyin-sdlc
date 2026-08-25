@@ -1,0 +1,6 @@
+{"ts":"2026-08-25T11:22:05.182Z","event":"escalation","condition":"preauth-granted","preauth":"yes"}
+{"ts":"2026-08-25T11:22:30.698Z","event":"contract","tests":"5","mode":"solo"}
+{"ts":"2026-08-25T11:23:25.469Z","event":"build","tasks":"3","mode":"solo"}
+{"ts":"2026-08-25T11:24:02.352Z","event":"verify","result":"pass","round":"1","mode":"solo"}
+{"ts":"2026-08-25T11:24:02.580Z","event":"gate","gate":"ship","action":"open","expires":"2026-08-25T11:54:02.579Z"}
+{"ts":"2026-08-25T11:24:02.658Z","event":"ship","change":"cost-cachewrite","specs":["cost-accounting"]}
