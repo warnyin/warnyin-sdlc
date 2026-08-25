@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseFrontmatter } from '../lib/frontmatter.mjs';
 import { CAPS, countEffectiveLines, capForChange } from '../lib/caps.mjs';
-import { parseDelta, parseSpec, mergeDelta, renderSpec } from '../lib/delta.mjs';
+import { parseDelta, parseSpec, mergeDelta, renderSpec, scenarioDrift } from '../lib/delta.mjs';
 
 // ---------- frontmatter ----------
 
@@ -184,4 +184,79 @@ test('mergeDelta: idempotence — re-applying ADDED to merged spec fails cleanly
   const first = mergeDelta(null, ops, 'cap');
   const second = mergeDelta(first.content, ops, 'cap');
   assert.equal(second.ok, false);
+});
+
+// ---------- scenario drift on MODIFIED (issue #1) ----------
+
+const SPEC_WITH_SCENARIOS = `# Spec: auth
+
+## Purpose
+Authentication behavior.
+
+## Requirements
+
+### Requirement: Session length
+The system SHALL expire sessions after 24 hours.
+
+#### Scenario: Idle expiry
+- WHEN a session is idle for 24 hours
+- THEN the system revokes it
+
+#### Scenario: Refresh
+- WHEN a session is refreshed before expiry
+- THEN the system extends it by 24 hours
+
+#### Scenario: Revoked device
+- WHEN a device is revoked
+- THEN every session on it ends immediately
+`;
+
+test('scenarioDrift: a MODIFIED body that drops a scenario name is reported', () => {
+  const spec = parseSpec(SPEC_WITH_SCENARIOS);
+  const before = spec.requirements[0].body;
+  const after = before.split('#### Scenario: Revoked device')[0].trim();
+  const drift = scenarioDrift(before, after);
+  assert.deepEqual(drift.dropped, ['Revoked device']);
+  assert.deepEqual(drift.weakened, []);
+});
+
+test('scenarioDrift: a kept scenario name whose clauses shrink is reported too', () => {
+  const spec = parseSpec(SPEC_WITH_SCENARIOS);
+  const before = spec.requirements[0].body;
+  const after = before.replace('- THEN every session on it ends immediately', '');
+  const drift = scenarioDrift(before, after);
+  assert.deepEqual(drift.dropped, []);
+  assert.equal(drift.weakened.length, 1);
+  assert.equal(drift.weakened[0].name, 'Revoked device');
+  assert.deepEqual(drift.weakened[0].lost, ['THEN every session on it ends immediately']);
+});
+
+test('scenarioDrift: cosmetic churn (indent, bullet marker, order) is not drift', () => {
+  const before = '#### Scenario: A\n- WHEN  x\n- THEN y\n';
+  const after = '#### Scenario: a\n  * THEN y\n  * WHEN x\n';
+  assert.deepEqual(scenarioDrift(before, after), { dropped: [], weakened: [] });
+});
+
+test('mergeDelta: MODIFIED still merges, but reports the scenario it carried away', () => {
+  const spec = parseSpec(SPEC_WITH_SCENARIOS);
+  const kept = spec.requirements[0].body.split('#### Scenario: Refresh')[0].trim();
+  const { ok, content, warnings } = mergeDelta(SPEC_WITH_SCENARIOS, [
+    { op: 'MODIFIED', name: 'Session length', body: kept },
+  ], 'auth');
+  assert.ok(ok);
+  assert.ok(!content.includes('Revoked device'));
+  assert.equal(warnings.length, 2, JSON.stringify(warnings));
+  assert.ok(warnings.every((w) => /specs\/auth\/spec\.md/.test(w)));
+  assert.ok(warnings.some((w) => /drops scenario "Refresh"/.test(w)));
+  assert.ok(warnings.some((w) => /drops scenario "Revoked device"/.test(w)));
+});
+
+test('mergeDelta: a faithful MODIFIED warns about nothing', () => {
+  const spec = parseSpec(SPEC_WITH_SCENARIOS);
+  const body = spec.requirements[0].body.replace('24 hours.', '12 hours.');
+  const { ok, warnings } = mergeDelta(SPEC_WITH_SCENARIOS, [
+    { op: 'MODIFIED', name: 'Session length', body },
+  ], 'auth');
+  assert.ok(ok);
+  assert.deepEqual(warnings, []);
 });

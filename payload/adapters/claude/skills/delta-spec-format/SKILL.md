@@ -29,5 +29,8 @@ Rules:
 - Observable behavior only; no class/function names, no implementation.
 - Every ADDED/MODIFIED requirement needs ≥1 scenario a test can be derived from.
 - Placeholders only (`<token>`, `user@example.com`) — never real secrets/PII.
+- MODIFIED replaces the whole body: a scenario the spec carries and your body
+  omits — or whose WHEN/THEN you rewrite — is reported by `validate` and `archive`
+  as a warning. Deliberate removals are fine; carry the rest over verbatim.
 - `npx @warnyin/sdlc archive <id>` merges deltas mechanically at ship; a missing
   key aborts the merge — never work around it by editing specs directly.

@@ -479,13 +479,21 @@ export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
 
   // Phase 1: compute every merge before writing anything (all-or-nothing).
   const merged = [];
+  const driftWarnings = [];
   for (const d of deltas) {
     const specPath = path.join(sdlcRoot, 'specs', d.capability, 'spec.md');
     const specText = fs.existsSync(specPath) ? fs.readFileSync(specPath, 'utf8') : null;
     const result = mergeDelta(specText, d.ops, d.capability);
     if (!result.ok) throw new Error(`spec merge failed for "${d.capability}": ${result.errors.join('; ')}`);
+    driftWarnings.push(...result.warnings);
     merged.push({ specPath, content: result.content, capability: d.capability });
   }
+
+  // A MODIFIED body replaces the requirement wholesale, so it can carry away a
+  // scenario the spec still promised. That is allowed — but it is said out loud
+  // here, while the change folder is still readable, not discovered in a diff
+  // after the folder moved under changes/archive/.
+  for (const w of driftWarnings) console.error(`⚠ ${w}`);
 
   // Phase 2: write specs, promote evals, stamp status, move to archive.
   for (const m of merged) writeFileNormalized(m.specPath, m.content);
@@ -508,8 +516,11 @@ export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
 
   console.log(`shipped: ${changeId}`);
   for (const m of merged) console.log(`  spec merged: specs/${m.capability}/spec.md`);
+  if (driftWarnings.length) {
+    console.log(`  ⚠ ${driftWarnings.length} scenario warning(s) above — re-read the spec diff before pushing`);
+  }
   console.log(`  archived: changes/archive/${date}-${changeId}/`);
-  return { archived: `${date}-${changeId}`, specs: merged.map((m) => m.capability) };
+  return { archived: `${date}-${changeId}`, specs: merged.map((m) => m.capability), warnings: driftWarnings };
 }
 
 // ---------- shared ----------

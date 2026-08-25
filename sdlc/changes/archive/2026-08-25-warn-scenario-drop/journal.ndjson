@@ -1,0 +1,5 @@
+{"ts":"2026-08-25T15:47:01.081Z","event":"contract","tests":"6","mode":"solo"}
+{"ts":"2026-08-25T15:55:01.081Z","event":"build","tasks":"4","mode":"solo"}
+{"ts":"2026-08-25T16:08:01.081Z","event":"verify","result":"pass","round":"1","mode":"solo"}
+{"ts":"2026-08-25T16:11:01.114Z","event":"gate","gate":"ship","action":"open","expires":"2026-08-25T16:41:01.114Z"}
+{"ts":"2026-08-25T16:11:01.154Z","event":"ship","change":"warn-scenario-drop","specs":["spec-merge"]}

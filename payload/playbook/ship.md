@@ -10,6 +10,8 @@ Precondition: `status: verified` (+ review passed when it ran).
    `npx @warnyin/sdlc archive <id>`
    (validates --strict, merges every Delta into `sdlc/specs/`, promotes evals,
    stamps `status: shipped`, moves the folder to `changes/archive/<date>-<id>/`).
+   Any `⚠ MODIFIED Requirement …` line means the new body carried away a scenario
+   the spec still promised: confirm it was intended and name it in the digest.
 3. **Learn** — delegate to `sdlc-learner` (cheap) with the archived change.md +
    its journal.ndjson. It proposes ≤3 items: add-rule (with evidence pointer) /
    expire-or-demote (rule or steering that never fired) / harness tweak.

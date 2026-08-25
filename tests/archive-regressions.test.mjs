@@ -87,3 +87,123 @@ test('archive: the marker does not register as an archived change', (t) => {
   assert.equal(runCli(dir, ['archive', 'add-2fa']).status, 0);
   assert.match(runCli(dir, ['status']).stdout, /No active changes \(1 archived\)/);
 });
+
+// issue #1: `### MODIFIED Requirement:` replaces the body wholesale, so a
+// rewritten body that carries only some of the spec's scenarios used to drop
+// the rest with no error, no warning and nothing in the archive output — found
+// only by a human reading the diff, after the change folder had already moved.
+const SHIPPED_BODY = `# Change: Add two-factor auth
+
+## Why
+Password-only login is weak.
+
+## Delta: auth
+
+### ADDED Requirement: Two-factor login
+The system SHALL require a second factor during login.
+
+#### Scenario: OTP required
+- WHEN a user with 2FA enabled submits valid credentials
+- THEN the system prompts for a one-time code
+
+#### Scenario: Lockout
+- WHEN five one-time codes fail in a row
+- THEN the system locks the account for 15 minutes
+
+## Tasks
+- [ ] T1 implement OTP flow [tier:balanced]
+`;
+
+function modifiedBody(scenarios) {
+  return `# Change: Trim 2FA
+
+## Why
+Follow-up.
+
+## Delta: auth
+
+### MODIFIED Requirement: Two-factor login
+The system SHALL require a second factor during login.
+${scenarios}
+## Tasks
+- [ ] T1 adjust [tier:balanced]
+`;
+}
+
+function shipFirst(t) {
+  const dir = makeTempProject(t);
+  runCli(dir, ['init', '--tool', 'claude']);
+  writeContractTests(writeChange(dir, 'add-2fa', { status: 'verified', body: SHIPPED_BODY }));
+  assert.equal(runCli(dir, ['archive', 'add-2fa']).status, 0);
+  return dir;
+}
+
+test('archive: a MODIFIED that drops a scenario merges, but says so', (t) => {
+  const dir = shipFirst(t);
+  const body = modifiedBody(`
+#### Scenario: OTP required
+- WHEN a user with 2FA enabled submits valid credentials
+- THEN the system prompts for a one-time code
+`);
+  writeContractTests(writeChange(dir, 'trim-2fa', { status: 'verified', body }));
+
+  const res = runCli(dir, ['archive', 'trim-2fa']);
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stderr, /drops scenario "Lockout"/);
+  assert.match(res.stdout, /1 scenario warning\(s\)/);
+  // Removing a scenario is sometimes the point — the merge still lands.
+  const spec = fs.readFileSync(path.join(dir, 'sdlc/specs/auth/spec.md'), 'utf8');
+  assert.ok(!spec.includes('Lockout'));
+});
+
+test('archive: a scenario kept by name but gutted of its promise is reported too', (t) => {
+  const dir = shipFirst(t);
+  const body = modifiedBody(`
+#### Scenario: OTP required
+- WHEN a user with 2FA enabled submits valid credentials
+- THEN the system prompts for a one-time code
+
+#### Scenario: Lockout
+- WHEN five one-time codes fail in a row
+`);
+  writeContractTests(writeChange(dir, 'gut-2fa', { status: 'verified', body }));
+
+  const res = runCli(dir, ['archive', 'gut-2fa']);
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stderr, /rewrites scenario "Lockout"/);
+  assert.match(res.stderr, /locks the account for 15 minutes/);
+});
+
+test('archive: a MODIFIED that keeps every scenario is silent', (t) => {
+  const dir = shipFirst(t);
+  const body = modifiedBody(`
+#### Scenario: OTP required
+- WHEN a user with 2FA enabled submits valid credentials
+- THEN the system prompts for a one-time code
+
+#### Scenario: Lockout
+- WHEN five one-time codes fail in a row
+- THEN the system locks the account for 15 minutes
+`);
+  writeContractTests(writeChange(dir, 'keep-2fa', { status: 'verified', body }));
+
+  const res = runCli(dir, ['archive', 'keep-2fa']);
+  assert.equal(res.status, 0, res.stderr);
+  assert.ok(!/scenario/.test(res.stderr), res.stderr);
+  assert.ok(!/scenario warning/.test(res.stdout), res.stdout);
+});
+
+// The loss must be visible while the change is still fixable, not only at ship.
+test('validate: a scenario-dropping MODIFIED warns without failing the run', (t) => {
+  const dir = shipFirst(t);
+  const body = modifiedBody(`
+#### Scenario: OTP required
+- WHEN a user with 2FA enabled submits valid credentials
+- THEN the system prompts for a one-time code
+`);
+  writeContractTests(writeChange(dir, 'trim-2fa', { status: 'verified', body }));
+
+  const res = runCli(dir, ['validate', 'trim-2fa', '--strict']);
+  assert.equal(res.status, 0, res.stdout + res.stderr);
+  assert.match(res.stdout + res.stderr, /drops scenario "Lockout"/);
+});
