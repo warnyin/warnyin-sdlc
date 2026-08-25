@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.1 (2026-08-25)
+
+- **Fix (cost)**: `costUsd()` never charged cache-write tokens, the highest-rate of
+  the four classes the usage parser collects. Every cost `/sdlc:observe` and the
+  session summary have printed was therefore low. A model priced without a
+  `cacheWrite` rate now charges nothing for that class rather than inferring one from
+  `input` — the module's rule is never to guess a price, and a guess reports as
+  confidently as a known rate. Existing journalled costs are left alone: backfilling
+  would rewrite history from a rate that was not in force at the time.
+
 ## 0.5.0 (2026-08-25)
 
 - **`--auto` on every pipeline stage.** `/sdlc:auto` already ran the whole pipeline,
