@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.4.0 (2026-08-25)
+
+- **New stage command `/sdlc:feedback`** — reports a bug, a rough edge, or a missing
+  feature in the framework itself to `warnyin/warnyin-sdlc`, from inside the session
+  where you hit it. It collects the context a maintainer triages by (framework and
+  Node version, OS, tool adapter, active change id and status), redacts it, shows you
+  the complete draft, and files it only after you approve. Submission goes through
+  `gh`; when `gh` is missing, logged out, or authenticated only against an enterprise
+  host, you get a prefilled issue URL instead — a normal path, not an error.
+  Nothing is attached automatically: no logs, no journal, no diff. Redaction is a
+  rule list rather than a guarantee, and the playbook says so — your eyes on the
+  draft are the control.
+- Human-written text never reaches a shell as an argument: the body travels over
+  stdin, while the title and the duplicate-search keywords are written by the agent
+  under a length and character allow-list instead of being pasted raw.
+- **New: `warnyin-sdlc version`** (also `--version` / `-v`). Nothing in an installed
+  project was readable as a version — an npx install leaves no package behind — so
+  every bug report would have carried `unknown` in the field that decides whether a
+  report can be acted on at all.
+- The repository now ships `.github/ISSUE_TEMPLATE/` bug and feature forms asking for
+  the same fields the command collects, so web-filed and command-filed reports read
+  alike.
+
 ## 0.3.0 (2026-08-21)
 
 - **`/sdlc:auto` resumes an open change** instead of always starting at `new`. It
