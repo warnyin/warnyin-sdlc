@@ -21,6 +21,7 @@ new → [design] → contract → build → verify → [review] → ship
 | /sdlc:converge | Maintenance | specs + code | proposed change | — |
 | /sdlc:steer | Configure | context/ | steering, constitution | always-budget ≤ 60 |
 | /sdlc:next | — | status | chat only | — |
+| /sdlc:feedback | — | context + your words | an issue upstream | human approves the draft |
 
 Statuses: `new → contracted → building → verified → shipped`. Tiers: `vibe | standard | deep`
 (triage table + Autonomy policy live in `sdlc/harness.md`).

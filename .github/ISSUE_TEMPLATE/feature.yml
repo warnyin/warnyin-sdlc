@@ -1,0 +1,33 @@
+name: Feature or improvement
+description: Suggest something the framework should do, or do better
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        `/sdlc:feedback idea <one line>` drafts this from inside your session.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What is hard today? Describe the situation, not the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: The outcome you want
+      description: How you would know it was solved.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you do instead today
+  - type: input
+    id: version
+    attributes:
+      label: Framework version
+      description: Output of `npx @warnyin/sdlc version`.
+    validations:
+      required: true

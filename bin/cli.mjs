@@ -45,7 +45,7 @@ export function sha256(content) {
 }
 
 export function parseArgs(argv) {
-  const args = { _: [], tool: null, toolProvided: false, strict: false, force: false, json: false, help: false };
+  const args = { _: [], tool: null, toolProvided: false, strict: false, force: false, json: false, help: false, version: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--tool' || a === '--tools') {
@@ -56,6 +56,7 @@ export function parseArgs(argv) {
     else if (a === '--force') args.force = true;
     else if (a === '--json') args.json = true;
     else if (a === '--help' || a === '-h') args.help = true;
+    else if (a === '--version' || a === '-v') args.version = true;
     else if (a.startsWith('--')) console.warn(`unknown flag ${a} (ignored)`);
     else args._.push(a);
   }
@@ -526,6 +527,12 @@ function runValidate(projectRoot, args) {
   process.exitCode = res.status ?? 0;
 }
 
+// Read from our own package.json: an npx install leaves nothing readable in the
+// target project, and a report whose version is `unknown` cannot be triaged.
+function pkgVersion() {
+  return JSON.parse(fs.readFileSync(path.join(PKG_ROOT, 'package.json'), 'utf8')).version;
+}
+
 const HELP = `@warnyin/sdlc — spec-driven AI-SDLC framework
 
 usage: warnyin-sdlc <command> [options]
@@ -536,14 +543,18 @@ usage: warnyin-sdlc <command> [options]
   status [--json]                   list active changes and their stage
   observe [--json]                  tokens/cost per change, residency, steering hits, drift flags
   archive <id>                      merge delta specs into living specs and archive the change
+  version | --version | -v          print the installed framework version
   help                              this text
 `;
 
 export async function main(argv = process.argv.slice(2), projectRoot = process.cwd()) {
   const args = parseArgs(argv);
   const cmd = args._[0];
-  if (args.help || !cmd || cmd === 'help') { console.log(HELP); return; }
   try {
+    // before the help branch: `--version` carries no command, and `!cmd` would
+    // otherwise print help instead of the version.
+    if (args.version || cmd === 'version') { console.log(pkgVersion()); return; }
+    if (args.help || !cmd || cmd === 'help') { console.log(HELP); return; }
     if (cmd === 'init') await cmdInit(projectRoot, args);
     else if (cmd === 'update') cmdUpdate(projectRoot, args);
     else if (cmd === 'validate') runValidate(projectRoot, args);

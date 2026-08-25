@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-  makeTempProject, runCli, writeChange, writeContractTests, STANDARD_BODY,
+  makeTempProject, runCli, writeChange, writeContractTests, STANDARD_BODY, PKG_ROOT,
 } from './helpers.mjs';
 
 test('init: scaffolds sdlc/, records tools, appends .gitignore, writes manifest', (t) => {
@@ -128,4 +128,21 @@ test('archive: second run on same id fails cleanly (already moved)', (t) => {
   const res = runCli(dir, ['archive', 'add-2fa']);
   assert.equal(res.status, 1);
   assert.match(res.stderr, /not found/);
+});
+
+// contract rows 14–15 — the version a bug report has to carry must be readable
+test('version: prints the package version and exits 0', (t) => {
+  const dir = makeTempProject(t);
+  const pkg = JSON.parse(fs.readFileSync(path.join(PKG_ROOT, 'package.json'), 'utf8'));
+  const res = runCli(dir, ['version']);
+  assert.equal(res.status, 0, res.stderr);
+  assert.equal(res.stdout.trim(), pkg.version);
+});
+
+test('version: --version is the same string, not the help text', (t) => {
+  const dir = makeTempProject(t);
+  const res = runCli(dir, ['--version']);
+  assert.equal(res.status, 0, res.stderr);
+  assert.equal(res.stdout.trim(), runCli(dir, ['version']).stdout.trim());
+  assert.doesNotMatch(res.stdout, /usage:/);
 });

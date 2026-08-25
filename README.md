@@ -64,13 +64,14 @@ warnyin-sdlc update [--force]       refresh payload, guarded prune of stale file
 warnyin-sdlc validate [id] [--strict]
 warnyin-sdlc status | observe [--json]
 warnyin-sdlc archive <id>           merge deltas into living specs + archive
+warnyin-sdlc version | --version    print the installed framework version
 ```
 
 ## Commands (in your agent)
 
 `/sdlc:init` · `/sdlc:auto` · `/sdlc:new` · `/sdlc:design` · `/sdlc:contract` · `/sdlc:build`
 · `/sdlc:verify` · `/sdlc:review` · `/sdlc:ship` · `/sdlc:observe` · `/sdlc:converge`
-· `/sdlc:steer` · `/sdlc:next`
+· `/sdlc:steer` · `/sdlc:next` · `/sdlc:feedback`
 
 Playbooks live in `sdlc/.playbook/` — behavior is defined once there; commands are thin pointers.
 

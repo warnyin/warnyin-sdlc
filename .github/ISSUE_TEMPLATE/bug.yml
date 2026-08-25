@@ -1,0 +1,69 @@
+name: Bug report
+description: Something in @warnyin/sdlc is broken or behaves unexpectedly
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Working inside a project that has the framework installed? `/sdlc:feedback`
+        fills this in for you, redacts paths and secrets, and shows you the draft
+        before anything is sent.
+
+        Please do not paste logs, journals, diffs, or file contents — a redacted
+        summary in your own words is what gets a bug fixed fastest.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: One paragraph. Redact paths, hostnames, client and project names.
+    validations:
+      required: true
+  - type: input
+    id: expected
+    attributes:
+      label: Expected
+      description: One line.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps
+      placeholder: |
+        1. npx @warnyin/sdlc init --tool claude
+        2. /sdlc:contract my-change
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Framework version
+      description: Output of `npx @warnyin/sdlc version`.
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node version
+      description: Output of `node --version`.
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      placeholder: Windows 11 / macOS 15 / Ubuntu 24.04
+    validations:
+      required: true
+  - type: input
+    id: tool
+    attributes:
+      label: Tool adapter
+      description: The `tools:` value in sdlc/config.yaml.
+      placeholder: claude
+  - type: input
+    id: stage
+    attributes:
+      label: Change stage
+      description: Active change id and status, if any — e.g. `add-2fa [deep/building]`.
+      placeholder: unknown

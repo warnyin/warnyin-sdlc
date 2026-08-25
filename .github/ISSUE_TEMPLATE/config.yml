@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report it from inside your session
+    url: https://github.com/warnyin/warnyin-sdlc#commands-in-your-agent
+    about: Run /sdlc:feedback in a project that has the framework installed — it fills in the environment, redacts paths and secrets, and shows you the draft first.
