@@ -20,3 +20,6 @@
    `npx @warnyin/sdlc validate <id>` — fix errors. Status stays `new`.
 
 Next: deep tier or risky decision → /sdlc:design; otherwise /sdlc:contract.
+
+`--auto`: do this stage, then continue to ship under `auto.md`'s unattended
+mode — gather, confirm once, run. The stage still does its own work first.

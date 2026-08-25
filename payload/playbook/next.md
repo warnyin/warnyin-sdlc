@@ -10,3 +10,5 @@
 3. If nothing is active: suggest /sdlc:new, or /sdlc:observe if archived changes
    have unread digests.
 4. Answer in ≤5 lines. Create or modify nothing.
+5. When the remaining path is more than one stage, add one line: the same command
+   with `--auto` confirms once and runs to ship.

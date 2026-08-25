@@ -18,3 +18,6 @@ an empty Design section is garbage.
 5. `npx @warnyin/sdlc validate <id>`.
 
 Next: /sdlc:contract.
+
+`--auto`: do this stage, then continue to ship under `auto.md`'s unattended
+mode — gather, confirm once, run. The stage still does its own work first.

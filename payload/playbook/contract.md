@@ -21,3 +21,6 @@ status is `new`.
 Escalate only if the delta itself turns out ambiguous (back to /sdlc:new step 5).
 
 Next: /sdlc:build.
+
+`--auto`: do this stage, then continue to ship under `auto.md`'s unattended
+mode — gather, confirm once, run. The stage still does its own work first.

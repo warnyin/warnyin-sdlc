@@ -21,3 +21,6 @@ Rules for whoever implements:
 
 Done when all tasks are ticked and the code compiles/lints.
 `node sdlc/.hooks/journal.mjs note build tasks=<n>` then → /sdlc:verify.
+
+`--auto`: do this stage, then continue to ship under `auto.md`'s unattended
+mode — gather, confirm once, run. The stage still does its own work first.

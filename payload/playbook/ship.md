@@ -21,7 +21,13 @@ Precondition: `status: verified` (+ review passed when it ran).
    When any verify or review note carries `mode=solo`, the digest SHALL say which
    outcomes were self-produced. A reader months from now cannot otherwise tell a
    panel's verdict from the author's own.
+   When any `escalation` event carries `preauth=yes`, the digest SHALL list those
+   pre-authorized escalations by condition — the points where a human would normally
+   have stood and, this run, did not.
 5. Close the gate: `node sdlc/.hooks/journal.mjs close`. Tell the user in one
    line: shipped + where the digest is.
 
 The digest is the async human touchpoint — reviewable and revertible later.
+
+`--auto`: do this stage, then continue to ship under `auto.md`'s unattended
+mode — gather, confirm once, run. The stage still does its own work first.

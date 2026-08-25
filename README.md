@@ -31,7 +31,13 @@ Then in your coding agent:
 /sdlc:init                      # interview → constitution + harness (the one human gate)
 /sdlc:auto Add rate limiting    # AI runs new → contract → build → verify → ship
 /sdlc:auto add-rate-limiting    # already opened it with /sdlc:new? auto resumes from there
+/sdlc:new Add rate limiting --auto   # any stage takes --auto: confirm once, then run to ship
 ```
+
+`--auto` asks everything up front — scope, tier, each ambiguity, and every escalation
+it wants pre-approved as its own line you can refuse — then runs unattended. Nothing
+is written until you confirm, the approval covers that run only, and anything you did
+not pre-approve still stops and asks.
 
 ## How it works
 

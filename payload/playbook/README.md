@@ -10,6 +10,7 @@ new → [design] → contract → build → verify → [review] → ship
 |---|---|---|---|---|
 | /sdlc:init | Configure harness | interview | constitution, harness.md | human approves (once) |
 | /sdlc:auto | whole loop | status (resumes an open change) | everything below | escalation only |
+| any stage `--auto` | that stage → ship | status + your answers | everything from there | one confirmation up front |
 | /sdlc:new | Requirements | specs Purpose headers | change.md | validator: delta + assumptions |
 | /sdlc:design | Architecture | change + touched specs | change.md § Design | escalate irreversible only |
 | /sdlc:contract | Contract-first | change.md | contract/*, failing tests | adversarial panel + validator |

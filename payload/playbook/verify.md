@@ -32,3 +32,6 @@ leaves the record silently indistinguishable from an independent one.
 
 Next: review signals present (deep tier, security-touching diff, >10 files)
 → /sdlc:review; otherwise → /sdlc:ship.
+
+`--auto`: do this stage, then continue to ship under `auto.md`'s unattended
+mode — gather, confirm once, run. The stage still does its own work first.

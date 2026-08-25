@@ -21,3 +21,6 @@ files changed. Otherwise skip silently — a ceremonial review is garbage.
    independent evidence months later.
 
 Pass condition: zero open blockers. Next: /sdlc:ship.
+
+`--auto`: do this stage, then continue to ship under `auto.md`'s unattended
+mode — gather, confirm once, run. The stage still does its own work first.
