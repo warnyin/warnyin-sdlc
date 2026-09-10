@@ -50,3 +50,43 @@ that were passed under pre-authorization.
 #### Scenario: a change shipped unattended
 - WHEN a change ships with at least one pre-authorized escalation
 - THEN its digest lists them rather than reporting an uneventful run
+
+### Requirement: A confirmed scope carries the evidence that produced it
+The system SHALL present, for each item of the scope in the confirmation, the command
+whose output established that item and what the command returned, so the human can check
+each derivation and not only the conclusion.
+
+#### Scenario: the scope was narrowed by a search
+- WHEN a search over candidates decided what is in scope
+- THEN the confirmation shows that search and its output next to the resulting list
+
+#### Scenario: items established by different commands
+- WHEN the scope holds items that different commands established
+- THEN each item carries its own evidence, so one approval never covers a derivation
+  that was never checked on its own
+
+#### Scenario: the scope rests on no command at all
+- WHEN nothing was run to establish the scope
+- THEN the confirmation says so, rather than presenting the list as derived
+
+### Requirement: Evidence that does not match the request is flagged
+The system SHALL mark a scope whose evidence searched for something other than what the
+request described, rather than presenting that scope as settled.
+
+#### Scenario: the evidence searched a different name
+- WHEN the search used a name the request did not name
+- THEN the confirmation flags that mismatch on the scope item it produced
+
+#### Scenario: candidates narrowed by an unrequested property
+- WHEN the candidate set was cut by something the request never specified, such as a
+  naming convention or a folder pattern
+- THEN that narrowing appears as its own item the human can refuse on its own
+
+### Requirement: An exclusion on an empty result names what was searched
+The system SHALL state, when a candidate is left out because a search returned nothing,
+the pattern that was searched, so a convention nobody anticipated is visible instead of
+silently decisive.
+
+#### Scenario: a candidate excluded because nothing matched
+- WHEN a candidate is dropped from scope on an empty search result
+- THEN the confirmation shows the pattern searched and that it returned nothing

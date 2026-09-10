@@ -22,6 +22,18 @@ escalation conditions — each with the choice `--auto` may pre-approve:
    pointer. A run that never gets confirmed must leave the repository unchanged.
 2. **Confirm.** One message, and it must be decidable item by item:
    - scope as you understood it, and the tier you triaged with its reason
+   - **the evidence under each scope item**: the command you ran and what it
+     returned — not the list it produced, and not your summary of it. A reader who
+     can only see the conclusion can only agree with it. Evidence goes per item:
+     one block for a whole scope buys a single yes for derivations nobody checked
+     separately. A scope you did not derive from a command says so plainly.
+   - **flag evidence that does not match the request**: name the term the request
+     used and the term you actually searched when they differ, and raise any
+     narrowing the request never asked for (a folder pattern, a naming convention)
+     as its own refusable item.
+   - **an exclusion made on an empty result names the pattern searched.** Finding
+     nothing is a claim about your pattern, not a fact about the candidate — a
+     convention you did not anticipate looks exactly like an absence.
    - every ambiguity, each with the assumption you intend to act on
    - one line per row of the escalation table above, each stating the choice you
      want pre-approved, and each refusable on its own. For the ship row, name the

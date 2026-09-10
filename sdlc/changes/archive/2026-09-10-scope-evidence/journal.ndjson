@@ -1,0 +1,11 @@
+{"ts":"2026-09-10T05:01:16.062Z","event":"escalation","condition":"ship-deep-hard-floor","preauth":"yes"}
+{"ts":"2026-09-10T05:01:16.128Z","event":"escalation","condition":"verify-over-3-rounds","preauth":"yes"}
+{"ts":"2026-09-10T05:01:16.203Z","event":"escalation","condition":"review-blockers","preauth":"yes"}
+{"ts":"2026-09-10T05:01:55.690Z","event":"contract","tests":"11"}
+{"ts":"2026-09-10T05:03:36.098Z","event":"build","tasks":"4"}
+{"ts":"2026-09-10T05:04:23.083Z","event":"session","session":"2d2db70c-7ee1-4eee-8811-541c59dcc7e5","totals":{"input":584,"output":284497,"cacheRead":62647478,"cacheWrite":595142},"models":{"claude-opus-5":{"input":584,"output":284497,"cacheRead":62647478,"cacheWrite":595142}},"costUsd":null}
+{"ts":"2026-09-10T05:06:14.888Z","event":"session","session":"2d2db70c-7ee1-4eee-8811-541c59dcc7e5","totals":{"input":588,"output":285015,"cacheRead":63319430,"cacheWrite":600930},"models":{"claude-opus-5":{"input":588,"output":285015,"cacheRead":63319430,"cacheWrite":600930}},"costUsd":null}
+{"ts":"2026-09-10T05:09:06.935Z","event":"verify","result":"pass","round":"1","mode":"panel"}
+{"ts":"2026-09-10T05:09:07.003Z","event":"review","blockers":"0","mode":"panel"}
+{"ts":"2026-09-10T05:09:07.188Z","event":"gate","gate":"ship","action":"open","expires":"2026-09-10T05:39:07.187Z"}
+{"ts":"2026-09-10T05:09:07.265Z","event":"ship","change":"scope-evidence","specs":["unattended-run"]}
