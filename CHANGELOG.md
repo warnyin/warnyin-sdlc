@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.6.0 (2026-09-10)
+
+- **Fix (auto)**: the Confirm step of an unattended run showed the scope it had settled on
+  and asked for approval, but never how it got there — so a derivation that searched the
+  wrong thing was approved as readily as a right one. It now shows, per scope item, the
+  command that established it and what that command returned; a summary of what a search
+  found does not count. Evidence that searched a term the request did not name is flagged
+  with both terms side by side, a narrowing the request never asked for (a folder pattern,
+  a naming convention) becomes its own refusable item, and an exclusion made on an empty
+  result must name the pattern searched — finding nothing is a claim about the pattern, not
+  a fact about the candidate. This is doctrine the model follows, checked by tests on the
+  doctrine and by the eval rubric; the confirmation is written at runtime, so nothing gates
+  it mechanically. (#2)
+- **Fix (journal)**: telemetry the hooks append lived in `sdlc/changes/<id>/journal.ndjson`,
+  which git tracks, so merely opening a project modified a shared file no human touched —
+  `git pull` and branch switches refused to move until someone discarded it, and two people
+  on one change conflicted on the appended tail for a reason unrelated to the change under
+  review. While a change is open, telemetry now goes to `sdlc/.state/journal/<id>.ndjson`;
+  `.state/` is already git-ignored in every installed project, so no new `.gitignore` entry
+  and no `git rm --cached` is needed. `archive` seals the journal into the shipped change
+  folder in one write at ship, so `/sdlc:observe` still reports cost and verify history for
+  changes a teammate shipped. Projects installed before this keep their in-tree journal: it
+  is read alongside the new stream and consumed at ship, so no recorded event is lost.
+  Two interim states worth knowing: a project that runs `update` mid-change carries telemetry
+  split across the two files until that change ships, and downgrading to 0.5.2 afterwards
+  leaves anything under `.state/journal/` unread by the older code — it is still on disk,
+  but that version does not know to look there. (#3)
+
 ## 0.5.2 (2026-08-25)
 
 - **Fix (delta)**: a `### MODIFIED Requirement:` body replaces the requirement wholesale,
