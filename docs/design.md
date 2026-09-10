@@ -12,7 +12,7 @@ contract; if an artifact loses its reason, delete it.
 | `contract/tests.md` | 60 | Day-1: tests before code = deterministic half of the contract | plan table, not prose; scenarios stay in the Delta |
 | `contract/evals.md` | 40 | Day-1: evals verify trajectory/quality (the non-deterministic half) | rubric only; scored by a cheap agent |
 | `specs/<cap>/spec.md` | soft 150 | living truth for regeneration + maintenance (converge) | behavior only; no narrative, no design |
-| `journal.ndjson` | — | Day-1: observe the harness (cost, drift, audit) | machine-only; never loaded into context |
+| `journal.ndjson` | — | Day-1: observe the harness (cost, drift, audit) | machine-only; never loaded into context; lives in gitignored `.state/` while open so a session never dirties the tree, sealed into the archive at ship |
 | `archive digest.md` | 15 | the async human touchpoint of exception-only HITL | summarizes; links, doesn't copy |
 
 ## Key decisions

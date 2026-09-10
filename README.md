@@ -47,7 +47,7 @@ sdlc/
 ├── context/steering/*.md     scoped knowledge · inclusion: always|paths|manual|agent
 ├── harness.md                tools, model routing, tier triage, autonomy policy
 ├── specs/<capability>/       living specs — WHEN/THEN SHALL, merged mechanically at ship
-├── changes/<id>/             one change: change.md (Why+Delta+Tasks) + contract/ + journal
+├── changes/<id>/             one change: change.md (Why+Delta+Tasks) + contract/
 └── changes/archive/          shipped changes + digests (the async human touchpoint)
 ```
 

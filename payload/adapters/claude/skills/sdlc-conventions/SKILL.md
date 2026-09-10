@@ -6,7 +6,8 @@ user-invocable: false
 # sdlc/ conventions
 
 Layout: `config.yaml` · `context/{constitution.md, steering/*.md}` · `harness.md`
-· `specs/<capability>/spec.md` · `changes/<id>/{change.md, contract/, journal.ndjson}`
+· `specs/<capability>/spec.md` · `changes/<id>/{change.md, contract/}`
+· telemetry: `.state/journal/<id>.ndjson` while open, sealed into the archived folder at ship
 · `changes/archive/<date>-<id>/` · `evals/<capability>/rubric.md` · `.state/` (machine).
 
 Line caps (validator-enforced; count = non-blank, non-comment body lines):

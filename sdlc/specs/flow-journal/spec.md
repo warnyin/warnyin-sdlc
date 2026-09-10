@@ -25,3 +25,38 @@ self-produced, so the reader weighs it accordingly.
 #### Scenario: a change judged without a panel
 - WHEN a shipped change carries at least one self-produced verify or review outcome
 - THEN its digest says so explicitly rather than reporting only pass/fail
+
+### Requirement: A session never modifies a version-controlled file on its own
+The system SHALL append telemetry only to locations excluded from version control, so
+that opening or running a session leaves the tracked working tree unchanged.
+
+#### Scenario: a session records events against an open change
+- WHEN a session appends telemetry while a change is open
+- THEN no version-controlled file is modified
+
+#### Scenario: two people work the same change on separate clones
+- WHEN each of them appends telemetry against the same open change
+- THEN neither one's appended events reach a version-controlled file, and merging their
+  branches raises no conflict originating in telemetry
+
+### Requirement: A shipped change carries its telemetry into the archive
+The system SHALL place a change's complete recorded telemetry in the archived change
+folder when the change ships.
+
+#### Scenario: a change is archived
+- WHEN a change ships
+- THEN its archived folder holds every event recorded for that change, in recorded order
+
+#### Scenario: a change carries telemetry from both the old and the current location
+- WHEN telemetry exists for a change at the earlier in-tree location as well as the
+  out-of-tree one
+- THEN the archived folder holds both sets in recorded order, and no telemetry file is
+  left behind at the in-tree location
+
+### Requirement: Reporting reads an open change's telemetry from where it is written
+The system SHALL count an open change's out-of-tree telemetry in what it reports about
+that change.
+
+#### Scenario: a report covers a change that has not shipped
+- WHEN a report is produced for an open change
+- THEN the events recorded out of tree for that change are counted, not reported as absent

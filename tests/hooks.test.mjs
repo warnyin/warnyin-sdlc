@@ -168,7 +168,7 @@ test('session-summary: journals real usage totals and prices when configured', (
   assert.match(res.stdout, /\[sdlc\] session:/);
   assert.match(res.stdout, /change add-2fa/);
 
-  const journal = fs.readFileSync(path.join(dir, 'sdlc/changes/add-2fa/journal.ndjson'), 'utf8')
+  const journal = fs.readFileSync(path.join(dir, 'sdlc/.state/journal/add-2fa.ndjson'), 'utf8')
     .trim().split('\n').map((l) => JSON.parse(l));
   const session = journal.find((e) => e.event === 'session');
   assert.equal(session.totals.input, 1500);
@@ -186,6 +186,11 @@ test('journal: set-active steers attribution; note appends events', (t) => {
   writeChange(dir, 'b-change', { body: STANDARD_BODY.replace('auth', 'billing') });
   runHook(dir, 'journal.mjs', null, ['set-active', 'a-change']);
   runHook(dir, 'journal.mjs', null, ['note', 'compact']);
-  const journal = fs.readFileSync(path.join(dir, 'sdlc/changes/a-change/journal.ndjson'), 'utf8');
+  const journal = fs.readFileSync(path.join(dir, 'sdlc/.state/journal/a-change.ndjson'), 'utf8');
   assert.match(journal, /"event":"compact"/);
+  // Attribution is out of tree: the change folder stays exactly as the human left it.
+  assert.ok(
+    !fs.existsSync(path.join(dir, 'sdlc/changes/a-change/journal.ndjson')),
+    'telemetry landed in the tracked tree',
+  );
 });

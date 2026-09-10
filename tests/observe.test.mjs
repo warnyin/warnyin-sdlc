@@ -5,8 +5,13 @@ import path from 'node:path';
 import { makeTempProject, runCli, writeChange, writeContractTests, STANDARD_BODY } from './helpers.mjs';
 import { buildReport } from '../lib/observe.mjs';
 
-function journalLine(dir, event) {
-  fs.appendFileSync(path.join(dir, 'journal.ndjson'), JSON.stringify(event) + '\n');
+// Telemetry for an open change lives out of tree; derive that stream from the change
+// folder so these fixtures exercise the real residency, not the legacy read shim.
+// journal-residency.test.mjs row 11 is the dedicated guard for the legacy path.
+function journalLine(changeDir, event) {
+  const live = path.resolve(changeDir, '..', '..', '.state', 'journal', `${path.basename(changeDir)}.ndjson`);
+  fs.mkdirSync(path.dirname(live), { recursive: true });
+  fs.appendFileSync(live, JSON.stringify(event) + '\n');
 }
 
 function initProject(t) {

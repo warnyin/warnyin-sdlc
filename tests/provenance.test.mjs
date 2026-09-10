@@ -7,8 +7,12 @@ import { buildReport, renderReport } from '../lib/observe.mjs';
 
 const pb = (name) => fs.readFileSync(path.join(PKG_ROOT, 'payload/playbook', name), 'utf8');
 
-function journalLine(dir, event) {
-  fs.appendFileSync(path.join(dir, 'journal.ndjson'), JSON.stringify(event) + '\n');
+// Telemetry for an open change lives out of tree; derive that stream from the change
+// folder so these fixtures exercise the real residency, not the legacy read shim.
+function journalLine(changeDir, event) {
+  const live = path.resolve(changeDir, '..', '..', '.state', 'journal', `${path.basename(changeDir)}.ndjson`);
+  fs.mkdirSync(path.dirname(live), { recursive: true });
+  fs.appendFileSync(live, JSON.stringify(event) + '\n');
 }
 
 function projectWithChange(t, events) {

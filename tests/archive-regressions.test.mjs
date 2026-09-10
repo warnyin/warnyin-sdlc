@@ -52,7 +52,12 @@ test('archive: an unusable archive path aborts before a single spec is written',
   assert.equal(res.status, 1);
   assert.ok(!fs.existsSync(path.join(dir, 'sdlc/specs/auth/spec.md')), 'no spec may be merged');
   assert.match(fs.readFileSync(path.join(changeDir, 'change.md'), 'utf8'), /^status: verified$/m);
-  assert.ok(!fs.existsSync(path.join(changeDir, 'journal.ndjson')), 'no ship event may be journalled');
+  // The ship event goes to the out-of-tree stream, so that is where an aborted archive
+  // must leave no trace — the change folder never holds one to check any more.
+  const live = path.join(dir, 'sdlc/.state/journal/add-2fa.ndjson');
+  const shipped = fs.existsSync(live) && fs.readFileSync(live, 'utf8').includes('"event":"ship"');
+  assert.ok(!shipped, 'no ship event may be journalled');
+  assert.ok(!fs.existsSync(path.join(changeDir, 'journal.ndjson')), 'nothing may be sealed in-tree');
 });
 
 // The mkdir at archive time recovers from a lost directory; this marker stops it

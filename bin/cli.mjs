@@ -16,6 +16,10 @@ import { mergeHookSettings } from '../lib/settings-merge.mjs';
 import { buildReport, renderReport } from '../lib/observe.mjs';
 import { parseManifest, renderManifest, computeStale, containedIn, hasSymlinkSegment, PRUNE_BLAST_CAP } from '../lib/manifest.mjs';
 import { validateAll, formatIssues, listChangeDirs } from '../lib/validate.mjs';
+import {
+  readChangeJournal, liveJournalPath, sealedJournalPath, serializeJournal, appendEvent,
+  isSafeChangeId,
+} from '../lib/journal.mjs';
 import { detectTools, toolName } from './detect.mjs';
 import { colorEnabled, createStyle, symbolsFor, summarizeInstall, startHints } from './ui.mjs';
 import { multiSelect } from './multiselect.mjs';
@@ -358,6 +362,11 @@ export function cmdUpdate(projectRoot, args) {
   const ctx = { mode: 'update', manifest: new Map(), oldManifest, warnings: [] };
   scaffoldSdlc(projectRoot, tools, ctx);
   installToolAdapters(projectRoot, tools, ctx);
+  // `update` is how an existing project acquires hooks that journal under .state/, and
+  // that whole design rests on the entry being there. Re-assert it: a project whose
+  // .gitignore never had it, or lost it, would otherwise start reporting telemetry as
+  // untracked noise — the same symptom in a subtler form.
+  ensureGitignore(projectRoot);
 
   // Prune: old-manifest entries no longer in the payload, guarded six ways.
   const { stale, rejected, overCap } = computeStale(oldManifest, new Set(ctx.manifest.keys()));
@@ -440,15 +449,25 @@ export function cmdObserve(projectRoot, { json = false } = {}) {
 
 // ---------- archive (= mechanical part of ship) ----------
 
-export function appendJournal(changeDir, event) {
-  const line = JSON.stringify({ ts: new Date().toISOString(), ...event });
-  fs.appendFileSync(path.join(changeDir, 'journal.ndjson'), line + '\n');
+// The CLI's own events go to the same out-of-tree stream the hooks append to, so the
+// ship event does not become the one write that dirties the tree.
+export function appendJournal(sdlcRoot, changeId, event) {
+  const target = liveJournalPath(sdlcRoot, changeId);
+  if (!target) return;
+  appendEvent(target, { ts: new Date().toISOString(), ...event });
 }
 
 export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
   const sdlcRoot = path.join(projectRoot, 'sdlc');
   requireSdlc(sdlcRoot);
   if (!changeId) throw new Error('usage: warnyin-sdlc archive <change-id>');
+  // Refuse before anything is read or written. An id like `a/../b` resolves to a real
+  // folder, so without this it would ship — merging specs and moving the folder — and
+  // only then fail on the journal paths that do gate the id, reporting a completed
+  // ship as an error.
+  if (!isSafeChangeId(changeId)) {
+    throw new Error(`"${changeId}" is not a valid change id — one path segment, no separators`);
+  }
   const changeDir = path.join(sdlcRoot, 'changes', changeId);
   if (!fs.existsSync(changeDir)) throw new Error(`change "${changeId}" not found`);
 
@@ -510,9 +529,35 @@ export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
 
   const stamped = changeText.replace(/^status:\s*.*$/m, 'status: shipped');
   writeFileNormalized(path.join(changeDir, 'change.md'), stamped);
-  appendJournal(changeDir, { event: 'ship', change: changeId, specs: merged.map((m) => m.capability) });
+  appendJournal(sdlcRoot, changeId, { event: 'ship', change: changeId, specs: merged.map((m) => m.capability) });
+
+  // Telemetry stays out of the tree for the whole life of the change and becomes
+  // tracked exactly once — here, in the ship commit — so no session can dirty it and no
+  // appended tail can conflict.
+  //
+  // Read before the move, write after it. For an open change `sealedJournalPath` and
+  // `legacyJournalPath` are the SAME file, so sealing first would leave the merged
+  // union sitting at the legacy path if the rename then failed (EPERM/EBUSY on Windows
+  // is the realistic way); the retry would merge that union with the still-present live
+  // stream and double every event. Reading first and writing into `destDir` means a
+  // failed rename has consumed nothing.
+  const sealed = readChangeJournal(sdlcRoot, changeId);
 
   fs.renameSync(changeDir, destDir);
+
+  // Past the point of no return: specs are merged and the folder has moved. Nothing
+  // below may throw, or a completed ship reports as a failure and the human retries
+  // into "change not found".
+  try {
+    // Empty only if the id was never journalled at all — the ship event above normally
+    // guarantees at least one entry. An empty file would be worse than none.
+    if (sealed.length) {
+      writeFileNormalized(sealedJournalPath(destDir), serializeJournal(sealed));
+    }
+    fs.rmSync(liveJournalPath(sdlcRoot, changeId), { force: true });
+  } catch (err) {
+    console.error(`⚠ shipped, but the journal was not fully sealed: ${err.message}`);
+  }
 
   console.log(`shipped: ${changeId}`);
   for (const m of merged) console.log(`  spec merged: specs/${m.capability}/spec.md`);

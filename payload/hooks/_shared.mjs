@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { liveJournalPath, globalJournalPath, appendEvent } from './lib/journal.mjs';
 
 export function resolveRoots(importMetaUrl) {
   const hooksDir = path.dirname(fileURLToPath(importMetaUrl));
@@ -135,20 +136,15 @@ export function activeChange(sdlcRoot) {
   return best?.change ?? null;
 }
 
-// Journal: per-change ndjson when a change is active, else a global one under
-// .state/ so no signal is lost. Hook-written only — agents never hand-edit.
+// Journal: per-change ndjson when a change is active, else a global one — both under
+// .state/, which is gitignored, so a session never dirties a version-controlled file
+// just by running. Hook-written only — agents never hand-edit.
+//
+// Attribution does not depend on the change folder existing: a stale active pointer
+// still records the event under that id rather than silently reattributing it.
 export function appendJournal(sdlcRoot, change, event) {
   try {
-    const line = JSON.stringify({ ts: new Date().toISOString(), ...event }) + '\n';
-    if (change) {
-      const dir = path.join(sdlcRoot, 'changes', change);
-      if (fs.existsSync(dir)) {
-        fs.appendFileSync(path.join(dir, 'journal.ndjson'), line);
-        return;
-      }
-    }
-    const stateDir = path.join(sdlcRoot, '.state');
-    fs.mkdirSync(stateDir, { recursive: true });
-    fs.appendFileSync(path.join(stateDir, 'journal.ndjson'), line);
+    const target = (change && liveJournalPath(sdlcRoot, change)) || globalJournalPath(sdlcRoot);
+    appendEvent(target, { ts: new Date().toISOString(), ...event });
   } catch { /* fail open */ }
 }
