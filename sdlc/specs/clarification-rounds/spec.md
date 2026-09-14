@@ -2,7 +2,8 @@
 
 ## Purpose
 How a change puts the questions it cannot safely assume to the human: in rounds ordered by
-what each depends on, each with a recommended answer, ending in a confirmed understanding.
+what each depends on, each with a recommended answer and, for a few concrete choices, options
+through the tool's question picker when it has one, ending in a confirmed understanding.
 
 ## Requirements
 
@@ -28,16 +29,31 @@ that depends on another question still open to a later round.
 - THEN no rounds are held and the questions go into the single confirmation the unattended run gathers
 
 ### Requirement: Every question carries a recommended answer
-The system SHALL number each question in a round and give, separately from the question,
-the answer it recommends, so the human can reply by number.
+The system SHALL number each question in a round and give it a recommended answer. When
+the answer is one of a few concrete choices, the system SHALL offer two to four options,
+recommended option first and marked, each with its trade-off. The human can reply by
+question number and option, or answer freely.
 
 #### Scenario: a round is presented
 - WHEN a round of questions is shown to the human
 - THEN each question has a number and its own recommended answer
 
+#### Scenario: a question with a few possible answers
+- WHEN a question's answer is one of a few concrete choices
+- THEN it is shown with two to four options, the recommended one first and marked as
+  recommended, each stating what choosing it means
+
+#### Scenario: an open-ended question
+- WHEN a question has no small set of plausible answers
+- THEN it is shown with a single recommended answer and no invented options
+
 #### Scenario: the human accepts some recommendations
 - WHEN the human replies by question number, accepting some recommendations and overriding others
 - THEN each answer is applied to the question with that number
+
+#### Scenario: the human answers outside the options
+- WHEN the human gives an answer that is none of the offered options
+- THEN that answer is applied as given
 
 ### Requirement: What can be looked up is never asked
 The system SHALL find out for itself anything the repository or the available tools can
@@ -71,3 +87,23 @@ the human to confirm it before the change leaves the `new` stage.
 #### Scenario: the rounds end in an unattended run
 - WHEN the stage runs with `--auto`
 - THEN no separate confirmation is requested; the settled answers are part of the single unattended confirmation
+
+### Requirement: Options use the tool's own question picker when it has one
+The system SHALL present a round's option questions through the tool's structured question
+interface when the tool provides one. It SHALL split a round larger than that interface allows
+into consecutive prompts within the same round. Otherwise it SHALL write the options inline as
+lettered choices.
+
+#### Scenario: the tool has a question picker
+- WHEN the agent runs in a tool with a structured question interface, such as Claude Code
+- THEN option questions are asked through it, with the recommended option first and labelled
+  as recommended
+
+#### Scenario: a round exceeds the picker's limit
+- WHEN a round holds more questions than one prompt of the picker allows
+- THEN they are asked in consecutive prompts, and no later round starts until all are answered
+
+#### Scenario: the tool has no picker
+- WHEN the agent runs in a tool without a structured question interface
+- THEN options are written inline as lettered choices under each numbered question, so the
+  human can reply like `1b, 2a`

@@ -142,10 +142,11 @@ test('row 14: rules-card.md\'s ambiguity line names rounds and a recommended ans
   assert.ok(lines <= 40, `rules-card.md is ${lines} effective lines, budget is 40`);
 });
 
-// row 15 — cap pin: green today at 30, so step 5 grows only by what the four rules need
+// row 15 — cap pin: green at 30 when set, so step 5 grows only by what its rules need.
+// Raised 38 → 43 by question-options (options + picker rules), approved by the human.
 test('row 15: new.md stays within its pinned line budget', () => {
   const lines = countEffectiveLines(pb('new.md'));
-  assert.ok(lines <= 38, `new.md is ${lines} effective lines, budget is 38`);
+  assert.ok(lines <= 43, `new.md is ${lines} effective lines, budget is 43`);
 });
 
 // row 16

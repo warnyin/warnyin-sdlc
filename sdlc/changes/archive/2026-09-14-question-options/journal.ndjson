@@ -1,0 +1,10 @@
+{"ts":"2026-09-14T16:46:43.965Z","event":"session","session":"5f5d747e-dfe5-432a-8c1b-4c60bb3ff588","totals":{"input":800,"output":448970,"cacheRead":89995272,"cacheWrite":1150028},"models":{"claude-opus-5":{"input":800,"output":448970,"cacheRead":89995272,"cacheWrite":1150028}},"costUsd":null}
+{"ts":"2026-09-14T16:51:05.584Z","event":"session","session":"5f5d747e-dfe5-432a-8c1b-4c60bb3ff588","totals":{"input":832,"output":472447,"cacheRead":96005122,"cacheWrite":1194293},"models":{"claude-opus-5":{"input":832,"output":472447,"cacheRead":96005122,"cacheWrite":1194293}},"costUsd":null}
+{"ts":"2026-09-14T16:53:23.829Z","event":"contract","tests":"13"}
+{"ts":"2026-09-14T16:56:54.076Z","event":"escalation","condition":"cap-pin-exceeded","preauth":"no"}
+{"ts":"2026-09-14T17:05:30.686Z","event":"escalation","condition":"cap-pin-exceeded","answer":"raise-to-43"}
+{"ts":"2026-09-14T17:05:55.607Z","event":"build","tasks":"4"}
+{"ts":"2026-09-14T17:06:12.007Z","event":"session","session":"5f5d747e-dfe5-432a-8c1b-4c60bb3ff588","totals":{"input":902,"output":521550,"cacheRead":111053998,"cacheWrite":1256802},"models":{"claude-opus-5":{"input":902,"output":521550,"cacheRead":111053998,"cacheWrite":1256802}},"costUsd":null}
+{"ts":"2026-09-14T17:08:43.711Z","event":"verify","result":"pass","round":"1","mode":"panel","solo_lines":"budget"}
+{"ts":"2026-09-14T17:08:43.742Z","event":"gate","gate":"ship","action":"open","expires":"2026-09-14T17:38:43.741Z"}
+{"ts":"2026-09-14T17:08:43.782Z","event":"ship","change":"question-options","specs":["clarification-rounds"]}

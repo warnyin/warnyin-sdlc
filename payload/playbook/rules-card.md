@@ -8,7 +8,8 @@
 - Write tests + evals (`contract/`) BEFORE code. No implementation while status is `new`.
 - Ambiguity: make the safest assumption and record it under `## Assumptions`; use
   `[NEEDS CLARIFICATION: q]` only for facts you cannot obtain — ask those in rounds ordered
-  by dependency, each with a recommended answer; resolve all before contract.
+  by dependency, each with a recommended answer and, for a few concrete choices, 2–4 options
+  (through the tool's question picker when it has one); resolve all before contract.
 - Respect line caps written in each template comment; run `npx @warnyin/sdlc validate <id>`
   before claiming any gate passed — a red validator means the gate did NOT pass.
 - Constitution edits go through /sdlc:steer only; always-loaded context ≤ 60 lines total.

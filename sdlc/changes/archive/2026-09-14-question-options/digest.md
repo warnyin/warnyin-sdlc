@@ -1,0 +1,14 @@
+# Digest — question-options (standard, shipped 2026-09-15)
+- Shipped: `/sdlc:new` step 5 now asks choice questions with 2–4 options, the recommended one first and marked, each with its trade-off. Open-ended questions keep one recommended answer and never get invented options. Answers outside the options are applied as given. With a question picker (Claude Code `AskUserQuestion`: ≤4 questions and 2–4 options a prompt, Other = free answer), consecutive prompts, and no later round until all are answered. Without one, lettered inline so the human can reply `1b, 2a`. The rules card carries the summary for Cursor/Windsurf.
+- Specs merged: `clarification-rounds`. MODIFIED "Every question carries a recommended answer" kept all old scenarios (no drift warning). ADDED "Options use the tool's own question picker when it has one". Purpose updated inside the ship gate.
+- Assumptions: scope is `/sdlc:new` rounds only (`--auto`, `/sdlc:init`, design escalations unchanged); the playbook stays tool-neutral with Claude Code as the example; no lens.
+- Escalation (not pre-approved): the `new.md` pin was approved at 42, but the rules landed at 43 after several compression passes. The run stopped and asked, and the human approved 43. Both pins (question-options row 11, clarification-rounds row 15) are now 43.
+- Contract: 13 rows, 11 red before the payload edit; row 9 (rules still stand) and row 11 (pin) were green by design. The adversarial pass added picker-case guards (recommended first, Other) and Windsurf. Tests were written in the main loop, not by sdlc-contractor, after its output needed rewriting on the two previous changes.
+- Build note: wrapping step 5 split `## Assumptions` and "safely assume" across lines. clarification-rounds regexes match raw text, so they broke until the phrases were kept whole.
+- Verify: 1 round, `npm test` 317/317, `setup:dogfood` run. `mode=panel` for 5 rubric lines (all 5). The evaluator skipped "budget": **that line is self-judged** (`solo_lines=budget`), in the main loop's view 4 (rules read as before; heading shortened to "Ambiguity (AI-driven)").
+- Review: not triggered (standard, no security surface, <10 files, no lenses).
+- Pre-authorized escalations (`preauth=yes`): none reached. `cap-pin-exceeded` was asked live.
+- Cost: shared session · output 522K tokens · cache read 111M · cache write 1.26M · USD not priced.
+- Learner proposals (not applied):
+  - add-rule (contract.md): on deep tier, mutation-check generated contract tests before build. **Third evidence** (release-on-tag, update-notice, and this run bypassing the contractor).
+  - tweak (test convention): doctrine tests fold whitespace before matching, so rewrapped prose cannot break them. Evidence: the two wrap breaks above.
