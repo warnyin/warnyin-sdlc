@@ -21,8 +21,16 @@
    and suggest the missing kind of skill in one Assumptions line; never fetch or install one.
 5. Ambiguity policy (AI-driven): make the safest assumption and record it under
    `## Assumptions` with why it is safe. Use `[NEEDS CLARIFICATION: q]` ONLY for
-   facts you cannot obtain or safely assume — then ask the user those questions
-   now, in one batch, and resolve every marker.
+   facts you cannot obtain or safely assume. What the repo or tools can answer is looked
+   up, never asked; while a lookup runs, only the questions that depend on it wait.
+   Ask the rest in rounds: a round holds every open question whose prerequisites are
+   already answered; one that depends on a question still open is deferred, and one an
+   answer made moot or already decided is dropped. Number each question and put your
+   recommended answer on its own line, so the human can reply by number — apply each
+   answer to that number. After the last round restate the settled answers and wait for
+   confirmation before leaving `new`; a corrected answer is reopened in a new round.
+   No question raised → no confirmation. With `--auto`: no rounds and no separate
+   confirmation — both go into the single confirmation of `auto.md`. Resolve every marker.
 6. `node sdlc/.hooks/journal.mjs set-active <id>` then
    `npx @warnyin/sdlc validate <id>` — fix errors. Status stays `new`.
 

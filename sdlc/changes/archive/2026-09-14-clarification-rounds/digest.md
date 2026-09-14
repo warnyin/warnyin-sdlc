@@ -1,0 +1,12 @@
+# Digest — clarification-rounds (standard, shipped 2026-09-14)
+- Shipped: `/sdlc:new` step 5 asks unassumable questions in rounds ordered by dependency (defer what hinges on an open question, drop what became moot), each numbered with a recommended answer; look up instead of asking; restate + confirm after the last round, reopen on correction, none when nothing was asked; `--auto` unchanged (single confirmation). Rules card carries a one-line summary. Adapted from mattpocock/skills `grilling`.
+- Specs merged: new `clarification-rounds` (4 requirements). No MODIFIED drift warnings. `## Purpose` was an empty placeholder after archive; filled by hand inside the ship gate.
+- Assumptions: AI-driven assume-safely policy kept; `--auto`, `/sdlc:init`, `/sdlc:design` out of scope; requirements bind content, not wording/emoji; enforcement is doctrine + doctrine tests + eval rubric, grouping is agent judgement (repaired by reopening, not prevented).
+- Contract: adversarial check found 2 majors (Assumption contradicted the look-up requirement; confirmation lacked the `--auto` carve-out → double confirmation) + 3 minors; all fixed before build.
+- Verify: 1 round, `mode=panel` — `npm test` 259/259, evaluator ≥4 on every line (recommendation quality 4, rest 5).
+- Cost: 1 session (includes pre-change research) · output 103.6K tokens · cache read 13.1M · cache write 421K · USD not priced.
+- Accepted gap: non-Claude tools get only the rules-card line, not dependency ordering, look-up-first or the confirmation.
+- Watch: `payload/playbook/new.md` sits exactly at its pinned cap (38 effective lines, test row 15) — the next addition must raise the pin deliberately.
+- Learner proposals (not applied — both add doctrine to a playbook already at its cap and need a change with tests):
+  - tweak: specs with an empty `## Purpose` are invisible to `/sdlc:new` step 3 grounding (evidence: `change-focus` still empty; this spec was too). A product fix — `archive` or `validate` warning on an empty Purpose — likely beats more playbook text.
+  - add-rule: a requirement with a mode-dependent behavior (e.g. `--auto`) carries its own scenario for every mode, not only a sibling requirement (evidence: contract major #2).
