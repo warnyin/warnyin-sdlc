@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.7.0 (2026-09-14)
+
+- **Fix (next)**: with several changes open, `/sdlc:next` gave every one of them its own
+  next command and gave the change this session was actually on no precedence — so the
+  agent walked off onto someone else's change mid-flight. Underneath, the active-change
+  pointer was one project-wide file: two sessions overwrote each other's focus, and hooks
+  recorded one session's telemetry against the other's change. The pointer is now kept per
+  session at `sdlc/.state/sessions/<session-id>.json`, with `.state/active.json` still
+  written as the project-wide fallback. `status` lists the current change first and marks
+  it `← this session`, or `← last set for project` when this session has not set one; other
+  changes are marked `(not this session)` only when this session set its own pointer.
+  `status --json` gains `current: {id, source}` and keeps `changes` in their original
+  order. `/sdlc:next` answers for the marked change, and a human who names a different one
+  wins. Hooks take the session from their stdin `session_id`; shell-run commands read
+  `CLAUDE_CODE_SESSION_ID`, which Claude Code does not document, so when it is absent — and
+  in every other tool — the project-wide pointer answers exactly as before. A session's own
+  pointer does not survive resume or `/clear`, which start a new session id. (#4)
+- **Fix (pointers)**: a session id now becomes a filename, so it is refused — not stripped —
+  by the same single-safe-segment rule as change ids; the steering-seen file uses
+  `nosession` for an unsafe id instead of aliasing `a/b` onto `ab`. Pointer reads and
+  writes check that the real path is where it claims to be, so a link planted at `.state`,
+  `.state/sessions` or the pointer file itself — a dangling one included — cannot carry a
+  write out of the project. `set-active` now exits 2 for an id that is not an open change
+  rather than writing a pointer that is then ignored, and reports a refused write instead
+  of claiming success; `archive` removes the pointers naming the change it ships.
+  Journal and `phase.json` writes do not have this check yet. Downgrading to 0.6.0 leaves
+  `.state/sessions/` unread and harmless on disk.
+
 ## 0.6.0 (2026-09-10)
 
 - **Fix (auto)**: the Confirm step of an unattended run showed the scope it had settled on
