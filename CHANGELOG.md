@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.9.0 (2026-09-14)
+
+- **Feature (new)**: `/sdlc:new` now asks its clarifying questions in rounds that follow
+  their dependencies. Before this, it asked every question it could not safely assume in
+  one batch. A question whose answer hinged on another was asked too early, so the human
+  answered it blind or the agent quietly re-decided it later. A round now holds every open
+  question whose prerequisites are already answered. A question that depends on one still
+  open waits for a later round, and one an earlier answer made moot is dropped. Each
+  question is numbered and comes with the agent's recommended answer, so you can reply by
+  number. Anything the repository or tools can answer is looked up instead of asked. After
+  the last round the settled answers are restated for confirmation, and correcting one
+  reopens that question. A change that asked nothing needs no confirmation. The
+  assume-safely policy is unchanged, and `--auto` still puts questions and answers into
+  its single confirmation. The rules card carries a one-line summary for non-Claude tools.
+  Existing installs get the new doctrine with `update`.
+
 ## 0.8.0 (2026-09-14)
 
 - **Feature (lenses)**: stages now bring in UX/UI, API or data expertise only when a change
