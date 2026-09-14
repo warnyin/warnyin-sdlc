@@ -70,6 +70,7 @@ warnyin-sdlc update [--force]       refresh payload, guarded prune of stale file
 warnyin-sdlc validate [id] [--strict]
 warnyin-sdlc status | observe [--json]
 warnyin-sdlc archive <id>           merge deltas into living specs + archive
+warnyin-sdlc skills [--json]        installed Claude skills/agents, for lens resolution
 warnyin-sdlc version | --version    print the installed framework version
 ```
 

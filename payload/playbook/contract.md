@@ -6,6 +6,9 @@ status is `new`.
 1. From the Delta scenarios, write `contract/tests.md` (≤60 lines): one row per
    behavior — Given/When/Then, kind, mapped requirement. List what is explicitly
    out of scope and why.
+1b. A non-empty `lenses`: add each lens's contract bars (`lenses.md` § contributes) as
+   test rows where a test can prove them, and as evals quality lines where only judgment
+   can — so any tier with lenses writes `contract/evals.md` in step 2.
 2. Deep tier (standard optional): write `contract/evals.md` (≤40 lines) — the
    trajectory + quality rubric the sdlc-evaluator will score.
 3. Generate failing tests: delegate to the `sdlc-contractor` agent (cheap tier)

@@ -30,4 +30,5 @@
 ## Autonomy policy
 - auto-ship: vibe, standard.
 - escalate to human: hard-floor (security, payments, data-loss, irreversible), verify failed > 3 rounds,
-  token budget exceeded, information the agent cannot obtain or safely assume.
+  token budget exceeded, information the agent cannot obtain or safely assume,
+  installing a skill or agent (suggest only; see `.playbook/lenses.md`).

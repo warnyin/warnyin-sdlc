@@ -13,6 +13,10 @@ Two halves, both must pass. Verification is against the CONTRACT, not vibes.
    run that judged its own work is weaker evidence and must not read as if a
    panel had agreed.
 
+3. **Lens bars** — a non-empty `lenses`, whether or not `evals.md` exists: every lens bar
+   must appear as a `tests.md` row or an `evals.md` line; a lens with its bars in neither
+   is a contract gap and fails verify.
+
 On failure:
 - Cluster failures by root cause (one line each) and append the cluster note to
   the change's `## Tasks` area as unchecked fix tasks.
@@ -30,7 +34,8 @@ the main loop judged its own work. Every verify note carries it, pass or fail �
 `/sdlc:observe` reports a change as self-judged from this field, and omitting it
 leaves the record silently indistinguishable from an independent one.
 
-Next: review signals present (deep tier, security-touching diff, >10 files)
+Next: review signals present (deep tier, security-touching diff, >10 files,
+a non-empty `lenses`)
 → /sdlc:review; otherwise → /sdlc:ship.
 
 `--auto`: do this stage, then continue to ship under `auto.md`'s unattended

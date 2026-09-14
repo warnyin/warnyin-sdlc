@@ -21,6 +21,7 @@ import {
   isSafeChangeId,
 } from '../lib/journal.mjs';
 import { resolveActive, clearPointersFor } from '../lib/active.mjs';
+import { scanInventory, renderInventory } from '../lib/skills.mjs';
 import { detectTools, toolName } from './detect.mjs';
 import { colorEnabled, createStyle, symbolsFor, summarizeInstall, startHints } from './ui.mjs';
 import { multiSelect } from './multiselect.mjs';
@@ -470,6 +471,17 @@ export function cmdObserve(projectRoot, { json = false } = {}) {
   return report;
 }
 
+// ---------- skills ----------
+
+// Reports the machine, not a change, so it needs no sdlc/ folder. JSON stays on one line:
+// the opening playbook pipes it straight into the model's context.
+export function cmdSkills(projectRoot, { json = false } = {}) {
+  const inventory = scanInventory(projectRoot);
+  if (json) console.log(JSON.stringify(inventory));
+  else console.log(inventory.entries.length ? renderInventory(inventory) : 'no skills or agents installed');
+  return inventory;
+}
+
 // ---------- archive (= mechanical part of ship) ----------
 
 // The CLI's own events go to the same out-of-tree stream the hooks append to, so the
@@ -626,6 +638,7 @@ usage: warnyin-sdlc <command> [options]
   status [--json]                   list active changes and their stage
   observe [--json]                  tokens/cost per change, residency, steering hits, drift flags
   archive <id>                      merge delta specs into living specs and archive the change
+  skills [--json]                   list installed Claude skills/agents (project + user) for lens resolution
   version | --version | -v          print the installed framework version
   help                              this text
 `;
@@ -644,6 +657,7 @@ export async function main(argv = process.argv.slice(2), projectRoot = process.c
     else if (cmd === 'status') cmdStatus(projectRoot, { json: args.json });
     else if (cmd === 'observe') cmdObserve(projectRoot, { json: args.json });
     else if (cmd === 'archive') cmdArchive(projectRoot, args._[1]);
+    else if (cmd === 'skills') cmdSkills(projectRoot, { json: args.json });
     else { console.error(`unknown command: ${cmd}`); console.log(HELP); process.exitCode = 2; }
   } catch (err) {
     console.error(String(err.message ?? err));

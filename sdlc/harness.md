@@ -33,4 +33,4 @@
 - auto-ship: vibe, standard.
 - escalate to human: hard-floor (prune/guard/merge semantics = data-loss surface in user
   projects), verify failed > 3 rounds, token budget exceeded, information the agent
-  cannot obtain or safely assume.
+  cannot obtain or safely assume, installing a skill or agent (suggest only).
