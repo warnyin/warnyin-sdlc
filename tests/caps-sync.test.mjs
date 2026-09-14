@@ -30,6 +30,13 @@ test('every template quotes exactly the canonical cap from lib/caps.mjs', () => 
   }
 });
 
+test('the lens catalog quotes exactly CAPS.lensCatalog', () => {
+  const text = fs.readFileSync(path.join(PKG_ROOT, 'payload', 'playbook', 'lenses.md'), 'utf8');
+  const m = text.match(/cap:(\d+)/);
+  assert.ok(m, 'lenses.md: missing cap:<n> annotation');
+  assert.equal(Number(m[1]), CAPS.lensCatalog);
+});
+
 test('constitution template also quotes the always-budget correctly', () => {
   const text = fs.readFileSync(path.join(PKG_ROOT, 'payload', 'templates', 'constitution.md'), 'utf8');
   const m = text.match(/always-budget \((\d+) lines\)/);

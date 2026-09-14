@@ -4,6 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
@@ -14,6 +15,13 @@ import {
 import { parseDelta, mergeDelta } from '../lib/delta.mjs';
 import { parseFrontmatter } from '../lib/frontmatter.mjs';
 import { resolveActive } from '../lib/active.mjs';
+
+// A throwaway home so skills tests never read the real ~/.claude.
+function emptyHome(t) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wsdlc-home-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  return dir;
+}
 
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
 
@@ -439,4 +447,153 @@ test('row 20: set-active refuses an unsafe, missing or archived change id and to
     assert.equal(setActiveAs(id).status, 2);
     assert.deepEqual(pointers(), before, `set-active "${id}" must leave existing pointers unchanged`);
   }
+});
+
+// Row 8: project skill/agent linked to outside folder are not listed
+test('row 8: skills command skips project skill/agent linked outside project; no outside text printed, exit 0', (t) => {
+  const projectDir = makeTempProject(t);
+  const outside = fs.mkdtempSync(path.join(projectDir, '..', 'outside-'));
+  t.after(() => fs.rmSync(outside, { recursive: true, force: true }));
+
+  // Create a skill outside the project
+  const outsideSkillDir = path.join(outside, 'outside-skill');
+  fs.mkdirSync(outsideSkillDir);
+  fs.writeFileSync(path.join(outsideSkillDir, 'SKILL.md'), '---\nname: outside-skill\ndescription: dangerous\n---\n# Skill');
+
+  // Create an agent file outside the project
+  const outsideAgent = path.join(outside, 'outside-agent.md');
+  fs.writeFileSync(outsideAgent, '---\nname: outside-agent\ndescription: dangerous\n---\n# Agent');
+
+  // Try to plant links to them in the project
+  const projectSkillsDir = path.join(projectDir, '.claude/skills');
+  fs.mkdirSync(projectSkillsDir, { recursive: true });
+  const projectAgentsDir = path.join(projectDir, '.claude/agents');
+  fs.mkdirSync(projectAgentsDir, { recursive: true });
+
+  let linkedSkill = true;
+  let linkedAgent = true;
+
+  try {
+    fs.symlinkSync(outsideSkillDir, path.join(projectSkillsDir, 'evil'), 'junction');
+  } catch (err) {
+    if (err.code === 'EPERM') {
+      t.skip('junction creation not permitted; skipping link test');
+      linkedSkill = false;
+    } else {
+      throw err;
+    }
+  }
+
+  if (linkedSkill) {
+    try {
+      fs.symlinkSync(outsideAgent, path.join(projectAgentsDir, 'evil.md'), 'file');
+    } catch (err) {
+      if (err.code === 'EPERM') {
+        linkedAgent = false;
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  if (!linkedSkill && !linkedAgent) {
+    t.skip('symlink creation not permitted; skipping link test');
+    return;
+  }
+
+  const res = runCli(projectDir, ['skills', '--json'], { env: { HOME: emptyHome(t), USERPROFILE: emptyHome(t) } });
+  assert.equal(res.status, 0);
+  assert.doesNotMatch(res.stdout, /outside-skill/);
+  assert.doesNotMatch(res.stdout, /outside-agent/);
+  assert.doesNotMatch(res.stdout, /dangerous/);
+
+  const data = JSON.parse(res.stdout);
+  assert.equal(data.entries.length, 0, 'linked outside entries should not be listed');
+});
+
+// Row 9: .claude itself linked to outside folder
+test('row 9: when .claude folder is linked outside the project, no project entries are listed, exit 0', (t) => {
+  const projectDir = makeTempProject(t);
+  const outside = fs.mkdtempSync(path.join(projectDir, '..', 'outside-'));
+  t.after(() => fs.rmSync(outside, { recursive: true, force: true }));
+
+  // Create some skills and agents inside the outside directory
+  const outsideSkillDir = path.join(outside, 'skills', 'outside-skill');
+  fs.mkdirSync(outsideSkillDir, { recursive: true });
+  fs.writeFileSync(path.join(outsideSkillDir, 'SKILL.md'), '---\nname: outside-skill\ndescription: dangerous\n---\n# Skill');
+
+  const outsideAgentDir = path.join(outside, 'agents');
+  fs.mkdirSync(outsideAgentDir, { recursive: true });
+  fs.writeFileSync(path.join(outsideAgentDir, 'outside-agent.md'), '---\nname: outside-agent\ndescription: dangerous\n---\n# Agent');
+
+  // Remove .claude if it exists and replace with a link
+  const claudeDir = path.join(projectDir, '.claude');
+  if (fs.existsSync(claudeDir)) {
+    fs.rmSync(claudeDir, { recursive: true });
+  }
+
+  let linked = true;
+  try {
+    fs.symlinkSync(outside, claudeDir, 'junction');
+  } catch (err) {
+    if (err.code === 'EPERM') {
+      t.skip('junction creation not permitted; skipping link test');
+      linked = false;
+    } else {
+      throw err;
+    }
+  }
+
+  if (!linked) return;
+
+  const res = runCli(projectDir, ['skills', '--json'], { env: { HOME: emptyHome(t), USERPROFILE: emptyHome(t) } });
+  assert.equal(res.status, 0);
+  assert.doesNotMatch(res.stdout, /outside-skill/);
+  assert.doesNotMatch(res.stdout, /outside-agent/);
+
+  const data = JSON.parse(res.stdout);
+  // No project entries should be listed since .claude points outside
+  const projectEntries = data.entries.filter((e) => e.source === 'project');
+  assert.equal(projectEntries.length, 0, 'no project entries should be listed when .claude is outside');
+});
+
+// Row 10: home skill folder linked to elsewhere IS listed (user-level links are allowed)
+test('row 10: home skill folder linked to elsewhere IS listed with source: user (user links are ok)', (t) => {
+  const projectDir = makeTempProject(t);
+  const homeDir = fs.mkdtempSync(path.join(projectDir, '..', 'home-'));
+  t.after(() => fs.rmSync(homeDir, { recursive: true, force: true }));
+
+  const elsewhere = fs.mkdtempSync(path.join(projectDir, '..', 'elsewhere-'));
+  t.after(() => fs.rmSync(elsewhere, { recursive: true, force: true }));
+
+  // Create a skill elsewhere
+  const elsewhereSkillDir = path.join(elsewhere, 'linked-skill');
+  fs.mkdirSync(elsewhereSkillDir);
+  fs.writeFileSync(path.join(elsewhereSkillDir, 'SKILL.md'), '---\nname: linked-skill\ndescription: linked from elsewhere\n---\n# Skill');
+
+  // Link to it from home
+  const homeSkillsDir = path.join(homeDir, '.claude/skills');
+  fs.mkdirSync(homeSkillsDir, { recursive: true });
+
+  let linked = true;
+  try {
+    fs.symlinkSync(elsewhereSkillDir, path.join(homeSkillsDir, 'linked-skill'), 'junction');
+  } catch (err) {
+    if (err.code === 'EPERM') {
+      t.skip('junction creation not permitted; skipping link test');
+      linked = false;
+    } else {
+      throw err;
+    }
+  }
+
+  if (!linked) return;
+
+  const res = runCli(projectDir, ['skills', '--json'], { env: { HOME: homeDir, USERPROFILE: homeDir } });
+  assert.equal(res.status, 0);
+
+  const data = JSON.parse(res.stdout);
+  const linkedEntry = data.entries.find((e) => e.name === 'linked-skill');
+  assert.ok(linkedEntry, 'linked home skill should be listed');
+  assert.equal(linkedEntry.source, 'user', 'linked home skill should have source: user');
 });

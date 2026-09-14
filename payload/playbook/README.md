@@ -28,5 +28,5 @@ Statuses: `new → contracted → building → verified → shipped`. Tiers: `vi
 (triage table + Autonomy policy live in `sdlc/harness.md`).
 
 Doctrine: `principles.md` (factory model, anti-garbage), `context.md` (static/dynamic),
-`routing.md` (model tiers). Non-Claude harnesses: `rules-card.md` is embedded in your
+`routing.md` (model tiers), `lenses.md` (expert lenses a change records only on signal). Non-Claude harnesses: `rules-card.md` is embedded in your
 tool's rules file; `npx @warnyin/sdlc validate` is the enforcement floor.

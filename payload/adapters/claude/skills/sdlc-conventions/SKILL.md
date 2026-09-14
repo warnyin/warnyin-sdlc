@@ -16,7 +16,8 @@ constitution 30 · steering 40 each · always-budget 60 total · harness 60 ·
 change vibe/standard/deep 40/100/150 · tests.md 60 · evals.md 40 · spec soft 150.
 
 Frontmatter: `id` (= folder name) · `tier: vibe|standard|deep` ·
-`status: new|contracted|building|verified|shipped`.
+`status: new|contracted|building|verified|shipped` · optional
+`lenses: [<ux-ui|api|data>@builtin | @project:<skill> | @user:<skill>]` (see `.playbook/lenses.md`).
 Steering: `inclusion: always|paths|manual|agent` (+ `pathMatch` for paths).
 
 Hard rules (hook-enforced):

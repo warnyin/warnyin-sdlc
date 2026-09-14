@@ -14,6 +14,7 @@ contract; if an artifact loses its reason, delete it.
 | `specs/<cap>/spec.md` | soft 150 | living truth for regeneration + maintenance (converge) | behavior only; no narrative, no design |
 | `journal.ndjson` | — | Day-1: observe the harness (cost, drift, audit) | machine-only; never loaded into context; lives in gitignored `.state/` while open so a session never dirties the tree, sealed into the archive at ship |
 | `archive digest.md` | 15 | the async human touchpoint of exception-only HITL | summarizes; links, doesn't copy |
+| `playbook/lenses.md` | 60 | a UI/API/data change needs expertise the fixed stages lack, and the project may already have a skill for it | read only by `/sdlc:new` and by stages of a change that recorded `lenses:`; names are canonical in `lib/lenses.mjs`; the inventory (`skills --json`) carries names and descriptions, never skill bodies |
 | `.state/sessions/<sid>.json` | — | issue #4: one project-wide active-change pointer let concurrent sessions clobber each other's focus and telemetry | machine-only; never loaded into context; gitignored `.state/`; `active.json` stays as the project-wide fallback, not duplicated per session; pointers naming a change are removed when it ships |
 
 ## Key decisions
@@ -33,6 +34,9 @@ contract; if an artifact loses its reason, delete it.
   rules as prose (rules-card embedded in their config) + `npx @warnyin/sdlc validate`.
 - **All-or-nothing archive**: every delta merge is computed before anything is written;
   a missing MODIFIED/REMOVED key aborts the whole ship.
+- **Lenses are chosen on evidence, resolved project → user → builtin, and never installed**:
+  expertise is dynamic without adding always-loaded context or agent files; installing
+  third-party instructions stays a human decision.
 - **caps.mjs is canonical**: templates quote caps in comments; `caps-sync.test.mjs`
   fails the build on drift.
 
