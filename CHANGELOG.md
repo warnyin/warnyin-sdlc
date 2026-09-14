@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.10.0 (2026-09-14)
 
 - **Feature (update notice)**: a project is now told when a newer `@warnyin/sdlc` exists. Once a
   day the SessionStart hook hands a background process one request to the npm registry for the
@@ -15,6 +15,9 @@
   `NO_UPDATE_NOTIFIER`. Behind a proxy the check stays silent (Node's fetch ignores
   `HTTPS_PROXY`). Claude Code only; other tools install no hooks. `update` now always rewrites
   `sdlc/.hooks/version.json`, even where your other hook files are kept.
+- **Release**: versions are now published by GitHub Actions from a pushed `vX.Y.Z` tag through
+  npm trusted publishing, with a provenance attestation that links each tarball to its commit
+  and workflow run. No npm token is involved.
 
 ## 0.9.0 (2026-09-14)
 
