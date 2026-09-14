@@ -30,6 +30,12 @@ fails if `tests/`, `sdlc/`, `docs/`, or `.claude/` leak into the npm tarball, or
 `bin/`, `lib/`, `payload/` files go missing. Adding a new payload directory means checking it is
 covered by `files` in `package.json`.
 
+Releases publish from `.github/workflows/release.yml` on a pushed `vX.Y.Z` tag (npm trusted
+publishing, no token). It calls `ci.yml` as its gate, so `ci.yml` must stay callable: no
+permissions beyond `contents: read`, no job-level `if:` or `continue-on-error`. Do not rename
+`release.yml` without updating the trusted publisher on npmjs.com. `.github/scripts/` holds
+zero-dep release tooling and is deliberately outside the tarball.
+
 ## Architecture
 
 ### Three layers

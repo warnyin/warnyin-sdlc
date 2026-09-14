@@ -1,0 +1,17 @@
+{"ts":"2026-09-14T14:33:12.003Z","event":"session","session":"5f5d747e-dfe5-432a-8c1b-4c60bb3ff588","totals":{"input":102,"output":39161,"cacheRead":4249273,"cacheWrite":164833},"models":{"claude-opus-5":{"input":102,"output":39161,"cacheRead":4249273,"cacheWrite":164833}},"costUsd":null}
+{"ts":"2026-09-14T14:36:10.320Z","event":"session","session":"5f5d747e-dfe5-432a-8c1b-4c60bb3ff588","totals":{"input":122,"output":46956,"cacheRead":5321096,"cacheWrite":178117},"models":{"claude-opus-5":{"input":122,"output":46956,"cacheRead":5321096,"cacheWrite":178117}},"costUsd":null}
+{"ts":"2026-09-14T14:38:52.143Z","event":"session","session":"5f5d747e-dfe5-432a-8c1b-4c60bb3ff588","totals":{"input":144,"output":69422,"cacheRead":6744925,"cacheWrite":213100},"models":{"claude-opus-5":{"input":144,"output":69422,"cacheRead":6744925,"cacheWrite":213100}},"costUsd":null}
+{"ts":"2026-09-14T14:41:04.263Z","event":"escalation","condition":"none","preauth":"yes"}
+{"ts":"2026-09-14T14:41:19.478Z","event":"session","session":"5f5d747e-dfe5-432a-8c1b-4c60bb3ff588","totals":{"input":168,"output":78470,"cacheRead":8193238,"cacheWrite":232850},"models":{"claude-opus-5":{"input":168,"output":78470,"cacheRead":8193238,"cacheWrite":232850}},"costUsd":null}
+{"ts":"2026-09-14T14:43:00.065Z","event":"contract","tests":"17"}
+{"ts":"2026-09-14T14:44:40.658Z","event":"build","tasks":"4"}
+{"ts":"2026-09-14T14:45:35.879Z","event":"session","session":"5f5d747e-dfe5-432a-8c1b-4c60bb3ff588","totals":{"input":226,"output":134980,"cacheRead":12838263,"cacheWrite":334705},"models":{"claude-opus-5":{"input":226,"output":134980,"cacheRead":12838263,"cacheWrite":334705}},"costUsd":null}
+{"ts":"2026-09-14T14:46:51.696Z","event":"verify","result":"pass","round":"1","mode":"panel"}
+{"ts":"2026-09-14T14:47:16.061Z","event":"session","session":"5f5d747e-dfe5-432a-8c1b-4c60bb3ff588","totals":{"input":244,"output":136907,"cacheRead":14187126,"cacheWrite":344257},"models":{"claude-opus-5":{"input":244,"output":136907,"cacheRead":14187126,"cacheWrite":344257}},"costUsd":null}
+{"ts":"2026-09-14T14:47:30.387Z","event":"session","session":"5f5d747e-dfe5-432a-8c1b-4c60bb3ff588","totals":{"input":244,"output":136907,"cacheRead":14187126,"cacheWrite":344257},"models":{"claude-opus-5":{"input":244,"output":136907,"cacheRead":14187126,"cacheWrite":344257}},"costUsd":null}
+{"ts":"2026-09-14T14:47:50.820Z","event":"session","session":"5f5d747e-dfe5-432a-8c1b-4c60bb3ff588","totals":{"input":256,"output":138123,"cacheRead":14776942,"cacheWrite":353804},"models":{"claude-opus-5":{"input":256,"output":138123,"cacheRead":14776942,"cacheWrite":353804}},"costUsd":null}
+{"ts":"2026-09-14T14:51:17.222Z","event":"session","session":"5f5d747e-dfe5-432a-8c1b-4c60bb3ff588","totals":{"input":302,"output":161946,"cacheRead":18528556,"cacheWrite":405942},"models":{"claude-opus-5":{"input":302,"output":161946,"cacheRead":18528556,"cacheWrite":405942}},"costUsd":null}
+{"ts":"2026-09-14T14:54:32.744Z","event":"review","blockers":"0","mode":"panel"}
+{"ts":"2026-09-14T14:54:32.776Z","event":"escalation","condition":"ship-approval","preauth":"yes"}
+{"ts":"2026-09-14T14:54:32.807Z","event":"gate","gate":"ship","action":"open","expires":"2026-09-14T15:24:32.806Z"}
+{"ts":"2026-09-14T14:54:32.854Z","event":"ship","change":"release-on-tag","specs":["release-pipeline"]}

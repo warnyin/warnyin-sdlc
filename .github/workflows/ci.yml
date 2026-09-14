@@ -1,8 +1,12 @@
 name: ci
+# Also the release gate: release.yml calls this file (workflow_call) before publishing. So:
+# no `permissions:` beyond contents: read, no job-level `if:`, no `continue-on-error`, and
+# pack-verify runs on the same Node major as the publish job.
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_call: # the release workflow runs these jobs as its gate
 
 jobs:
   test:
@@ -23,7 +27,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
       - name: pack must exclude tests and dogfood, include payload
         run: |
           npm pack --dry-run --json > pack.json

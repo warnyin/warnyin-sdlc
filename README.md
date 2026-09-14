@@ -89,4 +89,30 @@ This repo self-hosts: its own development flows through `sdlc/changes/`. After c
 `npm run setup:dogfood` to regenerate the installer-owned mirrors (`sdlc/.playbook/`,
 `sdlc/.hooks/`, `.claude/`).
 
+## Releasing
+
+Pushing a plain `vX.Y.Z` tag publishes that version. `.github/workflows/release.yml` runs the CI
+jobs as a gate, checks the tag names `package.json`'s version, then runs `npm publish` with
+provenance through npm trusted publishing. No npm token lives in the repo or its secrets.
+
+One-time setup, by a package owner, before the first release tag is pushed (until then the
+publish step fails and nothing is released):
+1. On npmjs.com, open `@warnyin/sdlc` → Settings → Trusted Publisher → GitHub Actions and enter
+   organization/user `warnyin`, repository `warnyin-sdlc`, workflow filename `release.yml`,
+   no environment. If asked which actions to allow, allow `npm publish`, not stage-only.
+2. Optional, after the first release by tag succeeds: under Publishing access, choose
+   "Require two-factor authentication and disallow tokens".
+3. On GitHub, add a tag ruleset for `v*` so only maintainers can create or move release tags —
+   whoever can push the tag can publish.
+
+Each release:
+1. Bump `version` in `package.json`, add the `CHANGELOG.md` entry, commit `chore(release): X.Y.Z`.
+2. `git tag vX.Y.Z && git push origin main vX.Y.Z`
+3. Watch the `release` run in GitHub Actions, then confirm with `npm view @warnyin/sdlc version`.
+
+A tag that disagrees with `package.json`, a pre-release tag, a tag not on `main`, or a red gate
+publishes nothing. Every release becomes `latest`, so cut releases from `main` only. A published
+version can never be reused: to back one out, `npm deprecate @warnyin/sdlc@X.Y.Z "<reason>"` and
+release a fixed X.Y.Z+1.
+
 MIT
