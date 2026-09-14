@@ -10,7 +10,7 @@ const SKILLS = ['delta-spec-format', 'contract-writing', 'sdlc-conventions'];
 const AGENTS = ['sdlc-architect', 'sdlc-security', 'sdlc-quality', 'sdlc-ops',
   'sdlc-contractor', 'sdlc-evaluator', 'sdlc-builder', 'sdlc-learner'];
 const HOOKS = ['_shared.mjs', 'journal.mjs', 'inject-context.mjs', 'guard-writes.mjs',
-  'validate-artifact.mjs', 'session-summary.mjs'];
+  'validate-artifact.mjs', 'session-summary.mjs', '_update-notice.mjs', 'check-update.mjs'];
 
 test('init installs the full claude adapter: commands, skills, agents, playbook, hooks', (t) => {
   const dir = makeTempProject(t);

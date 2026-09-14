@@ -230,6 +230,18 @@ function scaffoldSdlc(projectRoot, tools, ctx) {
   copyTree(path.join(PAYLOAD, 'templates'), path.join('sdlc', '.playbook', 'templates'), projectRoot, ctx);
   copyTree(path.join(PAYLOAD, 'hooks'), path.join('sdlc', '.hooks'), projectRoot, ctx);
   copyTree(path.join(PKG_ROOT, 'lib'), path.join('sdlc', '.hooks', 'lib'), projectRoot, ctx);
+  recordPayloadVersion(projectRoot, ctx);
+}
+
+// The hooks carry no package.json; the update notice compares against this. It is a record
+// the CLI writes, not a user file, so it is rewritten every run instead of going through
+// installFile's keep-if-different rule — otherwise a hand edit, or a clone whose gitignored
+// manifest is missing, would freeze it and the notice would repeat after every update.
+function recordPayloadVersion(projectRoot, ctx) {
+  const rel = path.join('sdlc', '.hooks', 'version.json');
+  const content = `${JSON.stringify({ version: pkgVersion() })}\n`;
+  writeFileNormalized(path.join(projectRoot, rel), content);
+  ctx.manifest.set(toPosix(rel), sha256(content));
 }
 
 export function writeManifestFile(projectRoot, manifest) {

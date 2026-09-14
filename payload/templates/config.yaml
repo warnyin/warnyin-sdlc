@@ -4,5 +4,9 @@ tools: []            # filled by `warnyin-sdlc init`
 # Optional price table for cost reporting (USD per 1M tokens).
 # prices:
 #   claude-sonnet-5: { input: 3, output: 15, cacheRead: 0.3 }
+# Once a day a SessionStart hook asks the npm registry whether a newer @warnyin/sdlc exists
+# and, if so, tells the agent to mention `npx @warnyin/sdlc update`. It never updates by
+# itself. Uncomment to switch it off (CI or NO_UPDATE_NOTIFIER in the env also do).
+# updateCheck: false
 # Optional per-artifact cap overrides (see lib/caps.mjs for defaults).
 # caps: {}

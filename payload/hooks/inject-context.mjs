@@ -2,7 +2,8 @@
 // SessionStart hook — THE static-context loader. Emits (hard cap 60 lines):
 //   constitution + every `inclusion: always` steering file + a one-line
 //   pointer to the active change. Everything else stays dynamic.
-// Journals what was injected so /sdlc:observe can price residency honestly.
+// Journals what was injected so /sdlc:observe can price residency honestly. When a newer
+// framework version is known, one notice line leads the output, outside the budget.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -11,8 +12,9 @@ import { resolveRoots, readStdinJson, activeChange, appendJournal } from './_sha
 import { parseFrontmatter } from './lib/frontmatter.mjs';
 import { CAPS } from './lib/caps.mjs';
 import { pickSessionId } from './lib/active.mjs';
+import { updateNotice } from './_update-notice.mjs';
 
-const { sdlcRoot } = resolveRoots(import.meta.url);
+const { sdlcRoot, hooksDir } = resolveRoots(import.meta.url);
 
 async function main() {
   const input = await readStdinJson();
@@ -42,16 +44,18 @@ async function main() {
   const active = activeChange(sdlcRoot, sessionId);
   if (active) out.push(`Active change: sdlc/changes/${active}/change.md — run /sdlc:next for status.`);
 
-  if (!out.length) return;
+  const notice = updateNotice({ sdlcRoot, hooksDir });
+  if (!out.length && !notice) return;
 
-  let lines = out.join('\n\n').split('\n');
+  let lines = out.length ? out.join('\n\n').split('\n') : [];
   if (lines.length > CAPS.alwaysBudget) {
     lines = lines.slice(0, CAPS.alwaysBudget);
     lines.push(`[sdlc] static context truncated at ${CAPS.alwaysBudget} lines — run /sdlc:steer to distill (validate also flags this).`);
   }
-  console.log(lines.join('\n'));
+  console.log((notice ? [notice, ...lines] : lines).join('\n'));
 
-  appendJournal(sdlcRoot, active, { event: 'inject', files: injected, lines: lines.length });
+  // `lines` stays the budgeted count; the notice is recorded on its own, outside the budget.
+  appendJournal(sdlcRoot, active, { event: 'inject', files: injected, lines: lines.length, notice: Boolean(notice) });
 }
 
 main().catch(() => process.exit(0)); // fail open

@@ -16,6 +16,7 @@ contract; if an artifact loses its reason, delete it.
 | `archive digest.md` | 15 | the async human touchpoint of exception-only HITL | summarizes; links, doesn't copy |
 | `playbook/lenses.md` | 60 | a UI/API/data change needs expertise the fixed stages lack, and the project may already have a skill for it | read only by `/sdlc:new` and by stages of a change that recorded `lenses:`; names are canonical in `lib/lenses.mjs`; the inventory (`skills --json`) carries names and descriptions, never skill bodies |
 | `.state/sessions/<sid>.json` | — | issue #4: one project-wide active-change pointer let concurrent sessions clobber each other's focus and telemetry | machine-only; never loaded into context; gitignored `.state/`; `active.json` stays as the project-wide fallback, not duplicated per session; pointers naming a change are removed when it ships |
+| update notice line + `.state/update-check.json` | 1 line, only when outdated | a project kept whatever payload it was installed with and nothing said a newer one existed (this repo's own mirrors sat four releases behind) | outside the always-budget so it never displaces constitution; a plain `X.Y.Z` pair and a command, no registry prose; cache is machine-only in gitignored `.state/`; one request per 24 h; off via `updateCheck: false`, `CI`, `NO_UPDATE_NOTIFIER` |
 
 ## Key decisions
 

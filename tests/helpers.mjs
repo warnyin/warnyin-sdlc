@@ -61,7 +61,8 @@ export function writeTranscript(projectRoot) {
 }
 
 export function runHook(projectRoot, script, { args = [], stdin = null, env = {} } = {}) {
-  const mergedEnv = { ...process.env, CLAUDE_CODE_SESSION_ID: undefined, ...env };
+  // NO_UPDATE_NOTIFIER: SessionStart would otherwise ask the real npm registry (update-notice).
+  const mergedEnv = { ...process.env, CLAUDE_CODE_SESSION_ID: undefined, NO_UPDATE_NOTIFIER: '1', ...env };
   const res = spawnSync(process.execPath, [path.join(projectRoot, 'sdlc/.hooks', script), ...args], {
     cwd: projectRoot,
     input: stdin == null ? '' : JSON.stringify(stdin),

@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- **Feature (update notice)**: a project is now told when a newer `@warnyin/sdlc` exists. Once a
+  day the SessionStart hook hands a background process one request to the npm registry for the
+  `latest` version; the session never waits on it. When the installed version (recorded in the
+  new `sdlc/.hooks/version.json`) is older, the next session's context opens with one line
+  naming both versions and `npx @warnyin/sdlc@latest update`, and telling the agent to mention
+  it and not run it. It repeats at every session start (including resume and `/clear`) until
+  the project is updated or the check is off. Nothing updates by itself. Only a plain `X.Y.Z` from the registry is ever cached
+  or shown; redirects, bodies over 64 KiB and anything slow or broken leave silence. **Existing
+  installs are on by default** after `update`, because `update` never rewrites your
+  `sdlc/config.yaml`: add `updateCheck: false` there to switch it off, or set `CI` or
+  `NO_UPDATE_NOTIFIER`. Behind a proxy the check stays silent (Node's fetch ignores
+  `HTTPS_PROXY`). Claude Code only; other tools install no hooks. `update` now always rewrites
+  `sdlc/.hooks/version.json`, even where your other hook files are kept.
+
 ## 0.9.0 (2026-09-14)
 
 - **Feature (new)**: `/sdlc:new` now asks its clarifying questions in rounds that follow

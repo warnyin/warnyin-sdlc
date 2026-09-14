@@ -597,3 +597,49 @@ test('row 10: home skill folder linked to elsewhere IS listed with source: user 
   assert.ok(linkedEntry, 'linked home skill should be listed');
   assert.equal(linkedEntry.source, 'user', 'linked home skill should have source: user');
 });
+
+// update-notice row 24: `.state/` is gitignored but can ship as a link. The update check must
+// not write its cache (or a temp file) through it, and must not spawn a request it cannot record.
+// Each case also proves the hook ran (constitution injected), and a real `.state/` control shows
+// the same setup does send a request — so a crashing hook cannot pass this.
+test('row 24: update check never writes through a symlinked sdlc/.state', async (t) => {
+  const http = await import('node:http');
+  const hits = [];
+  const server = http.createServer((req, res) => { hits.push(req.url); res.end('{"version":"0.10.0"}'); });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  t.after(() => { server.closeAllConnections?.(); server.close(); });
+  const env = { NO_UPDATE_NOTIFIER: undefined, CI: undefined, WARNYIN_SDLC_REGISTRY_URL: `http://127.0.0.1:${server.address().port}` };
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'wsdlc-state-'));
+  t.after(() => fs.rmSync(outside, { recursive: true, force: true }));
+
+  const setup = (link) => {
+    const dir = makeTempProject(t);
+    runCli(dir, ['init', '--tool', 'claude'], { env: { NO_UPDATE_NOTIFIER: '1' } });
+    fs.writeFileSync(path.join(dir, 'sdlc/context/constitution.md'), '# Constitution — linked\n');
+    fs.rmSync(path.join(dir, 'sdlc/.state'), { recursive: true, force: true });
+    if (link) fs.symlinkSync(link(dir), path.join(dir, 'sdlc/.state'));
+    else fs.mkdirSync(path.join(dir, 'sdlc/.state'));
+    return dir;
+  };
+  const cases = {
+    outside: () => outside,
+    dangling: (dir) => path.join(dir, 'no-such-dir'),
+    'inside project': (dir) => { fs.mkdirSync(path.join(dir, 'elsewhere')); return path.join(dir, 'elsewhere'); },
+  };
+  for (const [name, link] of Object.entries(cases)) {
+    const dir = setup(link);
+    const res = runHookWith(dir, 'inject-context.mjs', { stdin: { hook_event_name: 'SessionStart' }, env });
+    assert.equal(res.status, 0, name);
+    assert.match(res.stdout, /Constitution — linked/, `${name}: hook did not run to completion`);
+    const target = name === 'inside project' ? path.join(dir, 'elsewhere') : outside;
+    assert.deepEqual(fs.readdirSync(target).filter((f) => f.startsWith('update-check')), [], name);
+  }
+  await new Promise((r) => setTimeout(r, 1500));
+  assert.equal(hits.length, 0, 'a check it could not record must not be sent');
+
+  const control = setup(null);
+  runHookWith(control, 'inject-context.mjs', { stdin: { hook_event_name: 'SessionStart' }, env });
+  const deadline = Date.now() + 5000;
+  while (hits.length === 0 && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50));
+  assert.equal(hits.length, 1, 'a real .state/ must still check');
+});

@@ -12,7 +12,8 @@ function initProject(t) {
 }
 
 function runHook(projectRoot, script, stdinObj, extraArgs = []) {
-  const env = { ...process.env, CLAUDE_CODE_SESSION_ID: undefined };
+  // NO_UPDATE_NOTIFIER: SessionStart would otherwise ask the real npm registry (update-notice).
+  const env = { ...process.env, CLAUDE_CODE_SESSION_ID: undefined, NO_UPDATE_NOTIFIER: '1' };
   const res = spawnSync(process.execPath, [path.join(projectRoot, 'sdlc/.hooks', script), ...extraArgs], {
     cwd: projectRoot,
     input: stdinObj == null ? '' : JSON.stringify(stdinObj),

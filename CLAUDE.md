@@ -102,6 +102,12 @@ Installed at `<project>/sdlc/.hooks/` with `lib/` as a sibling. Rules:
   *realpath*-resolved one and denies on divergence. A symlink must never weaken a write-lock.
 - Gates are TTL'd state in `sdlc/.state/phase.json`, opened only by `journal.mjs open-ship|open-steer`.
 
+- **Network**: only the update check reaches out — one GET per project per 24 h, made by
+  `check-update.mjs`, a detached helper (not a registered hook) that `_update-notice.mjs` spawns
+  with a minimal env. SessionStart never waits on it. Every test that runs SessionStart must
+  set `NO_UPDATE_NOTIFIER` (the shared `runHook` does); `WARNYIN_SDLC_REGISTRY_URL` points
+  the check at a local stub.
+
 Known accepted gap (documented in `docs/design.md`): hook matchers cover `Edit|Write|MultiEdit|
 NotebookEdit` only, so `Bash` can bypass write-locks. The validator is the backstop.
 
@@ -127,4 +133,6 @@ This repo runs its own framework: development flows through `sdlc/changes/`, and
 `sdlc/context/constitution.md` are the project's real config. The installer-owned mirrors
 (`sdlc/.playbook/`, `sdlc/.hooks/`, `sdlc/.state/`, `.claude/`) are **gitignored** — after a fresh
 clone run `npm run setup:dogfood` to regenerate them, and re-run it after editing anything under
-`payload/` so the local `/sdlc:*` commands and hooks reflect your changes.
+`payload/` so the local `/sdlc:*` commands and hooks reflect your changes. An update notice in this repo
+means run `npm run setup:dogfood`, never `npx @warnyin/sdlc@latest update` — that would replace
+the mirrors with the published payload instead of your local `payload/`.
