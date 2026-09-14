@@ -12,10 +12,12 @@ function initProject(t) {
 }
 
 function runHook(projectRoot, script, stdinObj, extraArgs = []) {
+  const env = { ...process.env, CLAUDE_CODE_SESSION_ID: undefined };
   const res = spawnSync(process.execPath, [path.join(projectRoot, 'sdlc/.hooks', script), ...extraArgs], {
     cwd: projectRoot,
     input: stdinObj == null ? '' : JSON.stringify(stdinObj),
     encoding: 'utf8',
+    env,
   });
   if (res.error) throw res.error;
   return res;

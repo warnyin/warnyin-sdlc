@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { makeTempProject, runCli, writeChange, writeContractTests, STANDARD_BODY } from './helpers.mjs';
+import { makeTempProject, runCli, runHook, writeChange, writeContractTests, STANDARD_BODY } from './helpers.mjs';
 
 function stageChange(t) {
   const dir = makeTempProject(t);
@@ -28,6 +28,40 @@ test('archive: recreates changes/archive/ when the empty dir did not survive a c
   assert.ok(!fs.existsSync(changeDir), 'change dir should be moved');
   const archived = fs.readdirSync(path.join(dir, 'sdlc/changes/archive')).find((n) => n.endsWith('-add-2fa'));
   assert.ok(archived, 'archived folder exists with date prefix');
+});
+
+// Row 22 of sdlc/changes/next-this-session/contract/tests.md — shipping releases every
+// pointer to the shipped change and no other; an aborted ship releases nothing.
+test('row 22: archive removes the pointers naming the shipped change, and only on success', (t) => {
+  const stageWithPointers = () => {
+    const { dir } = stageChange(t);
+    writeChange(dir, 'y', { body: STANDARD_BODY.replace(/auth/g, 'billing') });
+    const setAs = (sid, id) => runHook(dir, 'journal.mjs', {
+      args: ['set-active', id], env: { CLAUDE_CODE_SESSION_ID: sid },
+    });
+    assert.equal(setAs('s2', 'y').status, 0);
+    assert.equal(setAs('s1', 'add-2fa').status, 0); // last set, so active.json names add-2fa too
+    return dir;
+  };
+  const read = (dir, rel) => {
+    const p = path.join(dir, 'sdlc/.state', rel);
+    return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')).change : null;
+  };
+
+  const shipped = stageWithPointers();
+  const res = runCli(shipped, ['archive', 'add-2fa']);
+  assert.equal(res.status, 0, res.stderr + res.stdout);
+  assert.equal(read(shipped, 'sessions/s1.json'), null, 'the shipping session\'s pointer must be released');
+  assert.equal(read(shipped, 'active.json'), null, 'the project pointer to the shipped change must be released');
+  assert.equal(read(shipped, 'sessions/s2.json'), 'y', 'another session\'s pointer must be untouched');
+
+  const aborted = stageWithPointers();
+  const date = new Date().toISOString().slice(0, 10);
+  fs.mkdirSync(path.join(aborted, 'sdlc/changes/archive', `${date}-add-2fa`), { recursive: true });
+  assert.equal(runCli(aborted, ['archive', 'add-2fa']).status, 1, 'archive must abort on a taken destination');
+  assert.equal(read(aborted, 'sessions/s1.json'), 'add-2fa', 'an aborted ship must release nothing');
+  assert.equal(read(aborted, 'active.json'), 'add-2fa', 'an aborted ship must release nothing');
+  assert.equal(read(aborted, 'sessions/s2.json'), 'y');
 });
 
 test('archive: a half-shipped repo is never left behind — specs and status move together', (t) => {

@@ -8,7 +8,8 @@ user-invocable: false
 Layout: `config.yaml` · `context/{constitution.md, steering/*.md}` · `harness.md`
 · `specs/<capability>/spec.md` · `changes/<id>/{change.md, contract/}`
 · telemetry: `.state/journal/<id>.ndjson` while open, sealed into the archived folder at ship
-· `changes/archive/<date>-<id>/` · `evals/<capability>/rubric.md` · `.state/` (machine).
+· `changes/archive/<date>-<id>/` · `evals/<capability>/rubric.md` · `.state/` (machine)
+· `.state/sessions/<sid>.json` (this session's active-change pointer; `.state/active.json` is the project-wide fallback).
 
 Line caps (validator-enforced; count = non-blank, non-comment body lines):
 constitution 30 · steering 40 each · always-budget 60 total · harness 60 ·
@@ -23,5 +24,6 @@ Hard rules (hook-enforced):
 - `constitution.md`: writable only during an open steer gate.
 - `journal.ndjson` + `.state/**`: machine-owned, never hand-edit.
 
-Gates: `node sdlc/.hooks/journal.mjs open-ship <id> | open-steer | close | set-active <id> | note <name> [k=v]`.
+Gates: `node sdlc/.hooks/journal.mjs open-ship <id> | open-steer | close |
+set-active <id> (sets this session's pointer + the project fallback) | note <name> [k=v]`.
 Validation: `npx @warnyin/sdlc validate [id] [--strict]` — red = the gate did not pass.

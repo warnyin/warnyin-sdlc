@@ -14,11 +14,12 @@ import path from 'node:path';
 import {
   resolveRoots, readStdinJson, readPhase, activeChange, appendJournal, toPosixRel, lexicalPosixRel,
 } from './_shared.mjs';
+import { pickSessionId } from './lib/active.mjs';
 
 const { sdlcRoot, projectRoot } = resolveRoots(import.meta.url);
 
-function deny(reason, rel) {
-  appendJournal(sdlcRoot, activeChange(sdlcRoot), { event: 'guard', action: 'deny', path: rel, reason });
+function deny(reason, rel, sessionId) {
+  appendJournal(sdlcRoot, activeChange(sdlcRoot, sessionId), { event: 'guard', action: 'deny', path: rel, reason });
   console.log(JSON.stringify({
     hookSpecificOutput: {
       hookEventName: 'PreToolUse',
@@ -31,9 +32,9 @@ function deny(reason, rel) {
 // Evaluate the lock rules against ONE view of the path. Returns true when a
 // deny was emitted. Rules must hold for BOTH the lexical (claimed) and the
 // realpath-resolved view — a symlink must never weaken a lock.
-function guard(rel, phase) {
+function guard(rel, phase, sessionId) {
   if (rel.startsWith('sdlc/.state/') || rel.endsWith('journal.ndjson')) {
-    deny(`"${rel}" is machine-owned (hooks/CLI write it) — never edit it by hand.`, rel);
+    deny(`"${rel}" is machine-owned (hooks/CLI write it) — never edit it by hand.`, rel, sessionId);
     return true;
   }
   if (rel.startsWith('sdlc/specs/') || rel.startsWith('sdlc/changes/archive/')) {
@@ -42,6 +43,7 @@ function guard(rel, phase) {
       `"${rel}" is write-locked outside ship. Living specs change only by merging a change's Delta: `
       + 'run `warnyin-sdlc archive <id>` (or `node sdlc/.hooks/journal.mjs open-ship <id>` first if you must edit).',
       rel,
+      sessionId,
     );
     return true;
   }
@@ -51,6 +53,7 @@ function guard(rel, phase) {
       'The constitution is always-loaded context — edits go through /sdlc:steer '
       + '(`node sdlc/.hooks/journal.mjs open-steer` opens the gate).',
       rel,
+      sessionId,
     );
     return true;
   }
@@ -62,6 +65,7 @@ async function main() {
   const filePath = input?.tool_input?.file_path ?? input?.tool_input?.notebook_path;
   if (!filePath || !fs.existsSync(sdlcRoot)) return;
 
+  const sessionId = pickSessionId(input?.session_id, process.env.CLAUDE_CODE_SESSION_ID);
   const abs = path.resolve(projectRoot, filePath);
   const relLexical = lexicalPosixRel(projectRoot, abs);
   const relReal = toPosixRel(projectRoot, abs);
@@ -70,13 +74,13 @@ async function main() {
   // the project) went through a symlink — deny conservatively; a symlink must
   // never disable the write-lock.
   if (relLexical?.startsWith('sdlc/') && relReal !== relLexical) {
-    deny(`"${relLexical}" resolves through a symlink to "${relReal ?? 'outside the project'}" — refusing to touch it.`, relLexical);
+    deny(`"${relLexical}" resolves through a symlink to "${relReal ?? 'outside the project'}" — refusing to touch it.`, relLexical, sessionId);
     return;
   }
 
   const phase = readPhase(sdlcRoot);
   for (const rel of new Set([relLexical, relReal].filter(Boolean))) {
-    if (rel.startsWith('sdlc/') && guard(rel, phase)) return;
+    if (rel.startsWith('sdlc/') && guard(rel, phase, sessionId)) return;
   }
 }
 

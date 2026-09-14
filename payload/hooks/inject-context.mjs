@@ -10,12 +10,14 @@ import process from 'node:process';
 import { resolveRoots, readStdinJson, activeChange, appendJournal } from './_shared.mjs';
 import { parseFrontmatter } from './lib/frontmatter.mjs';
 import { CAPS } from './lib/caps.mjs';
+import { pickSessionId } from './lib/active.mjs';
 
 const { sdlcRoot } = resolveRoots(import.meta.url);
 
 async function main() {
-  await readStdinJson(); // drain; content not needed
+  const input = await readStdinJson();
   if (!fs.existsSync(sdlcRoot)) return;
+  const sessionId = pickSessionId(input?.session_id, process.env.CLAUDE_CODE_SESSION_ID);
 
   const injected = [];
   const out = [];
@@ -37,7 +39,7 @@ async function main() {
     }
   }
 
-  const active = activeChange(sdlcRoot);
+  const active = activeChange(sdlcRoot, sessionId);
   if (active) out.push(`Active change: sdlc/changes/${active}/change.md — run /sdlc:next for status.`);
 
   if (!out.length) return;

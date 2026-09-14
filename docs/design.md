@@ -14,6 +14,7 @@ contract; if an artifact loses its reason, delete it.
 | `specs/<cap>/spec.md` | soft 150 | living truth for regeneration + maintenance (converge) | behavior only; no narrative, no design |
 | `journal.ndjson` | — | Day-1: observe the harness (cost, drift, audit) | machine-only; never loaded into context; lives in gitignored `.state/` while open so a session never dirties the tree, sealed into the archive at ship |
 | `archive digest.md` | 15 | the async human touchpoint of exception-only HITL | summarizes; links, doesn't copy |
+| `.state/sessions/<sid>.json` | — | issue #4: one project-wide active-change pointer let concurrent sessions clobber each other's focus and telemetry | machine-only; never loaded into context; gitignored `.state/`; `active.json` stays as the project-wide fallback, not duplicated per session; pointers naming a change are removed when it ships |
 
 ## Key decisions
 
@@ -44,3 +45,6 @@ contract; if an artifact loses its reason, delete it.
   make it auditable, and symlink tricks under sdlc/ are denied by the guards. A Bash
   command-string heuristic was rejected as high-false-negative theater.
 - **`removeHookSettings` is not yet wired** — reserved for a future `uninstall` command.
+- **Session pointers don't survive resume/`/clear`/`/compact`** — the session id changes,
+  so `status`/`next.md` fall back to the project-wide pointer, labelled as such (no worse
+  than today's single pointer).

@@ -13,11 +13,12 @@ export function makeTempProject(t) {
   return dir;
 }
 
-export function runCli(cwd, args) {
+export function runCli(cwd, args, { env = {} } = {}) {
+  const mergedEnv = { ...process.env, NO_COLOR: '1', CLAUDE_CODE_SESSION_ID: undefined, ...env };
   const res = spawnSync(process.execPath, [CLI, ...args], {
     cwd,
     encoding: 'utf8',
-    env: { ...process.env, NO_COLOR: '1' },
+    env: mergedEnv,
   });
   if (res.error) throw res.error;
   return { status: res.status, stdout: res.stdout, stderr: res.stderr };
@@ -48,6 +49,28 @@ The system SHALL require a second factor during login.
 ## Tasks
 - [ ] T1 implement OTP flow [tier:balanced]
 `;
+
+// A minimal Claude Code transcript with real usage, so `session-summary` records a
+// `session` event instead of returning early on a missing `transcript_path`.
+export function writeTranscript(projectRoot) {
+  const p = path.join(projectRoot, 'transcript.jsonl');
+  fs.writeFileSync(p, JSON.stringify({
+    message: { model: 'claude-sonnet-5', usage: { input_tokens: 100, output_tokens: 50 } },
+  }) + '\n');
+  return p;
+}
+
+export function runHook(projectRoot, script, { args = [], stdin = null, env = {} } = {}) {
+  const mergedEnv = { ...process.env, CLAUDE_CODE_SESSION_ID: undefined, ...env };
+  const res = spawnSync(process.execPath, [path.join(projectRoot, 'sdlc/.hooks', script), ...args], {
+    cwd: projectRoot,
+    input: stdin == null ? '' : JSON.stringify(stdin),
+    encoding: 'utf8',
+    env: mergedEnv,
+  });
+  if (res.error) throw res.error;
+  return res;
+}
 
 export function writeContractTests(changeDir) {
   const dir = path.join(changeDir, 'contract');

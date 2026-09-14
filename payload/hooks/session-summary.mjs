@@ -10,6 +10,7 @@ import process from 'node:process';
 import { resolveRoots, readStdinJson, activeChange, appendJournal } from './_shared.mjs';
 import { parseTranscriptUsage, costUsd } from './lib/usage.mjs';
 import { parseConfig } from './lib/config.mjs';
+import { pickSessionId } from './lib/active.mjs';
 
 const { sdlcRoot } = resolveRoots(import.meta.url);
 
@@ -30,7 +31,8 @@ async function main() {
   } catch { /* no config, no cost */ }
   const usd = costUsd(usage, prices);
 
-  const change = activeChange(sdlcRoot);
+  const sessionId = pickSessionId(input?.session_id, process.env.CLAUDE_CODE_SESSION_ID);
+  const change = activeChange(sdlcRoot, sessionId);
   appendJournal(sdlcRoot, change, {
     event: 'session',
     session: input?.session_id ?? null,

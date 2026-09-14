@@ -20,6 +20,7 @@ import {
   readChangeJournal, liveJournalPath, sealedJournalPath, serializeJournal, appendEvent,
   isSafeChangeId,
 } from '../lib/journal.mjs';
+import { resolveActive, clearPointersFor } from '../lib/active.mjs';
 import { detectTools, toolName } from './detect.mjs';
 import { colorEnabled, createStyle, symbolsFor, summarizeInstall, startHints } from './ui.mjs';
 import { multiSelect } from './multiselect.mjs';
@@ -426,15 +427,37 @@ export function cmdStatus(projectRoot, { json = false } = {}) {
   const archived = fs.existsSync(archiveDir)
     ? fs.readdirSync(archiveDir, { withFileTypes: true }).filter((d) => d.isDirectory()).length
     : 0;
+
+  const resolved = resolveActive(sdlcRoot, { sessionId: process.env.CLAUDE_CODE_SESSION_ID });
+  const current = resolved && (resolved.source === 'session' || resolved.source === 'project')
+      && changes.some((c) => c.id === resolved.change)
+    ? { id: resolved.change, source: resolved.source }
+    : null;
+
+  const orderedChanges = current
+    ? [changes.find((c) => c.id === current.id), ...changes.filter((c) => c.id !== current.id)]
+    : changes;
+
+  // JSON is a machine contract: `current` names the id, so the list keeps its order.
   if (json) {
-    console.log(JSON.stringify({ changes, archived }, null, 2));
+    console.log(JSON.stringify({ changes, archived, current }, null, 2));
   } else if (!changes.length) {
     console.log(`No active changes (${archived} archived). Start one with /sdlc:new or /sdlc:auto.`);
   } else {
-    for (const c of changes) console.log(`${c.id}  [${c.tier}/${c.status}]  ${c.title}`);
+    for (const c of orderedChanges) {
+      let marker = '';
+      if (current && c.id === current.id) {
+        marker = current.source === 'session' ? '  ← this session' : '  ← last set for project';
+      } else if (current?.source === 'session') {
+        // Only a pointer this session wrote can say what is NOT this session's; the
+        // project pointer is someone's last choice, so claiming the rest would be a guess.
+        marker = '  (not this session)';
+      }
+      console.log(`${c.id}  [${c.tier}/${c.status}]  ${c.title}${marker}`);
+    }
     console.log(`${changes.length} active · ${archived} archived`);
   }
-  return { changes, archived };
+  return { changes, archived, current };
 }
 
 // ---------- observe ----------
@@ -558,6 +581,10 @@ export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
   } catch (err) {
     console.error(`⚠ shipped, but the journal was not fully sealed: ${err.message}`);
   }
+
+  // The pointers name a folder that has just moved. Release them so no session's focus or
+  // telemetry keeps following a change that shipped. Never throws.
+  clearPointersFor(sdlcRoot, changeId);
 
   console.log(`shipped: ${changeId}`);
   for (const m of merged) console.log(`  spec merged: specs/${m.capability}/spec.md`);

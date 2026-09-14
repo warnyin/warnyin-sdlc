@@ -7,15 +7,20 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { makeTempProject, runCli, writeChange, writeContractTests, STANDARD_BODY } from './helpers.mjs';
+import {
+  makeTempProject, runCli, writeChange, writeContractTests, STANDARD_BODY,
+  runHook as runHookWith, writeTranscript,
+} from './helpers.mjs';
 import { parseDelta, mergeDelta } from '../lib/delta.mjs';
 import { parseFrontmatter } from '../lib/frontmatter.mjs';
+import { resolveActive } from '../lib/active.mjs';
 
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
 
 function runHook(projectRoot, script, stdinObj) {
+  const env = { ...process.env, CLAUDE_CODE_SESSION_ID: undefined };
   return spawnSync(process.execPath, [path.join(projectRoot, 'sdlc/.hooks', script)], {
-    cwd: projectRoot, input: JSON.stringify(stdinObj), encoding: 'utf8',
+    cwd: projectRoot, input: JSON.stringify(stdinObj), encoding: 'utf8', env,
   });
 }
 
@@ -129,9 +134,12 @@ test('validate-artifact: hostile session_id cannot escape .state/', (t) => {
     session_id: '../../../evil',
   });
   assert.equal(res.status, 0);
-  const stateFiles = fs.readdirSync(path.join(dir, 'sdlc/.state')).filter((f) => f.startsWith('pointers-'));
-  assert.equal(stateFiles.length, 1);
-  assert.match(stateFiles[0], /^pointers-evil\.json$/);
+  // Row 21 — an unsafe id is refused, not stripped: stripping would alias `a/b` onto `ab`
+  // and hand one session's seen-steering list to another.
+  const stateEntries = fs.readdirSync(path.join(dir, 'sdlc/.state'));
+  const stateFiles = stateEntries.filter((f) => f.startsWith('pointers-'));
+  assert.deepEqual(stateFiles, ['pointers-nosession.json']);
+  assert.ok(!stateEntries.some((f) => f.includes('evil')), 'no .state entry may be named from the unsafe id');
   assert.ok(!fs.existsSync(path.join(dir, '..', 'evil')), 'no traversal outside .state');
 });
 
@@ -141,4 +149,294 @@ test('frontmatter: __proto__/constructor keys are ignored', () => {
   assert.equal(Object.prototype.hasOwnProperty.call(data, 'constructor'), false);
   assert.equal(data.id, 'ok');
   assert.equal(typeof data.map, 'undefined');
+});
+
+// Row 13: Given env session id hostile values · when set-active x runs
+// then no file created outside .state/sessions/, active.json names x, status source is project
+test('row 13: hostile session id rejected, active.json uses fallback, status source project', (t) => {
+  const dir = makeTempProject(t);
+  runCli(dir, ['init', '--tool', 'claude']);
+  writeChange(dir, 'x', { body: STANDARD_BODY });
+
+  const hostileIds = ['../evil', 'a/b', 'a\\b', 'a:b', '..', 'CON', 'con', 'x.', 'x ', ''];
+  for (const hostile of hostileIds) {
+    // Reset .state/ but keep what init needs
+    const stateDir = path.join(dir, 'sdlc/.state');
+    if (fs.existsSync(stateDir)) {
+      fs.rmSync(stateDir, { recursive: true, force: true });
+    }
+
+    // Run journal.mjs set-active x with hostile session id
+    const hookRes = runHookWith(dir, 'journal.mjs', {
+      args: ['set-active', 'x'],
+      env: { CLAUDE_CODE_SESSION_ID: hostile },
+    });
+    assert.equal(hookRes.status, 0, `journal.mjs set-active should exit 0 for hostile id "${hostile}"`);
+
+    // Check no file created for the hostile id in .state/sessions/
+    const sessionsDir = path.join(dir, 'sdlc/.state/sessions');
+    if (fs.existsSync(sessionsDir)) {
+      const files = fs.readdirSync(sessionsDir);
+      assert.equal(files.length, 0, `no session files should exist for hostile id "${hostile}"`);
+    }
+
+    // Check no files outside the project root (look for 'evil' in parent)
+    const parentDir = path.dirname(dir);
+    const parentContents = fs.readdirSync(parentDir);
+    assert.ok(!parentContents.includes('evil'), 'no traversal files should exist outside project');
+
+    // `../evil` would resolve out of sessions/ into .state/ itself — nothing but the
+    // project pointer (and an empty sessions/ dir, if any) may appear there.
+    const stray = fs.readdirSync(path.join(dir, 'sdlc/.state'))
+      .filter((f) => f !== 'active.json' && f !== 'sessions');
+    assert.deepEqual(stray, [], `unexpected .state entries for hostile id "${hostile}"`);
+
+    // active.json must name x (project-wide pointer)
+    const activeJson = path.join(dir, 'sdlc/.state/active.json');
+    assert.ok(fs.existsSync(activeJson), 'active.json should exist');
+    const active = JSON.parse(fs.readFileSync(activeJson, 'utf8'));
+    assert.equal(active.change, 'x', `active.json should name x for hostile id "${hostile}"`);
+
+    // status --json should report current = {x, project}
+    const statusRes = runCli(dir, ['status', '--json'], { env: { CLAUDE_CODE_SESSION_ID: hostile } });
+    assert.equal(statusRes.status, 0, statusRes.stderr);
+    const statusData = JSON.parse(statusRes.stdout);
+    assert.deepStrictEqual(statusData.current, { id: 'x', source: 'project' },
+      `status should show project source for hostile id "${hostile}"`);
+  }
+});
+
+// Row 14: Given .state/hijack.json = {change: b} and session id ../hijack
+// when status runs and hook runs with that stdin · then b not reported current and hook doesn't attribute to b
+test('row 14: path traversal session id cannot hijack different change pointer', (t) => {
+  const dir = makeTempProject(t);
+  runCli(dir, ['init', '--tool', 'claude']);
+  writeChange(dir, 'a', { body: STANDARD_BODY });
+  writeChange(dir, 'b', { body: STANDARD_BODY });
+
+  // Create a hijack file at .state/ level (to trick a naive implementation)
+  fs.mkdirSync(path.join(dir, 'sdlc/.state'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'sdlc/.state/hijack.json'), JSON.stringify({ change: 'b' }));
+
+  // Set project pointer to a
+  const stateDir = path.join(dir, 'sdlc/.state');
+  fs.mkdirSync(stateDir, { recursive: true });
+  fs.writeFileSync(path.join(stateDir, 'active.json'), JSON.stringify({ change: 'a' }));
+
+  // Try to access with ../hijack session id - status must not report b as current
+  const statusRes = runCli(dir, ['status', '--json'], { env: { CLAUDE_CODE_SESSION_ID: '../hijack' } });
+  assert.equal(statusRes.status, 0, statusRes.stderr);
+  const jsonData = JSON.parse(statusRes.stdout);
+  // Must assert current is a/project, not b
+  assert.deepStrictEqual(jsonData.current, { id: 'a', source: 'project' },
+    'status must report project pointer a, not hijacked b');
+
+  // Hook receiving ../hijack in stdin (journal.mjs note) should not attribute to b
+  const noteRes = runHookWith(dir, 'journal.mjs', {
+    args: ['note', 'probe'],
+    stdin: { session_id: '../hijack' },
+  });
+  assert.equal(noteRes.status, 0, 'hook should exit 0 on hostile session_id');
+
+  // Event should land in a's journal (project pointer), not b's
+  const aJournal = path.join(dir, 'sdlc/.state/journal/a.ndjson');
+  assert.ok(fs.existsSync(aJournal), 'a journal should exist');
+  const aEvents = fs.readFileSync(aJournal, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l));
+  assert.ok(aEvents.some(e => e.event === 'probe'), 'event should land in a journal (project pointer)');
+
+  const bJournal = path.join(dir, 'sdlc/.state/journal/b.ndjson');
+  assert.ok(!fs.existsSync(bJournal), 'b journal should not be created');
+
+  // Test with session-summary as well
+  const summaryRes = runHookWith(dir, 'session-summary.mjs', {
+    stdin: {
+      hook_event_name: 'Stop',
+      session_id: '../hijack',
+      transcript_path: writeTranscript(dir),
+    },
+  });
+  assert.equal(summaryRes.status, 0, 'session-summary should exit 0');
+
+  // Event should still land in a journal, not b
+  const aEvents2 = fs.readFileSync(aJournal, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l));
+  assert.ok(aEvents2.some(e => e.event === 'session'), 'session-summary should land in a journal');
+});
+
+// Row 15: Given hostile stdin session_id on guard-writes / validate-artifact
+// when they run · then exit 0 and write nothing under .state/sessions/
+test('row 15: hostile session_id in stdin rejected safely by guard-writes and validate-artifact', (t) => {
+  const dir = makeTempProject(t);
+  runCli(dir, ['init', '--tool', 'claude']);
+  fs.writeFileSync(path.join(dir, 'sdlc/context/steering/db.md'),
+    '---\nname: db\ninclusion: paths\npathMatch: ["src/**"]\n---\n# S\n- x\n');
+
+  // guard-writes with hostile session_id
+  const guardRes = runHookWith(dir, 'guard-writes.mjs', {
+    stdin: {
+      tool_name: 'Edit',
+      tool_input: { file_path: path.join(dir, 'sdlc/specs/auth/spec.md') },
+      session_id: '../../../evil',
+    },
+  });
+  assert.equal(guardRes.status, 0, 'guard-writes should exit 0 with hostile session_id');
+
+  // validate-artifact with hostile session_id
+  const validateRes = runHookWith(dir, 'validate-artifact.mjs', {
+    stdin: {
+      tool_name: 'Edit',
+      tool_input: { file_path: path.join(dir, 'src/a.js') },
+      session_id: '..\\..\\evil',
+    },
+  });
+  assert.equal(validateRes.status, 0, 'validate-artifact should exit 0 with hostile session_id');
+
+  // No session file should be created for these hostile ids
+  const sessionsDir = path.join(dir, 'sdlc/.state/sessions');
+  if (fs.existsSync(sessionsDir)) {
+    const files = fs.readdirSync(sessionsDir);
+    assert.equal(files.length, 0, 'no session files should be created for hostile ids');
+  }
+});
+
+// Row 18 — on a case-insensitive filesystem `changes/ARCHIVE` opens the archive folder,
+// so a pointer spelling it in any case must never make the archive the active change.
+test('row 18: a pointer naming the archive folder in any case is never the active change', (t) => {
+  const dir = makeTempProject(t);
+  runCli(dir, ['init', '--tool', 'claude']);
+  const sdlcRoot = path.join(dir, 'sdlc');
+  for (const spelling of ['archive', 'ARCHIVE', 'Archive']) {
+    for (const file of ['active.json', 'sessions/s1.json']) {
+      fs.rmSync(path.join(sdlcRoot, '.state/sessions'), { recursive: true, force: true });
+      fs.rmSync(path.join(sdlcRoot, '.state/active.json'), { force: true });
+      fs.mkdirSync(path.dirname(path.join(sdlcRoot, '.state', file)), { recursive: true });
+      fs.writeFileSync(path.join(sdlcRoot, '.state', file), JSON.stringify({ change: spelling }));
+      assert.equal(resolveActive(sdlcRoot, { sessionId: 's1' }), null,
+        `"${spelling}" in ${file} must not resolve to the archive folder`);
+    }
+  }
+});
+
+// Row 19 — pointer reads and writes must never follow a planted link out of the project.
+// Junctions stand in for directory symlinks so this runs on Windows without privilege.
+test('row 19: a planted .state or sessions link cannot redirect a pointer read or write', (t) => {
+  const setup = () => {
+    const dir = makeTempProject(t);
+    runCli(dir, ['init', '--tool', 'claude']);
+    writeChange(dir, 'a', { body: STANDARD_BODY });
+    writeChange(dir, 'b', { body: STANDARD_BODY });
+    const outside = fs.mkdtempSync(path.join(path.dirname(dir), 'outside-'));
+    t.after(() => fs.rmSync(outside, { recursive: true, force: true }));
+    return { dir, outside };
+  };
+  const setActiveAs = (dir, sid) => runHookWith(dir, 'journal.mjs', {
+    args: ['set-active', 'a'], env: { CLAUDE_CODE_SESSION_ID: sid },
+  });
+  const statusAs = (dir, sid) => runCli(dir, ['status', '--json'], { env: { CLAUDE_CODE_SESSION_ID: sid } });
+
+  // (1) .state/sessions is a link to an outside directory
+  {
+    const { dir, outside } = setup();
+    fs.mkdirSync(path.join(dir, 'sdlc/.state'), { recursive: true });
+    fs.symlinkSync(outside, path.join(dir, 'sdlc/.state/sessions'), 'junction');
+    assert.equal(setActiveAs(dir, 's1').status, 0);
+    assert.deepEqual(fs.readdirSync(outside), [], 'session pointer written through the sessions link');
+    const res = statusAs(dir, 's1');
+    assert.equal(res.status, 0, res.stderr);
+    // The project pointer still landed inside .state/, so it — not a session pointer — answers.
+    assert.deepStrictEqual(JSON.parse(res.stdout).current, { id: 'a', source: 'project' },
+      'a pointer behind a redirected sessions dir must not count as this session\'s');
+  }
+
+  // (2) .state itself is a link to an outside directory
+  {
+    const { dir, outside } = setup();
+    fs.rmSync(path.join(dir, 'sdlc/.state'), { recursive: true, force: true });
+    fs.symlinkSync(outside, path.join(dir, 'sdlc/.state'), 'junction');
+    const setRes = setActiveAs(dir, 's1');
+    assert.equal(setRes.status, 0);
+    // A refused write must say so — claiming success would hide exactly what the guard did.
+    assert.match(setRes.stderr, /not recorded/, 'set-active must report a pointer it could not write');
+    assert.doesNotMatch(setRes.stdout, /active change: a/, 'set-active must not claim success');
+    const leaked = fs.readdirSync(outside).filter((f) => f === 'active.json' || f === 'sessions');
+    assert.deepEqual(leaked, [], 'pointer written through a redirected .state');
+    // Neither pointer could be written or read, and the mtime fallback is never "current".
+    const res = statusAs(dir, 's1');
+    assert.equal(res.status, 0, res.stderr);
+    assert.equal(JSON.parse(res.stdout).current, null, 'no pointer may answer through a redirected .state');
+  }
+
+  // (4) a pointer file is a DANGLING link to an outside path: `existsSync` reports it absent,
+  // so a write that only checks existing entries would create the link's target outside.
+  {
+    const { dir, outside } = setup();
+    const sessionTarget = path.join(outside, 'created-via-session-link.json');
+    const projectTarget = path.join(outside, 'created-via-project-link.json');
+    fs.mkdirSync(path.join(dir, 'sdlc/.state/sessions'), { recursive: true });
+    fs.rmSync(path.join(dir, 'sdlc/.state/active.json'), { force: true });
+    let linked = true;
+    try {
+      fs.symlinkSync(sessionTarget, path.join(dir, 'sdlc/.state/sessions/s1.json'), 'file');
+      fs.symlinkSync(projectTarget, path.join(dir, 'sdlc/.state/active.json'), 'file');
+    } catch (err) {
+      if (err.code !== 'EPERM') throw err;
+      linked = false;
+      t.diagnostic('file symlinks need privilege here; case 4 skipped');
+    }
+    if (linked) {
+      assert.equal(setActiveAs(dir, 's1').status, 0);
+      assert.ok(!fs.existsSync(sessionTarget), 'session pointer written through a dangling link');
+      assert.ok(!fs.existsSync(projectTarget), 'project pointer written through a dangling link');
+    }
+  }
+
+  // (3) the session pointer file itself links to an outside file naming b
+  {
+    const { dir, outside } = setup();
+    const target = path.join(outside, 'evil.json');
+    fs.writeFileSync(target, JSON.stringify({ change: 'b' }));
+    fs.mkdirSync(path.join(dir, 'sdlc/.state/sessions'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'sdlc/.state/active.json'), JSON.stringify({ change: 'a' }));
+    try {
+      fs.symlinkSync(target, path.join(dir, 'sdlc/.state/sessions/s1.json'), 'file');
+    } catch (err) {
+      if (err.code === 'EPERM') { t.diagnostic('file symlinks need privilege here; case 3 skipped'); return; }
+      throw err;
+    }
+    const res = statusAs(dir, 's1');
+    assert.equal(res.status, 0, res.stderr);
+    assert.deepStrictEqual(JSON.parse(res.stdout).current, { id: 'a', source: 'project' },
+      'a session pointer that links outside .state must not be read');
+  }
+});
+
+// Row 20 — a pointer the resolver would ignore must not be written and reported as done.
+test('row 20: set-active refuses an unsafe, missing or archived change id and touches no pointer', (t) => {
+  const dir = makeTempProject(t);
+  runCli(dir, ['init', '--tool', 'claude']);
+  writeChange(dir, 'x', { body: STANDARD_BODY });
+  const state = path.join(dir, 'sdlc/.state');
+  const setActiveAs = (id) => runHookWith(dir, 'journal.mjs', {
+    args: ['set-active', id], env: { CLAUDE_CODE_SESSION_ID: 's1' },
+  });
+  const pointers = () => ({
+    project: fs.existsSync(path.join(state, 'active.json')) ? fs.readFileSync(path.join(state, 'active.json'), 'utf8') : null,
+    sessions: fs.existsSync(path.join(state, 'sessions'))
+      ? fs.readdirSync(path.join(state, 'sessions')).map((f) => [f, fs.readFileSync(path.join(state, 'sessions', f), 'utf8')])
+      : [],
+  });
+  const bad = ['../x', 'a/b', 'CON', 'nope', 'archive'];
+
+  for (const id of bad) {
+    const res = setActiveAs(id);
+    assert.equal(res.status, 2, `set-active "${id}" must fail with a usage error`);
+    assert.ok(res.stderr.trim(), `set-active "${id}" must say why on stderr`);
+    assert.deepEqual(pointers(), { project: null, sessions: [] }, `set-active "${id}" must create no pointer`);
+  }
+
+  assert.equal(setActiveAs('x').status, 0, 'an open change can still be made active');
+  const before = pointers();
+  for (const id of bad) {
+    assert.equal(setActiveAs(id).status, 2);
+    assert.deepEqual(pointers(), before, `set-active "${id}" must leave existing pointers unchanged`);
+  }
 });

@@ -9,8 +9,9 @@ import { spawnSync } from 'node:child_process';
 import { makeTempProject, runCli } from './helpers.mjs';
 
 function runHook(projectRoot, script, stdinObj, extraArgs = []) {
+  const env = { ...process.env, CLAUDE_CODE_SESSION_ID: undefined };
   return spawnSync(process.execPath, [path.join(projectRoot, 'sdlc/.hooks', script), ...extraArgs], {
-    cwd: projectRoot, input: stdinObj == null ? '' : JSON.stringify(stdinObj), encoding: 'utf8',
+    cwd: projectRoot, input: stdinObj == null ? '' : JSON.stringify(stdinObj), encoding: 'utf8', env,
   });
 }
 

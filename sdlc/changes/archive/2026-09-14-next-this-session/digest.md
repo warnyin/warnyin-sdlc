@@ -1,0 +1,13 @@
+# Digest — next-this-session
+<!-- cap:15 · the async human touchpoint. Summarizes; links, doesn't copy. -->
+
+- **Shipped:** `/sdlc:next` answers for this session's change first (GitHub issue #4); the active pointer is per session (`.state/sessions/<sid>.json`) with `active.json` as the project fallback, resolved once in `lib/active.mjs` for `status` and every hook.
+- **Spec merged:** `specs/change-focus/spec.md` (new, 5 requirements) — this session's change first · one session's focus never moves another's · a session id cannot direct a write · only an open change can be made active · shipping releases its pointers.
+- **Assumptions:** shell `CLAUDE_CODE_SESSION_ID` equals hook stdin `session_id` (observed equal; the env var is undocumented, absence degrades to the project pointer); tools without a session identity keep the old project-wide pointer.
+- **Verify/review:** `npm test` 218/218. Review blockers 2 → 1 → 0 across three fix rounds — R1 a project-sourced current marked others `(not this session)`; R2 pointer writes followed a planted `.state` link; R3 a dangling link let the write create its target outside. Then human-requested F1 (id checks) and F2 (pointer release at ship). Every verdict came from separate agents (`mode=panel`).
+- **Journal gap:** verify notes exist for rounds 1, 3, 4; round 2's evaluator also passed but was not journaled. `observe` reports `firstPass` because it counts verify rounds only, not review-blocker rounds.
+- **Escalations:** none pre-authorized — stopped for ship approval twice and once when fix rounds exceeded the budget of 3.
+- **Evidence limits:** contract row 18 was written after its fix, and row 19 case 4 was proven red by a scratch reproduction rather than the suite; evaluator round 1 gave 8/8 fives and round 4 scored 5 of 8 lines explicitly.
+- **Tokens:** one session id · output 7.13M · cache read 732M · cache write 13.3M · cost n/a (no price for the model in `config.yaml`).
+- **Accepted gaps:** a session's pointer does not survive resume or `/clear`; a hard link at a pointer path passes the realpath check. **Follow-ups:** journal/`phase.json` writes follow a planted `.state` link; a change folder that is itself a link counts as open; `set-active Foo` on a case-insensitive FS leaves an inert pointer; tests keep local `runHook` copies.
+- **Learner proposals awaiting you (none applied):** (1) constitution rule "tests use shared helpers" — always-loaded, and its evidence overstates: local helpers caused contract-stage false greens, not the review blockers; (2) have `contract.md` step 3 confirm each red test fails on its own assertion, not a harness error (proposed for `verify.md`, belongs in `contract.md`); (3) route contract test generation to the balanced tier.

@@ -8,6 +8,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { liveJournalPath, globalJournalPath, appendEvent } from './lib/journal.mjs';
+import { resolveActive } from './lib/active.mjs';
 
 export function resolveRoots(importMetaUrl) {
   const hooksDir = path.dirname(fileURLToPath(importMetaUrl));
@@ -114,26 +115,13 @@ export function clearPhase(sdlcRoot) {
   fs.rmSync(path.join(sdlcRoot, '.state', 'phase.json'), { force: true });
 }
 
-// Active change: explicit .state/active.json first, else the most recently
-// modified changes/*/change.md.
-export function activeChange(sdlcRoot) {
-  try {
-    const explicit = JSON.parse(fs.readFileSync(path.join(sdlcRoot, '.state', 'active.json'), 'utf8'));
-    if (explicit?.change && fs.existsSync(path.join(sdlcRoot, 'changes', explicit.change))) {
-      return explicit.change;
-    }
-  } catch { /* fall through */ }
-  const changesDir = path.join(sdlcRoot, 'changes');
-  if (!fs.existsSync(changesDir)) return null;
-  let best = null;
-  for (const d of fs.readdirSync(changesDir, { withFileTypes: true })) {
-    if (!d.isDirectory() || d.name === 'archive') continue;
-    const p = path.join(changesDir, d.name, 'change.md');
-    if (!fs.existsSync(p)) continue;
-    const mtime = fs.statSync(p).mtimeMs;
-    if (!best || mtime > best.mtime) best = { change: d.name, mtime };
-  }
-  return best?.change ?? null;
+// Active change: session pointer, then project pointer, then the most recently
+// modified changes/*/change.md — resolution lives in lib/active.mjs so the CLI's
+// `status` answers the same question the hooks do. Callers still get just the id
+// (the `recent` fallback still attributes hook events, it just isn't reported as
+// confirmed by `status`).
+export function activeChange(sdlcRoot, sessionId = null) {
+  return resolveActive(sdlcRoot, { sessionId })?.change ?? null;
 }
 
 // Journal: per-change ndjson when a change is active, else a global one — both under

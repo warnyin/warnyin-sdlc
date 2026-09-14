@@ -85,8 +85,24 @@ test('auto resumes from live state and defers the status mapping to next.md', ()
 
   // Single source of truth: the status -> stage table lives in next.md only.
   assert.match(auto, /`next\.md` §2/, 'auto must defer to next.md for the mapping');
-  assert.ok(/^2\. For each active change map status/m.test(next),
-    'next.md §2 must still be the status -> command mapping auto points at');
+
+  // Row 6: next.md §2 must contain both markers literally and name current change first
+  assert.ok(/^2\. /m.test(next), 'next.md must have a §2 starting with "2. "');
+  assert.match(next, /← this session/, 'next.md §2 must contain marker "← this session" literally');
+  assert.match(next, /\(not this session\)/, 'next.md §2 must contain marker "(not this session)" literally');
+  // next.md should never name .state/ or active.json
+  assert.doesNotMatch(next, /\.state\//, 'next.md should not reference .state/');
+  assert.doesNotMatch(next, /active\.json/, 'next.md should not reference active.json');
+  // Must say current change is answered first
+  assert.match(next, /current change/i, 'next.md §2 must answer for the current change');
+  assert.match(next, /\bfirst\b/i, 'next.md §2 must put the current change first');
+  assert.match(next, /their answer wins/i,
+    'next.md §2 must let the human override the pointer by naming a different change');
+  assert.match(next, /← last set for project/, 'next.md §2 must name the project-pointer marker it reads');
+  // next.md is read-only, so the override is persisted by handing the human the command.
+  assert.match(next, /journal\.mjs set-active <id>/,
+    'next.md §2 must hand the human the set-active command so the next status agrees');
+
   assert.doesNotMatch(auto, /`contracted` →/, 'the mapping must not be duplicated into auto.md');
 });
 

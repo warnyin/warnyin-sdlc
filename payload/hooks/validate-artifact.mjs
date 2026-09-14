@@ -14,6 +14,7 @@ import { resolveRoots, readStdinJson, activeChange, appendJournal, toPosixRel } 
 import { parseFrontmatter } from './lib/frontmatter.mjs';
 import { matchGlob } from './lib/glob.mjs';
 import { validateChange, validateContext, formatIssues } from './lib/validate.mjs';
+import { isSafeSessionId, pickSessionId } from './lib/active.mjs';
 
 const { sdlcRoot, projectRoot } = resolveRoots(import.meta.url);
 
@@ -42,7 +43,9 @@ function steeringPointer(rel, sessionId) {
   const steeringDir = path.join(sdlcRoot, 'context', 'steering');
   if (!fs.existsSync(steeringDir)) return;
 
-  const safeSession = String(sessionId ?? '').replace(/[^A-Za-z0-9_-]/g, '') || 'nosession';
+  // Refused, not stripped: stripping aliases `a/b` onto `ab` and would hand one session's
+  // seen-steering list to another. Same single-safe-segment rule as the active pointers.
+  const safeSession = isSafeSessionId(sessionId) ? sessionId : 'nosession';
   const seenPath = path.join(sdlcRoot, '.state', `pointers-${safeSession}.json`);
   let seen = [];
   try { seen = JSON.parse(fs.readFileSync(seenPath, 'utf8')); } catch { /* first hit */ }
@@ -52,7 +55,7 @@ function steeringPointer(rel, sessionId) {
     const { data } = parseFrontmatter(fs.readFileSync(path.join(steeringDir, f), 'utf8'));
     if (data.inclusion !== 'paths' || !Array.isArray(data.pathMatch)) continue;
     if (!matchGlob(rel, data.pathMatch)) continue;
-    appendJournal(sdlcRoot, activeChange(sdlcRoot), { event: 'pointer', steering: f, file: rel });
+    appendJournal(sdlcRoot, activeChange(sdlcRoot, sessionId), { event: 'pointer', steering: f, file: rel });
     if (!seen.includes(f)) hits.push(f);
   }
   if (!hits.length) return;
@@ -73,8 +76,9 @@ async function main() {
   const rel = toPosixRel(projectRoot, path.resolve(projectRoot, filePath));
   if (!rel) return;
 
+  const sessionId = pickSessionId(input?.session_id, process.env.CLAUDE_CODE_SESSION_ID);
   if (rel.startsWith('sdlc/')) validateSdlcWrite(rel);
-  else steeringPointer(rel, input?.session_id);
+  else steeringPointer(rel, sessionId);
 }
 
 main().catch(() => process.exit(0)); // fail open

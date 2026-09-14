@@ -1,0 +1,38 @@
+# Test contract — next-this-session
+<!-- cap:60 · written BEFORE code. This is the deterministic half of the contract with the AI; failing tests are generated from this table. -->
+
+"Session identity" = `CLAUDE_CODE_SESSION_ID` in the env of a shell-run CLI/hook, or
+`session_id` on a hook's stdin. Status text keeps `id  [tier/status]  title` and appends a
+marker: `← this session` · `← last set for project` · `(not this session)`.
+`status --json` gains `current: {id, source: "session"|"project"} | null`.
+
+| # | Given / When / Then | Kind (unit/int/e2e) | Maps to requirement |
+|---|---|---|---|
+| 1 | Given open changes a, b, c with c the most recently edited · when session S1 runs `set-active b` and `status` · then b's line is the first change line, marked `← this session`; a and c are marked `(not this session)`; json `current` = {b, session} | int | Next answers for this session's change first |
+| 2 | Given open a, b and b set active by S1 · when a different session S2 (no pointer of its own) runs `status` · then b is first marked `← last set for project`, a carries no `(not this session)` marker, json source `project`, and json `changes` keeps the original order (a, b) | int | Next answers for this session's change first |
+| 3 | Given open changes and no pointer at all (only change.md mtimes differ) · when `status` runs · then no line carries `← this session` or `← last set for project`, json `current` is null | int | Next answers for this session's change first |
+| 4 | Given a pointer (session and project) naming a change whose folder is gone · when `status` runs · then json `current` is null and nothing is claimed | int | Next answers for this session's change first |
+| 5 | Given S1's pointer is stale but the project pointer names open change a · when S1 runs `status` · then a is current with source `project`, and a third open change c carries no `(not this session)` marker | int | Next answers for this session's change first |
+| 6 | Given `payload/playbook/next.md` · when read · then §2 names both markers `← this session` and `(not this session)` literally, says the current change is answered first and the others are not picked up, says the human's answer wins when they name a different change and hands them `journal.mjs set-active <id>` to record it, names `← last set for project`, and never names `.state/` or `active.json`; `auto.md` still defers to `next.md` §2 | unit | Next answers for this session's change first |
+| 7 | Given S1 sets x then S2 sets y · when S1 runs `status` · then x is current with source `session`; S2's `status` shows y | int | One session's focus does not move another's |
+| 8 | Given S1 set x and S2 set y · when `journal.mjs note` runs under S1's env · then the event lands in `.state/journal/x.ndjson`, not y's; the same `note` under a session S3 with no pointer lands in the project pointer's change (y) | int | One session's focus does not move another's |
+| 9 | Given S1 set x and S2 set y · when the Stop hook (`session-summary`) runs with stdin `session_id` S1 and a transcript · then the session event lands in x's journal | int | One session's focus does not move another's |
+| 10 | Given S1 set x and S2 set y · when SessionStart (`inject-context`) runs with stdin `session_id` S1 · then its pointer line names x | int | One session's focus does not move another's |
+| 11 | Given no session identity anywhere · when `set-active x` then `status` and `note` run · then `current` = {x, project} and the note lands in x's journal — today's behavior | int | One session's focus does not move another's |
+| 12 | Given the test runner's own env carries `CLAUDE_CODE_SESSION_ID` · when a test spawns the CLI or a hook without setting one · then the child sees no session identity | unit | One session's focus does not move another's |
+| 13 | Given env session id `../evil`, `a/b`, `a\b`, `a:b`, `..`, `CON`, `con`, `x.`, `x ` (an empty value counts as no identity) · when `set-active x` runs · then no file is created outside `.state/sessions/` (none at all for these ids), `active.json` names x, `status` source is `project` | int | A session identifier cannot direct a write |
+| 14 | Given `.state/hijack.json` = {change: b} and session id `../hijack` · when `status` runs and a hook runs with that stdin `session_id` · then b is not reported current and the hook does not attribute to b | int | A session identifier cannot direct a write |
+| 15 | Given a hostile stdin `session_id` on `guard-writes` / `validate-artifact` · when they run · then they exit 0 and write nothing under `.state/sessions/` | int | A session identifier cannot direct a write |
+| 16 | Given `sdlc/.state/sessions/<id>.json` with malformed JSON or a non-string `change` · when `status` and a hook run · then both fall back to the project pointer and exit 0 | int | One session's focus does not move another's |
+| 17 | Given S1 set x and S2 set y · when a hook (`journal.mjs note` as PreCompact, and `session-summary`) runs with stdin `session_id` S1 but env `CLAUDE_CODE_SESSION_ID` S2 · then the event lands in x's journal — stdin wins, env is used only when stdin carries no `session_id` | int | One session's focus does not move another's |
+| 18 | Given a session or project pointer naming `archive`, `ARCHIVE` or `Archive` and no open change · when the active change is resolved · then there is none — the archive folder is never an active change on any filesystem | unit | Next answers for this session's change first |
+| 19 | Given `.state/sessions` (or `.state` itself) planted as a symlink/junction to a directory outside the project, or a session pointer file that is a symlink to an outside file naming b, or a session/project pointer file that is a dangling link to an outside path · when `set-active a` runs under a safe session id and `status` runs · then nothing is written outside the project, the outside pointer is not read (current is never b from it), both commands exit 0, and `set-active` reports on stderr that a refused pointer was not recorded instead of claiming success |
+| 20 | Given open change x · when `set-active` runs with `../x`, `a/b`, `CON`, `nope` (no folder) or `archive` · then it exits 2 with a message on stderr, and neither `active.json` nor any session pointer is created or changed | int | Only an open change can be made active |
+| 21 | Given a steering file matching `src/**` · when `validate-artifact` runs for `src/a.js` with stdin `session_id` `../../../evil` · then the seen-pointers file is `pointers-nosession.json` and no `.state/` entry name contains `evil` | int | A session identifier cannot direct a write |
+| 22 | Given open changes x (archivable) and y, pointers s1→x, s2→y and `active.json`→x · when `archive x` succeeds · then `sessions/s1.json` and `active.json` are gone and `sessions/s2.json` still names y; when `archive` aborts before the move, every pointer is unchanged | int | Shipping a change releases every pointer to it | int | A session identifier cannot direct a write |
+
+## Out of scope (explicitly untested + why)
+- The session id changing on resume, `/clear` or `/compact` — Claude Code runtime behavior, not ours; rows 2 and 5 cover what the fallback does when it happens.
+- Two sessions racing `set-active` at the same instant on `active.json` — per-session files remove the race for the pointer that matters; the project-wide file keeps today's last-write-wins.
+- Non-Claude tools end to end — they reach us only as "no session identity", which row 11 covers.
+- Pointers left by a session that ends without shipping — deliberately kept (Assumptions); row 4 proves a stale one is harmless, row 22 covers removal at ship.
