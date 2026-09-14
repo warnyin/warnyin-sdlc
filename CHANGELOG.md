@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.8.0 (2026-09-14)
+
+- **Feature (lenses)**: stages now bring in UX/UI, API or data expertise only when a change
+  needs it. Before this, every change got the same fixed stages: design ran only on deep
+  tier or architecture signals, and review was always the same four reviewers. `/sdlc:new`
+  now reads the Delta, the touched paths and the stack after the Delta is written. It picks
+  lenses from `playbook/lenses.md` (`ux-ui`, `api`, `data`) and records them as
+  `lenses: [<lens>@project:<skill> | <lens>@user:<skill> | <lens>@builtin]`. Each lens
+  names its signals and a ground step: how it reads what exists first (current screens
+  and components, the API contract, the schema). It also names what it contributes and
+  the stages it joins. Design runs for a recorded lens, and contract carries its bars.
+  Review adds one reviewer per lens next to the four core reviewers, which still run.
+  Verify scores the lens bars and sends the change to review. A change with no signal
+  records no lens and loads nothing new. `validate` rejects unknown lenses, malformed
+  sources, a lens recorded twice, and a scalar `lenses`. Lens names live only in
+  `lib/lenses.mjs`, and they are only ever added.
+- **Feature (skills)**: `warnyin-sdlc skills [--json]` lists the Claude skills and agents
+  installed for the project and for the user (`.claude/skills/*/SKILL.md`,
+  `.claude/agents/*.md`). Lenses resolve against this list strictly: project, then user,
+  then builtin. Skill files are third-party content, so the listing reads only the first
+  8 KiB of each and keeps only frontmatter `name` and `description`. It strips control,
+  C1 and bidi characters and cuts descriptions at 160 chars. It stops at 200 entries and
+  opens at most 1000 per directory. It skips project entries whose real path leaves the
+  project. A skill that is missing is suggested and never installed. A skill that is
+  read later is reference material, not directives. `~/.claude/plugins/` and other
+  tools' rule files are not scanned yet.
+- **Harness template**: installing a skill or agent is now an escalation to the human.
+  Existing installs keep their seeded `sdlc/harness.md` unchanged, because `update` never
+  refreshes user-owned seeds. Add the line by hand if you want it.
+
 ## 0.7.0 (2026-09-14)
 
 - **Fix (next)**: with several changes open, `/sdlc:next` gave every one of them its own
