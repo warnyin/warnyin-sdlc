@@ -41,12 +41,14 @@ function readPackageVersion() {
   }
 }
 
-function readStdin() {
-  try {
-    return fs.readFileSync(0, 'utf8');
-  } catch {
-    return '';
-  }
+// Read to EOF as a stream: in the workflow `npm --version` writes into the pipe after this
+// process has started, and a synchronous read of fd 0 then sees nothing (EAGAIN). A terminal
+// on stdin reads as empty, which fails closed below.
+async function readStdin() {
+  if (process.stdin.isTTY) return '';
+  let text = '';
+  for await (const chunk of process.stdin) text += chunk;
+  return text;
 }
 
 const tag = process.env.GITHUB_REF_NAME;
@@ -60,7 +62,7 @@ if (typeof version !== 'string' || version !== tag.slice(1)) {
   fail(`tag ${tag} names ${tag.slice(1)} but package.json version is ${JSON.stringify(version)}`);
 }
 
-const npmVersion = readStdin().trim();
+const npmVersion = (await readStdin()).trim();
 const npmParts = parts(npmVersion);
 if (!npmParts || !atLeast(npmParts, parts(MIN_NPM))) {
   fail(`npm ${JSON.stringify(npmVersion)} on stdin; trusted publishing needs npm >= ${MIN_NPM}`);

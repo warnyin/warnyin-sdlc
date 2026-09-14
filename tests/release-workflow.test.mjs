@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { makeTempProject, PKG_ROOT } from './helpers.mjs';
 
 const CHECK = path.join(PKG_ROOT, '.github/scripts/release-check.mjs');
@@ -91,6 +91,24 @@ test('row 11: npm below 11.5.1 or unreadable fails naming 11.5.1; 11.5.1 and abo
     assert.equal(res.status, 0, `npm ${JSON.stringify(npm)} should pass: ${res.stderr}`);
   }
   assert.doesNotMatch(readYaml(RELEASE_YML), /npm\s+(install|i)\s+(-g|--global)/);
+});
+
+// In the workflow npm's version arrives through a shell pipe, after the check has started.
+// Reading fd 0 synchronously there sees nothing yet (v0.10.0's first release run failed so).
+test('row 11b: an npm version that arrives late on a pipe is still read', async (t) => {
+  assert.ok(fs.existsSync(CHECK), 'release-check.mjs missing');
+  const dir = makeTempProject(t);
+  fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: '@warnyin/sdlc', version: '1.2.3' }));
+  const child = spawn(process.execPath, [CHECK], { cwd: dir, env: { ...process.env, GITHUB_REF_NAME: 'v1.2.3' } });
+  let stdout = '';
+  let stderr = '';
+  child.stdout.on('data', (d) => { stdout += d; });
+  child.stderr.on('data', (d) => { stderr += d; });
+  child.stdin.on('error', () => {});
+  const status = new Promise((resolve) => child.on('close', resolve));
+  setTimeout(() => child.stdin.end('11.6.2\n'), 300);
+  assert.equal(await status, 0, stderr);
+  assert.match(stdout, /npm 11\.6\.2/);
 });
 
 // ---------- workflow files, as text ----------

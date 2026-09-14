@@ -1,0 +1,4 @@
+{"ts":"2026-09-14T15:53:21.760Z","event":"build","tasks":"2"}
+{"ts":"2026-09-14T15:53:21.791Z","event":"verify","result":"pass","round":"1","mode":"solo"}
+{"ts":"2026-09-14T15:53:21.820Z","event":"gate","gate":"ship","action":"open","expires":"2026-09-14T16:23:21.820Z"}
+{"ts":"2026-09-14T15:53:21.866Z","event":"ship","change":"release-check-stdin","specs":[]}
