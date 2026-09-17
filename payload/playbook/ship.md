@@ -1,6 +1,10 @@
 # /sdlc:ship <id> — merge, archive, learn, digest
 
-Precondition: `status: verified` (+ review passed when it ran).
+Precondition: `status: verified`, set by verify's final gate. Check in this order:
+1) a `build` note after the last final-gate pass or skip (or a pre-split verify pass) means code
+changed since → run /sdlc:verify first; 2) otherwise, review signals (`review.md` Run when)
+with no `review blockers=0` note — never `skipped=` — (a change verified before the gates
+split) → run /sdlc:review first, and its pass returns to that final gate.
 
 1. **Policy check** (`sdlc/harness.md § Autonomy policy`): if this change is NOT
    auto-shippable (deep/hard-floor), show the human a 5-line summary (why, delta
@@ -23,6 +27,9 @@ Precondition: `status: verified` (+ review passed when it ran).
    When any verify or review note carries `mode=solo`, the digest SHALL say which
    outcomes were self-produced. A reader months from now cannot otherwise tell a
    panel's verdict from the author's own.
+   When a final-gate verify note carries `reused=yes`, the digest SHALL say the full suite
+   ran once, in the fast gate, and was not repeated. When it carries `result=skipped`, the
+   digest SHALL say the full suite never ran before ship, and who skipped it (tier or human).
    When any `escalation` event carries `preauth=yes`, the digest SHALL list those
    pre-authorized escalations by condition — the points where a human would normally
    have stood and, this run, did not.

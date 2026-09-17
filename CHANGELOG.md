@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased
+
+- **Feature (verify)**: `/sdlc:verify` no longer runs your full test suite after every fix
+  ([#7](https://github.com/warnyin/warnyin-sdlc/issues/7)). Each fix round runs a **fast gate**:
+  the tests covering the contract and the files you touched, a live smoke check when the change
+  has a CLI, server or UI to run, and the evals. The **final gate** runs the full test command
+  once, after review, and only it marks a change `verified`. The flow is now
+  `build → verify (fast) → [review] → verify (final) → ship`. Name a quick subset as
+  `fast test command` in `sdlc/harness.md` if you have one; without it verify derives the tests,
+  and falls back to the full command when it cannot. When the fast gate already ran the full
+  suite and nothing was built since, the final gate reuses that run and the digest says so.
+  Review signals are defined once, in `review.md`: verify checks them itself every time; once
+  the journal shows a fast pass (or the change is verified) review always runs, in any session;
+  and a fix review applies itself counts as a build, so the fast gate covers it. A change with a build after its final gate goes back to
+  verify before ship.
+  Before the final gate runs the full suite it asks you to run or skip it (run is recommended;
+  `--auto` asks once, up front). A vibe change skips it without asking. A skip still marks the
+  change `verified`, is recorded as `result=skipped by=tier|human`, is not counted as a round
+  by `/sdlc:observe`, and the digest says the full suite never ran before ship.
+  Journal verify notes gain `gate=fast|final`; `/sdlc:observe` counts fast outcomes and final
+  failures as rounds, and a final failure clears first-pass. Existing installs get the new
+  doctrine with `update`. `update` never rewrites your `sdlc/harness.md` or
+  `sdlc/context/constitution.md`: add the optional key yourself, and your constitution's flow
+  line keeps the old order until you edit it through `/sdlc:steer`. The playbooks are what
+  the agent follows. A change already `verified` under the old flow still ships; if review
+  signals apply and no review was recorded, ship sends it to review first.
+
 ## 0.11.0 (2026-09-17)
 
 - **Feature (new)**: `/sdlc:new` clarification questions can now be answered by picking an

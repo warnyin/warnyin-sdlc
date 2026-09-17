@@ -3,7 +3,7 @@
 One change = one folder in `sdlc/changes/<id>/` moving through:
 
 ```
-new → [design] → contract → build → verify → [review] → ship
+new → [design] → contract → build → verify (fast) → [review] → verify (final) → ship
 ```
 
 | Command | Day-1 phase | Reads | Writes | Gate (automatic unless noted) |

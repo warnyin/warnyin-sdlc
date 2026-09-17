@@ -1,0 +1,11 @@
+# Digest — final-gate-confirm-skip (standard, shipped 2026-09-18)
+- Shipped: the final gate asks the human to run or skip the full suite (run recommended; `--auto` asks once up front via a new escalation row); a vibe change skips it without asking; a reused fast-gate full run asks nothing.
+- A skip sets `verified`, records `result=skipped by=tier|human`, is not a round in `/sdlc:observe`, and the digest must say the full suite never ran before ship. A build after a final pass or skip sends ship back to verify.
+- Spec merged: `specs/verify-gates` — MODIFIED "The full suite runs once, after review" (verified on a pass or an allowed skip; scenario "code changes after the change is verified" now reads "final-gate pass or skip", intended — the archive warning names it), ADDED "The full run is confirmed, and a vibe change skips it".
+- Payload: verify.md, auto.md, ship.md, rules-card.md, lib/observe.mjs; CHANGELOG Unreleased. Tests: tests/final-gate-confirm.test.mjs (9 rows).
+- Assumptions: deep and hard-floor changes are skippable too, as the human asked; every skip is named in the digest.
+- Verify: 1 round. Fast gate 193/193 scoped tests + live CLI smoke. No review signal (9 files, standard, no lens). No evals.md; both verify notes are `mode=solo` — self-judged by the main loop.
+- Final gate: the human was asked (the new doctrine, dogfooded) and chose to run. `npm test` 355/357; the 2 failures are the known Windows environmental ones (release-workflow row 16, update-notice row 6), recorded as `env_failures` and pre-announced in the question.
+- Escalations: none pre-authorized.
+- Tokens/cost: session totals are shared with the previous change; cost unknown.
+- Learner: no new proposals. The two from verify-fast-final-gates (routing from persisted state; criteria for accepting environmental failures) still await the human and are NOT applied.

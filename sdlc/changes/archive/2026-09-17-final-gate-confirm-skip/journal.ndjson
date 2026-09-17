@@ -1,0 +1,7 @@
+{"ts":"2026-09-17T17:42:25.319Z","event":"session","session":"5f61cb53-7e4d-42b6-8cb0-6bad9752137a","totals":{"input":1034,"output":522348,"cacheRead":113229906,"cacheWrite":2008821},"models":{"claude-opus-5":{"input":1034,"output":522348,"cacheRead":113229906,"cacheWrite":2008821}},"costUsd":null}
+{"ts":"2026-09-17T17:45:07.414Z","event":"contract","tests":"9"}
+{"ts":"2026-09-17T17:46:12.091Z","event":"build","tasks":"4"}
+{"ts":"2026-09-17T17:47:00.198Z","event":"verify","result":"pass","round":"1","gate":"fast","scope":"scoped","mode":"solo"}
+{"ts":"2026-09-17T17:51:33.652Z","event":"verify","result":"pass","round":"1","gate":"final","mode":"solo","env_failures":"release-workflow-row16,update-notice-row6"}
+{"ts":"2026-09-17T17:51:33.995Z","event":"gate","gate":"ship","action":"open","expires":"2026-09-17T18:21:33.994Z"}
+{"ts":"2026-09-17T17:51:34.090Z","event":"ship","change":"final-gate-confirm-skip","specs":["verify-gates"]}

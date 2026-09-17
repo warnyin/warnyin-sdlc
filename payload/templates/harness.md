@@ -8,6 +8,7 @@
 
 ## Sandbox & execution
 - test command: `<cmd>`
+- fast test command: `<cmd>` (optional — a quick scoped subset for verify fix rounds; without it verify derives one)
 - sandbox notes: <where code runs, what it cannot reach>
 
 ## Guardrails (mirror of installed hooks — deterministic, the agent cannot skip them)

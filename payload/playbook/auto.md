@@ -1,6 +1,6 @@
 # /sdlc:auto <title|change-id> — the whole pipeline, one command
 
-Runs new → [design] → contract → build → verify → [review] → ship, each stage by
+Runs new → [design] → contract → build → verify (fast) → [review] → verify (final) → ship, each stage by
 its own playbook, WITHOUT pausing for the human except on the Autonomy-policy
 escalation conditions — each with the choice `--auto` may pre-approve:
 
@@ -10,6 +10,7 @@ escalation conditions — each with the choice `--auto` may pre-approve:
 | verify failed more than 3 rounds | keep iterating · or stop |
 | review found blockers | fix and continue · or stop for the human |
 | ship needs human approval (deep tier / hard-floor: security, payments, data-loss, irreversible) | ship · or stop before ship |
+| final gate on a standard or deep change (vibe skips it anyway) | run the full suite · or skip it |
 | token budget exceeded (if the user set one) | continue · or stop |
 
 `/sdlc:auto` and any stage command given `--auto` run in unattended mode below.

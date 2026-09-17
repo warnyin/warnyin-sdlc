@@ -10,5 +10,5 @@
 - <add a rule each time the agent misbehaves; each new rule must displace an old one once the always-budget (60 lines) is full>
 
 ## Workflow
-- Changes flow: new → [design] → contract → build → verify → [review] → ship.
+- Changes flow: new → [design] → contract → build → verify (fast) → [review] → verify (final) → ship.
 - Tier by stakes: vibe | standard | deep — triage table lives in `sdlc/harness.md`.

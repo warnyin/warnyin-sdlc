@@ -9,8 +9,11 @@
    - `new` + markers unresolved → resolve questions (playbook new.md §5)
    - `new` (clean) → /sdlc:design (deep/signal) or /sdlc:contract
    - `contracted` → /sdlc:build
-   - `building` → /sdlc:build (finish open tasks)
-   - `verified` → /sdlc:review (if signals) or /sdlc:ship
+   - `building` → /sdlc:build (finish open tasks); all tasks ticked → /sdlc:verify,
+     or /sdlc:review when a fast pass since the last build (a passing `gate=fast` note, or a
+     passing verify note with no `gate`) awaits review
+     (review signals per `review.md`, no `review blockers=0` note that is not `skipped=`)
+   - `verified` → /sdlc:ship
    Changes marked `(not this session)` are context only — mention them in at
    most one line, never as this session's next command, never picked up. If the
    human says this session is on a different change, their answer wins — use it,
