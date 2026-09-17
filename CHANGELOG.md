@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.11.0 (2026-09-17)
+
+- **Feature (new)**: `/sdlc:new` clarification questions can now be answered by picking an
+  option instead of typing ([#6](https://github.com/warnyin/warnyin-sdlc/issues/6)). A question
+  with a few concrete answers now comes with 2–4 options, the recommended one first and marked,
+  each with its trade-off. An open-ended question keeps a single recommended answer and never
+  gets invented options, and an answer outside the options is applied as given. In Claude Code
+  option questions go through its question picker (`AskUserQuestion`): at most 4 questions and
+  2–4 options a prompt, with Other for a free answer, so a bigger round arrives as consecutive
+  prompts and no later round starts until every question is answered. Tools without a picker
+  get the options lettered inline, so you can reply `1b, 2a`. The round, defer and
+  confirmation rules are unchanged, and `--auto` still folds everything into its single
+  confirmation. The rules card for Cursor and Windsurf carries a summary. Existing installs get
+  the new doctrine with `update`.
+
 ## 0.10.0 (2026-09-14)
 
 - **Feature (update notice)**: a project is now told when a newer `@warnyin/sdlc` exists. Once a
