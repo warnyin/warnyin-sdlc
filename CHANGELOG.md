@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.12.0 (2026-09-18)
 
 - **Feature (verify)**: `/sdlc:verify` no longer runs your full test suite after every fix
   ([#7](https://github.com/warnyin/warnyin-sdlc/issues/7)). Each fix round runs a **fast gate**:
