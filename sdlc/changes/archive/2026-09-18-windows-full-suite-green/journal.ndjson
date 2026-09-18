@@ -1,0 +1,7 @@
+{"ts":"2026-09-18T10:31:21.963Z","event":"session","session":"cc29f261-06d1-4778-be73-6466090c78ab","totals":{"input":1046,"output":544516,"cacheRead":161741345,"cacheWrite":2257371},"models":{"claude-opus-5":{"input":1046,"output":544516,"cacheRead":161741345,"cacheWrite":2257371}},"costUsd":null}
+{"ts":"2026-09-18T10:38:35.393Z","event":"build","tasks":"2"}
+{"ts":"2026-09-18T10:40:36.963Z","event":"session","session":"cc29f261-06d1-4778-be73-6466090c78ab","totals":{"input":1128,"output":608849,"cacheRead":182502216,"cacheWrite":2324804},"models":{"claude-opus-5":{"input":1128,"output":608849,"cacheRead":182502216,"cacheWrite":2324804}},"costUsd":null}
+{"ts":"2026-09-18T10:41:55.563Z","event":"verify","result":"pass","round":"1","gate":"fast","scope":"scoped","mode":"solo"}
+{"ts":"2026-09-18T10:41:55.688Z","event":"verify","result":"skipped","by":"tier","round":"1","gate":"final","mode":"solo"}
+{"ts":"2026-09-18T10:43:30.086Z","event":"gate","gate":"ship","action":"open","expires":"2026-09-18T11:13:30.085Z"}
+{"ts":"2026-09-18T10:43:30.181Z","event":"ship","change":"windows-full-suite-green","specs":[]}

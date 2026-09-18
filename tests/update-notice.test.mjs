@@ -20,7 +20,13 @@ const PKG_VERSION = JSON.parse(fs.readFileSync(path.join(PKG_ROOT, 'package.json
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const ago = (ms) => new Date(Date.now() - ms).toISOString();
 
-async function waitFor(fn, { timeout = 5000, interval = 50, message = 'condition' } = {}) {
+// Only positive waits come through here — the detached checker doing something it will do.
+// The spec promises the SESSION is never slowed, not that the background check finishes fast,
+// and a cold node start under a loaded CPU (Windows, a busy runner) took longer than 5 s. A long
+// deadline costs nothing when the check works: this returns the moment it is seen. A broken
+// checker never writes, so it still fails. Negative bounds — the relative hook-latency check and
+// the no-request windows — are product guarantees and are deliberately NOT routed through here.
+async function waitFor(fn, { timeout = 20000, interval = 50, message = 'condition' } = {}) {
   const deadline = Date.now() + timeout;
   for (;;) {
     const value = fn();

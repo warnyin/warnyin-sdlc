@@ -245,7 +245,9 @@ test('row 15: publish runs on a GitHub-hosted ubuntu runner with no persisted gi
 
 // Regression guard: green before implementation by design — .github/ is not in `files`.
 test('row 16: the npm tarball carries nothing from .github/', () => {
-  const res = spawnSync('npm', ['pack', '--dry-run', '--json'], { cwd: PKG_ROOT, encoding: 'utf8' });
+  // One fixed string through a shell: on Windows `npm` is `npm.cmd`, which cannot be spawned
+  // bare (ENOENT), and an args array with `shell: true` is DEP0190. Every token is a literal.
+  const res = spawnSync('npm pack --dry-run --json', { cwd: PKG_ROOT, encoding: 'utf8', shell: true });
   assert.equal(res.status, 0, res.stderr);
   const files = JSON.parse(res.stdout)[0].files.map((f) => f.path);
   assert.ok(files.length > 0);
