@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.13.0 (2026-09-19)
 
 - **Feature (update notice)**: the notice that a newer version exists now **asks** instead of
   telling. On the first reply of a session whose context carried it, the agent offers a choice —
