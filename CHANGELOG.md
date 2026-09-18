@@ -1,5 +1,42 @@
 # Changelog
 
+## Unreleased
+
+- **Feature (update notice)**: the notice that a newer version exists now **asks** instead of
+  telling. On the first reply of a session whose context carried it, the agent offers a choice —
+  **apply now** (recommended), **see what changes**, or **not now** — through the tool's question
+  picker where there is one, and as labelled inline options where there is none. **Nothing is
+  updated without an explicit pick**: `not now` changes nothing, and `see what changes` runs the
+  new `changelog` command, writes nothing, and re-offers the same choice with the decision still
+  open. The choice is offered once per session. An **unattended run (`--auto`) is never offered
+  it and never updates** — unattended is not consent. When a change is already in flight the
+  choice says so and recommends deferring, because the update replaces the very playbooks that
+  change was contracted against. Applying reports what it did: files written, kept (named
+  individually, with the reason), pruned, and every warning. The agent **never passes `--force`**
+  — a prune held back by the blast cap is handed back as its own decision. The doctrine lives in
+  `sdlc/.playbook/update.md`, reachable as `/sdlc:update`. Turning the check off is unchanged:
+  `updateCheck: false` in `sdlc/config.yaml`, or `CI` / `NO_UPDATE_NOTIFIER`.
+- **Feature (CLI)**: `warnyin-sdlc changelog [--since X.Y.Z]` prints what this package changes
+  above a version and **writes nothing**. Without `--since` it reads `sdlc/.hooks/version.json`;
+  with no project, or an unreadable one, it prints the invoked version's own entry alone. It
+  reads the `CHANGELOG.md` already inside the package `npx` downloaded, so it costs no extra
+  network request and the notice's one-request-per-24-hours budget is untouched. Entries are
+  ordered by parsed version rather than file order, a heading that is not a version is skipped,
+  and a `--since` the changelog never names is reported as a gap instead of being passed over.
+  The preview is **bounded** — the newest few entries, with the number of older ones it left out
+  named and a pointer to `CHANGELOG.md` — because an agent reads it, so it lands in a session's
+  context. `update` now prints the same entries for the range it moved the project across.
+- **Breaking (update)**: `--force`, the one way past the prune blast cap, now needs a person at
+  the terminal. Without an interactive terminal it refuses and changes nothing; automation that
+  always meant to force sets `WARNYIN_SDLC_FORCE=1`. Before this release the only thing standing
+  between an agent and an uncapped delete was a sentence asking it not to — and an `npx` run
+  through an agent's shell is seen by neither the hooks nor the validator.
+- **Fix (update)**: an `update` run from a package **older** than the project says so instead of
+  moving the version backwards in silence, and prints no entries as if it were a gain.
+- **Fix (update)**: `update` refuses to run against the framework's own source from a *published*
+  copy — that would overwrite the `payload/` under development — and names `npm run setup:dogfood`
+  instead. Running it from the tree it is updating, which is what that script does, still works.
+
 ## 0.12.0 (2026-09-18)
 
 - **Feature (verify)**: `/sdlc:verify` no longer runs your full test suite after every fix

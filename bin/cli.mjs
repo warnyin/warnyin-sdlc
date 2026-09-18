@@ -25,10 +25,13 @@ import { scanInventory, renderInventory } from '../lib/skills.mjs';
 import { detectTools, toolName } from './detect.mjs';
 import { colorEnabled, createStyle, symbolsFor, summarizeInstall, startHints } from './ui.mjs';
 import { multiSelect } from './multiselect.mjs';
+import { sliceChangelog } from './changelog.mjs';
+import { parseVersion, compareVersions } from '../lib/version.mjs';
 
 const PKG_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PAYLOAD = path.join(PKG_ROOT, 'payload');
 const MARKER = '<!-- sdlc:start -->';
+const OWN_PACKAGE_NAME = '@warnyin/sdlc';
 
 export const TOOLS = Object.freeze([
   'claude', 'cursor', 'windsurf', 'copilot', 'cline', 'gemini', 'agents-md',
@@ -51,13 +54,14 @@ export function sha256(content) {
 }
 
 export function parseArgs(argv) {
-  const args = { _: [], tool: null, toolProvided: false, strict: false, force: false, json: false, help: false, version: false };
+  const args = { _: [], tool: null, toolProvided: false, strict: false, force: false, json: false, help: false, version: false, since: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--tool' || a === '--tools') {
       args.toolProvided = true;
       args.tool = (argv[++i] ?? '').split(',').map((s) => s.trim()).filter(Boolean);
     }
+    else if (a === '--since') args.since = (argv[++i] ?? '').trim() || null;
     else if (a === '--strict') args.strict = true;
     else if (a === '--force') args.force = true;
     else if (a === '--json') args.json = true;
@@ -353,7 +357,47 @@ export async function cmdInit(projectRoot, args) {
 
 // ---------- update + prune ----------
 
+// `npm run setup:dogfood` is this very command, run from the tree it is updating — that is how
+// the framework rebuilds its own mirrors and it must keep working. What must not happen is a
+// PUBLISHED copy updating the source repo: that replaces the `payload/` under development with
+// the shipped one, silently. So the test is identity AND provenance, never the name alone.
+export function refuseSelfUpdate(projectRoot, pkgRoot) {
+  let name;
+  try {
+    name = JSON.parse(fs.readFileSync(path.join(projectRoot, 'package.json'), 'utf8'))?.name;
+  } catch {
+    return null; // no package.json, or unreadable: an ordinary project
+  }
+  if (name !== OWN_PACKAGE_NAME) return null;
+  try {
+    if (fs.realpathSync.native(projectRoot) === fs.realpathSync.native(pkgRoot)) return null;
+  } catch {
+    return null;
+  }
+  return `this project is ${OWN_PACKAGE_NAME} itself — updating it from a published copy would`
+    + ' fill its mirrors from the published payload instead of this tree\'s own `payload/`.'
+    + ' Run `npm run setup:dogfood` instead.';
+}
+
+// `--force` is the one way past the blast cap, and past it a stale manifest can delete an
+// unbounded number of files. An `npx` spawned through an agent's shell is seen by neither the
+// hooks nor the validator, so doctrine was the only thing standing here — and doctrine binds
+// nothing. A terminal is the cheapest SIGNAL that a person is present, not proof: a harness that
+// runs its shell in a pty satisfies it, and anyone can set the override. What it reliably stops
+// is an agent emitting a bare `--force` by mistake. Same interactivity test as the init picker.
+export function forceNeedsAPerson(args, env = process.env, stdin = process.stdin, stdout = process.stdout) {
+  if (!args.force) return null;
+  if (env.WARNYIN_SDLC_FORCE === '1' || (stdin?.isTTY && stdout?.isTTY)) return null;
+  return '--force crosses the prune blast cap, so it needs a person at the terminal.'
+    + ' Run it yourself, or set WARNYIN_SDLC_FORCE=1 if this really is automation that meant it.';
+}
+
 export function cmdUpdate(projectRoot, args) {
+  const refusal = refuseSelfUpdate(projectRoot, PKG_ROOT);
+  if (refusal) throw new Error(refusal);
+  const forced = forceNeedsAPerson(args);
+  if (forced) throw new Error(forced);
+
   const sdlcRoot = path.join(projectRoot, 'sdlc');
   requireSdlc(sdlcRoot);
   const configRaw = fs.readFileSync(path.join(sdlcRoot, 'config.yaml'), 'utf8');
@@ -372,8 +416,11 @@ export function cmdUpdate(projectRoot, args) {
     fs.writeFileSync(configPath, raw.replace(/^tools:.*$/m, `tools: [${tools.join(', ')}]`));
   }
 
+  // Read before scaffolding: recordPayloadVersion overwrites version.json with our own.
+  const wasAt = installedVersion(projectRoot);
+
   const oldManifest = readManifestFile(projectRoot);
-  const ctx = { mode: 'update', manifest: new Map(), oldManifest, warnings: [] };
+  const ctx = { mode: 'update', manifest: new Map(), oldManifest, warnings: [], stats: {} };
   scaffoldSdlc(projectRoot, tools, ctx);
   installToolAdapters(projectRoot, tools, ctx);
   // `update` is how an existing project acquires hooks that journal under .state/, and
@@ -414,8 +461,50 @@ export function cmdUpdate(projectRoot, args) {
 
   writeManifestFile(projectRoot, ctx.manifest);
   for (const w of ctx.warnings) console.warn(`  ${w}`);
-  console.log(`updated for: ${tools.join(', ')} · payload files: ${ctx.manifest.size} · pruned: ${pruned}`);
-  return { pruned, warnings: ctx.warnings };
+  const written = (ctx.stats.written ?? 0) + (ctx.stats.updated ?? 0);
+  const kept = ctx.stats.kept ?? 0;
+  console.log(`updated for: ${tools.join(', ')} · payload files: ${ctx.manifest.size}`
+    + ` · written: ${written} · kept: ${kept} · pruned: ${pruned}`);
+  reportVersionMove(wasAt);
+  return { pruned, written, kept, warnings: ctx.warnings };
+}
+
+// An update that moves the project backwards is still an update — it just must never look
+// like a gain. `recordPayloadVersion` has already written our version by the time we get here,
+// so a silent downgrade would only surface the next time something went wrong.
+function reportVersionMove(wasAt) {
+  const now = pkgVersion();
+  if (!parseVersion(wasAt) || compareVersions(wasAt, now) === 0) return;
+  if (compareVersions(wasAt, now) > 0) {
+    console.log(`note: this project was at ${wasAt}; ${now} is older — it has been moved back.`);
+    return;
+  }
+  console.log(`\nwhat this brought in (${wasAt} → ${now}):\n`);
+  console.log(sliceChangelog(readOwnChangelog(), { since: wasAt, upTo: now }));
+}
+
+// ---------- changelog ----------
+
+// What this project believes it is running. Missing, unreadable or malformed all mean the
+// same thing — we do not know — and `sliceChangelog` answers that with the invoked version's
+// own entry rather than inventing a range.
+export function installedVersion(projectRoot) {
+  try {
+    const raw = fs.readFileSync(path.join(projectRoot, 'sdlc', '.hooks', 'version.json'), 'utf8');
+    return JSON.parse(raw)?.version ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function readOwnChangelog() {
+  try { return fs.readFileSync(path.join(PKG_ROOT, 'CHANGELOG.md'), 'utf8'); } catch { return null; }
+}
+
+// Read-only by construction: it touches the package it was invoked as, never the project.
+export function cmdChangelog(projectRoot, args = {}) {
+  const since = args.since ?? installedVersion(projectRoot);
+  console.log(sliceChangelog(readOwnChangelog(), { since, upTo: pkgVersion() }));
 }
 
 // ---------- status ----------
@@ -646,6 +735,8 @@ usage: warnyin-sdlc <command> [options]
 
   init [--tool all|none|a,b]      scaffold sdlc/ + adapters + hooks (interactive picker when omitted)
   update [--tool ...] [--force]     refresh payload-owned files, prune stale ones (guarded)
+                                    --force needs a terminal, or WARNYIN_SDLC_FORCE=1
+  changelog [--since X.Y.Z]         what this package changes above a version (writes nothing)
   validate [id] [--strict]          structural validation (caps, delta grammar, gates)
   status [--json]                   list active changes and their stage
   observe [--json]                  tokens/cost per change, residency, steering hits, drift flags
@@ -665,6 +756,7 @@ export async function main(argv = process.argv.slice(2), projectRoot = process.c
     if (args.help || !cmd || cmd === 'help') { console.log(HELP); return; }
     if (cmd === 'init') await cmdInit(projectRoot, args);
     else if (cmd === 'update') cmdUpdate(projectRoot, args);
+    else if (cmd === 'changelog') cmdChangelog(projectRoot, args);
     else if (cmd === 'validate') runValidate(projectRoot, args);
     else if (cmd === 'status') cmdStatus(projectRoot, { json: args.json });
     else if (cmd === 'observe') cmdObserve(projectRoot, { json: args.json });

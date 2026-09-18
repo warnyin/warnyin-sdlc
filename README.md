@@ -67,6 +67,8 @@ sdlc/
 ```
 warnyin-sdlc init [--tool all|none|a,b]   scaffold + adapters + hooks (picker when omitted)
 warnyin-sdlc update [--force]       refresh payload, guarded prune of stale files
+                                    (--force needs a TTY, or WARNYIN_SDLC_FORCE=1)
+warnyin-sdlc changelog [--since X.Y.Z]  what a newer version changes — writes nothing
 warnyin-sdlc validate [id] [--strict]
 warnyin-sdlc status | observe [--json]
 warnyin-sdlc archive <id>           merge deltas into living specs + archive

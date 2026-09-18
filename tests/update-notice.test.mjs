@@ -139,7 +139,11 @@ describe('update-notice', { concurrency: true }, () => {
     const first = res.stdout.split('\n')[0];
     assert.match(first, NOTICE);
     for (const s of ['0.10.0', '0.9.0', 'npx @warnyin/sdlc@latest update']) assert.ok(first.includes(s), `missing ${s}: ${first}`);
-    assert.match(first, /do not run it yourself/i);
+    // update-from-the-notice MODIFIED this requirement: the line now opens a decision the
+    // agent offers instead of forbidding it to act. The choice itself is pinned by
+    // tests/update-from-the-notice.test.mjs rows 2 and 4-10.
+    assert.match(first, /offer|choice|choose|decide/i);
+    assert.doesNotMatch(first, /do not run it yourself/i);
     assert.deepEqual(snapshot(dir), before);
   });
 
