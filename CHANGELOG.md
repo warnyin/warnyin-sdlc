@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.16.0 (2026-09-19)
 
 - **Feature (kimi)**: Kimi Code now gets a command per stage, not just a rules file. `init`
   installs 15 skills at `.kimi-code/skills/sdlc-<stage>/SKILL.md`, so a stage runs with
