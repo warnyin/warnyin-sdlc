@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.14.0 (2026-09-19)
 
 - **Feature (init)**: `kimi` (Kimi Code CLI) is now a supported tool. Selecting or detecting it
   installs a dedicated `.kimi-code/AGENTS.md` — the shared rules-card plus a pointer to
