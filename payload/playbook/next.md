@@ -20,7 +20,8 @@
    and give them `node sdlc/.hooks/journal.mjs set-active <id>` so the next status agrees. If no
    line carries any marker, list the open changes and ask which one this
    session is on; do not choose for the human.
-3. If nothing is active: suggest /sdlc:new, or /sdlc:observe if archived changes
+3. If nothing is active: suggest /sdlc:new — or /sdlc:groom first when the ask names a
+   solution but no outcome — or /sdlc:observe if archived changes
    have unread digests.
 4. Answer in ≤5 lines. Create or modify nothing.
 5. When the remaining path is more than one stage, add one line: the same command

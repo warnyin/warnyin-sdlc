@@ -1,0 +1,6 @@
+{"ts":"2026-09-19T08:51:15.363Z","event":"contract","tests":"10"}
+{"ts":"2026-09-19T08:51:16.406Z","event":"build","tasks":"5"}
+{"ts":"2026-09-19T08:51:17.453Z","event":"verify","result":"pass round=1 gate=fast scope=scoped mode=solo"}
+{"ts":"2026-09-19T08:51:18.494Z","event":"verify","result":"pass round=1 gate=final mode=solo"}
+{"ts":"2026-09-19T08:51:29.622Z","event":"gate","gate":"ship","action":"open","expires":"2026-09-19T09:21:29.621Z"}
+{"ts":"2026-09-19T08:51:29.669Z","event":"ship","change":"2026-09-19-groom-stage","specs":["change-focus"]}

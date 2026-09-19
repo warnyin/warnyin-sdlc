@@ -1,7 +1,9 @@
 # Spec: change-focus
 
 ## Purpose
-<!-- one or two lines; commands grep this header first (progressive disclosure) -->
+Which change a session is working on and how one is arrived at: what a session points at,
+how concurrent sessions stay out of each other's way, and how an idea is groomed into a
+change worth opening at all.
 
 ## Requirements
 
@@ -69,3 +71,28 @@ change, and no pointer naming anything else.
   session's pointer names a different open change
 - THEN the pointers naming the shipped change are gone and the other session's pointer is
   unchanged
+
+### Requirement: A change can be groomed before it is opened
+The system SHALL offer a grooming step that runs before a change exists, whose job is to find
+the outcome the human actually wants rather than to specify a solution already assumed. It
+SHALL interrogate the problem rather than the proposed solution, SHALL verify by running what
+it will later record as an assumption, SHALL offer more than one shape with the cheapest
+acceptable one first, SHALL be able to conclude that nothing should be built, and SHALL write
+no artifact of its own — its result is the Why and the Assumptions `/sdlc:new` opens with.
+
+#### Scenario: a one-line ask
+- WHEN the request names a solution but not the outcome, and grooming runs
+- THEN the questions put to the human are about what breaks today, what done looks like, what
+  must not change and the cheapest acceptable outcome — not about how to build what was named
+
+#### Scenario: a claim that would narrow the work
+- WHEN grooming finds something it intends to carry into the change's Assumptions
+- THEN it runs it first, so what reaches `## Assumptions` is verified rather than plausible
+
+#### Scenario: not worth building
+- WHEN the honest answer is that the outcome does not justify a change
+- THEN grooming may end there, and no change folder is created
+
+#### Scenario: a tool without slash commands
+- WHEN a project installs a tool whose stages are exposed as skills rather than commands
+- THEN grooming is exposed there too, by the same rendering as every other stage

@@ -3,12 +3,13 @@
 One change = one folder in `sdlc/changes/<id>/` moving through:
 
 ```
-new → [design] → contract → build → verify (fast) → [review] → verify (final) → ship
+[groom] → new → [design] → contract → build → verify (fast) → [review] → verify (final) → ship
 ```
 
 | Command | Day-1 phase | Reads | Writes | Gate (automatic unless noted) |
 |---|---|---|---|---|
 | /sdlc:init | Configure harness | interview | constitution, harness.md | human approves (once) |
+| /sdlc:groom | before Requirements | the code, the human | nothing — hands its findings to new | optional; may end in "not worth building" |
 | /sdlc:auto | whole loop | status (resumes an open change) | everything below | escalation only |
 | any stage `--auto` | that stage → ship | status + your answers | everything from there | one confirmation up front |
 | /sdlc:new | Requirements | specs Purpose headers | change.md | validator: delta + assumptions |

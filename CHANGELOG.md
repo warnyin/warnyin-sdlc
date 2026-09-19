@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- **Feature (groom)**: a new optional stage BEFORE a change exists — `/sdlc:groom "<rough idea>"`
+  (`/skill:sdlc-groom` in Kimi Code). `/sdlc:new` starts by writing a Delta, so it can only
+  resolve ambiguity it notices once a solution shape is already assumed. Grooming asks the
+  earlier question: what breaks today, what done looks like observably, what must not change,
+  and the cheapest outcome you would accept — treating the solution you proposed as evidence of
+  the problem, never as the scope. It checks feasibility by RUNNING things, so what it hands to
+  `new` arrives already verified rather than plausible. It offers two or three shapes with the
+  cheapest acceptable one first, and **"not worth building" is a legitimate ending**. It writes
+  no artifact and costs no always-loaded budget: its result is simply the Why and Assumptions
+  `new` opens with, and no change folder exists until you run `new`. Skip it when your ask is
+  already concrete — a ceremonial grooming is garbage.
+
 ## 0.16.0 (2026-09-19)
 
 - **Feature (kimi)**: Kimi Code now gets a command per stage, not just a rules file. `init`
