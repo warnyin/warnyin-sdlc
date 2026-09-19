@@ -373,7 +373,16 @@ export async function cmdInit(projectRoot, args) {
   };
   scaffoldSdlc(projectRoot, tools, ctx);
   installToolAdapters(projectRoot, tools, ctx);
-  writeManifestFile(projectRoot, ctx.manifest);
+  // Carry forward every entry this run did not rewrite. `init` installs only the tools it was
+  // given, so writing `ctx.manifest` alone would disown the files of every OTHER tool already
+  // installed here — they stay on disk, but `update` then sees files it has no record of,
+  // refuses to refresh them (its refresh branch needs disk hash === recorded hash), freezes
+  // them at their old payload version and reports them as user-modified. Same failure
+  // `installFile` documents fixing per-file, reached instead by never visiting the entry.
+  // The merge happens HERE, not by seeding `ctx.manifest`: that Map is also what the install
+  // summary counts, and it must keep describing only what this run installed. `cmdUpdate`
+  // deliberately does NOT do this — its wholesale replace is what tells prune a tool is gone.
+  writeManifestFile(projectRoot, new Map([...ctx.oldManifest, ...ctx.manifest]));
   ensureGitignore(projectRoot);
   for (const w of ctx.warnings) console.warn(`  ${style.yellow(symbols.warn)} ${w}`);
   printInitSummary(tools, ctx, style, symbols, { configExisted, toolsAdded });

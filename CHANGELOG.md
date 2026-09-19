@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.14.2 (2026-09-19)
+
+- **Fix (init)**: `init` no longer disowns the tools it did not install that run. It rebuilt the
+  ownership manifest from scratch and wrote it wholesale, so running `init` a second time for a
+  different tool dropped every entry belonging to the first — the files stayed on disk, but
+  `update` could no longer recognise them. The damage showed up later: such a file was **never
+  refreshed again** (refresh needs the recorded hash to match what is on disk) and was reported
+  as `kept (user-modified)`, blaming you for an edit you never made. `init` now carries forward
+  every entry it does not rewrite. It still never prunes — only `update --tool <list>` removes
+  a tool, and now that a tool installed by its own `init` run is properly owned, deselecting it
+  there prunes its files as it always should have.
+- **If a project already hit this**, the fix cannot recover a hash nothing recorded. A disowned
+  file that still matches the current payload is re-claimed silently on your next `update`; one
+  that has already drifted stays frozen and keeps reporting `kept (user-modified)`. To recover
+  it, delete that file and run `update` — it is rewritten from the payload and owned again.
+
 ## 0.14.1 (2026-09-19)
 
 - **Fix (init)**: adding a tool to a project that already has `sdlc/` no longer loses it on the

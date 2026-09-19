@@ -62,3 +62,36 @@ already recorded there — never removing a tool that isn't part of this run's s
 #### Scenario: a config predating the tools key is left as it is
 - WHEN `config.yaml` exists but carries no `tools:` line at all
 - THEN `init` does not add one, same as `update` already behaves in that situation
+
+### Requirement: init preserves the ownership it already recorded
+The system SHALL, when `init` runs against a project that already carries a manifest, keep every
+recorded entry it does not rewrite during that run, so files installed by an earlier run stay
+owned. `init` never prunes, and SHALL NOT silently disown.
+
+#### Scenario: installing a second tool keeps the first tool's ownership
+- WHEN a project installed with one tool has `init` run again for a different tool
+- THEN the manifest still records every file of the first tool, alongside the new tool's
+
+#### Scenario: preserved ownership means update can still refresh
+- WHEN a later `update` runs over a file from that first tool that sits at an older payload
+  version and still matches its recorded hash
+- THEN the file is refreshed to the current payload instead of being reported as user-modified
+
+#### Scenario: the summary counts only what this run installed
+- WHEN `init` runs for one tool on a project that already had a larger tool installed
+- THEN the counts it prints describe what this run installed, not everything the manifest records
+
+#### Scenario: installing nothing disowns nothing
+- WHEN `init --tool none` runs on a project that already recorded files
+- THEN every recorded entry survives
+
+#### Scenario: an entry whose file the user deleted
+- WHEN a recorded file has been deleted from disk and `init` runs for a different tool
+- THEN the entry is still carried forward, and a later `update` that installs that tool writes
+  the file back
+
+#### Scenario: a tool owned via a second init is prunable when later deselected
+- WHEN a tool installed by its own `init` run is later left out of an explicit `update --tool`
+  list
+- THEN its files are pruned and its entries dropped, because owning them again restores both
+  halves of ownership: refresh and prune
