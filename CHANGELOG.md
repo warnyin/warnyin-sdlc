@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.17.0 (2026-09-19)
 
 - **Feature (groom)**: a new optional stage BEFORE a change exists — `/sdlc:groom "<rough idea>"`
   (`/skill:sdlc-groom` in Kimi Code). `/sdlc:new` starts by writing a Delta, so it can only
