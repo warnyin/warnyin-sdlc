@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.15.0 (2026-09-19)
 
 - **Doctrine (new/contract/review)**: an assumption that *removes work* is now treated as a
   claim about the code, not a judgement call. When a change assumes something need not be
