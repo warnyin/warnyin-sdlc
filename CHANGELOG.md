@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **Doctrine (constitution)**: the verify-or-mark rule is now a hard rule in the seeded
+  constitution, not only in the stage playbooks — it extends the assumption rule already there
+  rather than competing for a second line of always-loaded residency. New projects get it at
+  `init`. **Existing projects do not**: `sdlc/context/constitution.md` is seeded once and
+  `update` never overwrites it, by design. To adopt it, add to your own constitution's
+  assumption rule: *and SHALL prove by running it any assumption that removes work — or record
+  it `[UNVERIFIED]`*. Constitution edits go through `/sdlc:steer`.
+
 ## 0.15.0 (2026-09-19)
 
 - **Doctrine (new/contract/review)**: an assumption that *removes work* is now treated as a

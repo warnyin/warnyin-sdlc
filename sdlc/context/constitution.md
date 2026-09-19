@@ -7,7 +7,9 @@
 
 ## Hard rules (SHALL / SHALL NOT only — no advice)
 - The agent SHALL NOT edit `sdlc/specs/**` or `sdlc/changes/archive/**` outside `/sdlc:ship`.
-- The agent SHALL record every assumption in the change's `## Assumptions` before acting on it.
+- The agent SHALL record every assumption in the change's `## Assumptions` before acting on it,
+  and SHALL prove by running it any assumption that removes work ("already covered",
+  "unchanged", "harmless") — or record it `[UNVERIFIED]`.
 - Every behavior change SHALL update BOTH the payload source and its tests in the same change.
 - Caps SHALL change only in `lib/caps.mjs` + template comments together (caps-sync test).
 - The agent SHALL NOT add npm dependencies.
@@ -15,5 +17,5 @@
   author a constrained substitute (see `feedback-channel`).
 
 ## Workflow
-- Changes flow: new → [design] → contract → build → verify → [review] → ship.
+- Changes flow: new → [design] → contract → build → verify (fast) → [review] → verify (final) → ship.
 - Tier by stakes: vibe | standard | deep — triage table lives in `sdlc/harness.md`.

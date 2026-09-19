@@ -97,3 +97,28 @@ test('row 8: a fresh cursor install embeds the rule in its rules file', (t) => {
   const rendered = oneLine(fs.readFileSync(path.join(dir, '.cursor/rules/sdlc.mdc'), 'utf8'));
   assert.match(rendered, /assum[^]{0,200}(run|prove|verif|UNVERIFIED)/i);
 });
+
+// row 9 (added when the human directed the rule into always-loaded context)
+// The playbooks state the rule at each stage; the constitution makes it resident in every turn.
+// That residency is the expensive kind, so it is pinned here along with its budget.
+test('row 9: the seeded constitution carries the rule, within its 30-line cap', () => {
+  const seed = tpl('constitution.md');
+  const text = oneLine(seed);
+  assert.match(text, /SHALL[^]{0,160}assumption that removes work/i,
+    'the seed constitution must carry it as a SHALL, not as advice');
+  assert.match(text, /UNVERIFIED/, 'and must name the marker that is the alternative to proving it');
+  // It belongs on the existing assumption rule, not as a second line competing for residency.
+  assert.match(text, /## Assumptions`? before acting on it,[^]{0,200}UNVERIFIED/i,
+    'it should extend the assumption rule already there rather than add a separate one');
+  const lines = countEffectiveLines(seed);
+  assert.ok(lines <= 30, `constitution template is ${lines} effective lines, cap is 30`);
+});
+
+// row 10 — it reaches a new project's own constitution, which `update` never overwrites
+test('row 10: a fresh install seeds the rule into the project constitution', (t) => {
+  const dir = makeTempProject(t);
+  assert.equal(runCli(dir, ['init', '--tool', 'claude']).status, 0);
+  const seeded = oneLine(fs.readFileSync(path.join(dir, 'sdlc/context/constitution.md'), 'utf8'));
+  assert.match(seeded, /assumption that removes work/i);
+  assert.match(seeded, /UNVERIFIED/);
+});

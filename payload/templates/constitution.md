@@ -6,7 +6,9 @@
 
 ## Hard rules (SHALL / SHALL NOT only — no advice)
 - The agent SHALL NOT edit `sdlc/specs/**` or `sdlc/changes/archive/**` outside `/sdlc:ship`.
-- The agent SHALL record every assumption in the change's `## Assumptions` before acting on it.
+- The agent SHALL record every assumption in the change's `## Assumptions` before acting on it,
+  and SHALL prove by running it any assumption that removes work ("already covered",
+  "unchanged", "harmless") — or record it `[UNVERIFIED]`.
 - <add a rule each time the agent misbehaves; each new rule must displace an old one once the always-budget (60 lines) is full>
 
 ## Workflow
