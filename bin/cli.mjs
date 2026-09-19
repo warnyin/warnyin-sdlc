@@ -149,6 +149,45 @@ function renderAdapter(templateRel) {
   return payloadText(templateRel).replace('{{RULES_CARD}}', payloadText('playbook/rules-card.md').trim());
 }
 
+// The Claude stage stubs are the one source for which stages exist and what each is called.
+// Kimi's skills are RENDERED from them, never kept as a second copy: two hand-maintained
+// registries drift, which is exactly how `.kimi-code/AGENTS.md` once escaped the prune allowlist.
+export function kimiStageStubs() {
+  const rel = 'adapters/claude/commands/sdlc';
+  const dir = path.join(PAYLOAD, rel);
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir).filter((f) => f.endsWith('.md')).sort().map((file) => {
+    const stage = file.replace(/\.md$/, '');
+    const { data, body } = parseFrontmatter(payloadText(`${rel}/${file}`));
+    // Follow the stub to its playbook rather than rebuilding the path by convention, so a stub
+    // that ever points somewhere else takes Kimi with it.
+    const playbook = body.match(/sdlc\/\.playbook\/[A-Za-z0-9_-]+\.md/)?.[0] ?? `sdlc/.playbook/${stage}.md`;
+    // Kimi requires a non-empty description; a stub that somehow lacks one still has to
+    // produce a loadable skill rather than `description: ""`.
+    const description = (data.description ?? '').trim() || `Run the ${stage} stage`;
+    return { stage, description, playbook, hint: data['argument-hint'] ?? '' };
+  });
+}
+
+// Kimi parses this frontmatter as real YAML, and three stage descriptions carry a colon
+// ("agent panel: architect / security / ..."), so the value is always quoted.
+const yamlQuote = (s) => `"${String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\s*\n\s*/g, ' ')}"`;
+
+export function renderKimiSkill(stage, description, playbook, hint = '') {
+  const lines = [
+    '---',
+    `name: sdlc-${stage}`,
+    `description: ${yamlQuote(description)}`,
+    // A stage runs because a person asked for it — `ship` merges specs and archives, so the
+    // model must not be able to fire one on its own. Mirrors a Claude slash command.
+    'disableModelInvocation: true',
+    '---',
+    `Read \`${playbook}\` and execute it now. Arguments: $ARGUMENTS`,
+  ];
+  if (hint) lines.push(`Expected arguments: ${hint}`);
+  return lines.join('\n') + '\n';
+}
+
 // Marker adapters live inside user-owned files: append once, never rewrite.
 function appendWithMarker(projectRoot, destRel, content) {
   const dest = path.join(projectRoot, destRel);
@@ -205,6 +244,14 @@ function installToolAdapters(projectRoot, tools, ctx) {
   }
   if (tools.includes('kimi')) {
     installFile(projectRoot, path.join('.kimi-code', 'AGENTS.md'), renderAdapter('adapters/kimi.md'), ctx);
+    for (const { stage, description, playbook, hint } of kimiStageStubs()) {
+      installFile(
+        projectRoot,
+        path.join('.kimi-code', 'skills', `sdlc-${stage}`, 'SKILL.md'),
+        renderKimiSkill(stage, description, playbook, hint),
+        ctx,
+      );
+    }
   }
 }
 
@@ -327,6 +374,7 @@ function printInitSummary(tools, ctx, style, symbols, { configExisted, toolsAdde
   for (const a of s.adapters.filter((a) => a.tool !== 'claude')) {
     line(`Rules for ${toolName(a.tool)}: ${a.path}`);
   }
+  if (s.kimiSkills) line(`${s.kimiSkills} skills in .kimi-code/skills/ — run one with \`/skill:sdlc-<stage>\``);
   line(`${s.hooks} hooks in sdlc/.hooks/`);
   line(`Playbook: sdlc/.playbook/ (${s.playbook} stages + ${s.templates} templates)`);
   const configNote = toolsAdded?.length

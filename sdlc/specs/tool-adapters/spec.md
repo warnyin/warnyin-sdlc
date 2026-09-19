@@ -1,9 +1,10 @@
 # Spec: tool-adapters
 
 ## Purpose
-What `init`/`update` installs into a project for each supported coding tool — a dedicated
-rules file pointing at the playbook for a lite-tier tool, versus Claude's fuller hooks,
-skills, agents and commands — and how a tool is detected and kept in sync with what it owns.
+What `init`/`update` installs into a project for each supported coding tool: a rules file
+carrying the shared card, stage shortcuts where the tool has them, and hooks only for Claude —
+enforcement is what separates the tiers, not invocation — plus how a tool is detected and how
+what it owns stays in sync and reclaimable.
 
 ## Requirements
 
@@ -95,3 +96,38 @@ owned. `init` never prunes, and SHALL NOT silently disown.
   list
 - THEN its files are pruned and its entries dropped, because owning them again restores both
   halves of ownership: refresh and prune
+
+### Requirement: Kimi Code carries one skill per stage, rendered from a single source
+The system SHALL install, for a project that selects Kimi Code, one skill per stage the Claude
+adapter exposes, at `.kimi-code/skills/sdlc-<stage>/SKILL.md`, invocable as `/skill:sdlc-<stage>`.
+Each skill SHALL carry the same description as the Claude stub for that stage and SHALL direct
+the agent to the same playbook file, and SHALL be rendered from that stub rather than maintained
+as a second copy, so the two adapters cannot drift apart.
+
+#### Scenario: a fresh install exposes every stage
+- WHEN a project installs Kimi Code
+- THEN every stage the Claude adapter exposes has a matching `.kimi-code/skills/sdlc-<stage>/SKILL.md`
+  whose description equals the Claude stub's, and whose body names the same playbook file
+
+#### Scenario: a stage added to the Claude adapter appears for Kimi too
+- WHEN a stage stub exists for Claude but no corresponding Kimi skill would be produced
+- THEN that is a failure, not a silent omission — the two sets are pinned equal
+
+#### Scenario: a stage is never fired without being asked for
+- WHEN the agent is deciding on its own what to invoke
+- THEN a stage skill is not automatically invocable — stages run because a person asked, the
+  same as a slash command in Claude Code, since a stage like ship merges specs and archives
+
+### Requirement: The Kimi skills tree is owned and reclaimable
+The system SHALL record every installed Kimi skill file in the manifest and SHALL allow prune to
+reclaim it when Kimi Code is no longer a selected tool, while leaving a file the user wrote at
+that path untouched and unclaimed.
+
+#### Scenario: deselecting the tool reclaims its skills
+- WHEN a project that installed Kimi Code later updates with Kimi Code left out of the tool list
+- THEN the installed skill files are pruned and their manifest entries dropped
+
+#### Scenario: a skill the user wrote is not taken over
+- WHEN a file already exists at a path the installer would write a skill to, with content the
+  installer did not write
+- THEN it is left byte-identical and is not claimed in the manifest

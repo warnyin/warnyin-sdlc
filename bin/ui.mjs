@@ -46,11 +46,13 @@ export function summarizeInstall(manifestKeys, tools) {
   const templates = under(keys, 'sdlc/.playbook/templates/');
   const playbook = under(keys, 'sdlc/.playbook/').filter((k) => !k.startsWith('sdlc/.playbook/templates/'));
   const skillDirs = new Set(under(keys, '.claude/skills/').map((k) => k.split('/')[2]));
+  const kimiSkills = under(keys, '.kimi-code/skills/').filter((k) => k.endsWith('/SKILL.md'));
 
   return Object.freeze({
     commands: under(keys, '.claude/commands/').length,
     skills: skillDirs.size,
     agents: under(keys, '.claude/agents/').length,
+    kimiSkills: kimiSkills.length,
     hooks: hookFiles.length,
     playbook: playbook.length,
     templates: templates.length,

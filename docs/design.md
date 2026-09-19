@@ -33,6 +33,13 @@ contract; if an artifact loses its reason, delete it.
   localized later without touching code.
 - **Hooks are the ceiling, the validator is the floor**: non-Claude tools get the same
   rules as prose (rules-card embedded in their config) + `npx @warnyin/sdlc validate`.
+  This is about ENFORCEMENT, not invocation. A tool may also get stage *shortcuts* — Kimi Code
+  carries one skill per stage at `.kimi-code/skills/sdlc-<stage>/SKILL.md`, rendered from the
+  Claude stubs — because a shortcut blocks nothing and guarantees nothing; it points at the same
+  playbook the rules card already names. Hooks stay Claude-only, so the ceiling is unchanged.
+  Such skills are `disableModelInvocation: true`: a stage runs because a person asked, since
+  `ship` merges specs and archives. Prune's allowlist covers our `sdlc-` prefix only — that
+  directory is one users fill themselves.
 - **All-or-nothing archive**: every delta merge is computed before anything is written;
   a missing MODIFIED/REMOVED key aborts the whole ship.
 - **Lenses are chosen on evidence, resolved project → user → builtin, and never installed**:

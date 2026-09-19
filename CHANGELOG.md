@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- **Feature (kimi)**: Kimi Code now gets a command per stage, not just a rules file. `init`
+  installs 15 skills at `.kimi-code/skills/sdlc-<stage>/SKILL.md`, so a stage runs with
+  `/skill:sdlc-new "add OAuth login"` instead of typing "read sdlc/.playbook/new.md and do it".
+  They are rendered from the Claude slash-command stubs at install time rather than maintained
+  as a second copy, so a stage added for Claude cannot silently miss Kimi. Every skill is
+  `disableModelInvocation: true`: a stage runs because you asked, since `ship` merges specs and
+  archives. This does not give Kimi hooks — enforcement is still the rules card plus
+  `npx @warnyin/sdlc validate`; what changed is invocation, not enforcement.
+- **Prune scope**: `update` can now reclaim those skills when Kimi Code is deselected. The
+  allowlist matches `sdlc-*/SKILL.md` **only** — `.kimi-code/skills/` is a directory you also
+  keep your own skills in, and yours are outside prune's scope entirely rather than relying on
+  the hash guard. If you already keep a skill named `sdlc-<stage>`, yours is left untouched and
+  unclaimed, and you simply will not receive ours for that stage.
+
 ## 0.15.1 (2026-09-19)
 
 - **Doctrine (constitution)**: the verify-or-mark rule is now a hard rule in the seeded
