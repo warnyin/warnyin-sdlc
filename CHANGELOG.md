@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.14.1 (2026-09-19)
 
 - **Fix (init)**: adding a tool to a project that already has `sdlc/` no longer loses it on the
   next update. `init --tool <newtool>` installed the tool's files but never recorded it in
