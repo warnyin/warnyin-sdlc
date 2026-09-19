@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.15.1 (2026-09-19)
 
 - **Doctrine (constitution)**: the verify-or-mark rule is now a hard rule in the seeded
   constitution, not only in the stage playbooks — it extends the assumption rule already there
