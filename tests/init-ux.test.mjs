@@ -6,8 +6,12 @@ import { makeTempProject, runCli } from './helpers.mjs';
 import { detectTools, ADAPTER_PATHS } from '../bin/detect.mjs';
 import { colorEnabled, createStyle, summarizeInstall, startHints } from '../bin/ui.mjs';
 import { initState, visibleChoices, reduceKey, renderLines } from '../bin/multiselect.mjs';
+import { TOOLS } from '../bin/cli.mjs';
 
-const ALL_TOOLS = ['claude', 'cursor', 'windsurf', 'copilot', 'cline', 'gemini', 'agents-md'];
+// Sourced from the real registry, not hand-copied — a tool added to TOOLS but missed in
+// ADAPTER_PATHS/TOOL_NAMES/MARKERS now fails this file's own guards instead of drifting
+// silently (a hand-copied list wouldn't have caught kimi's own ADAPTER_ALLOW gap in review).
+const ALL_TOOLS = TOOLS;
 const ANSI = new RegExp(String.fromCharCode(27) + '\\[');
 
 // ---------- tool detection ----------
@@ -171,6 +175,7 @@ test('init --tool all: installs every adapter and records them', (t) => {
     '.clinerules',
     'GEMINI.md',
     'AGENTS.md',
+    '.kimi-code/AGENTS.md',
   ]) {
     assert.ok(fs.existsSync(path.join(dir, rel)), `missing ${rel}`);
   }

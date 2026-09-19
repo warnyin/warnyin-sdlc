@@ -69,6 +69,13 @@ test('manifest guards: traversal, absolute, control chars, out-of-scope', () => 
   assert.equal(isPrunablePath('.claude/skills/delta-spec-format/SKILL.md'), true);
   assert.equal(isPrunablePath('.claude/skills/users-own-skill/SKILL.md'), false);
 
+  // every installFile-owned lite adapter must be prunable, or a deselected tool's
+  // file lingers as an orphan the manifest no longer tracks (caught in review: kimi
+  // was missing from ADAPTER_ALLOW while cursor/windsurf were never asserted here either)
+  assert.equal(isPrunablePath('.cursor/rules/sdlc.mdc'), true);
+  assert.equal(isPrunablePath('.windsurf/rules/sdlc.md'), true);
+  assert.equal(isPrunablePath('.kimi-code/AGENTS.md'), true);
+
   const old = new Map([
     ['sdlc/.playbook/a.md', 'x'.repeat(64)],
     ['sdlc/specs/auth/spec.md', 'y'.repeat(64)],

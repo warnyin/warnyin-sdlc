@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **Feature (init)**: `kimi` (Kimi Code CLI) is now a supported tool. Selecting or detecting it
+  installs a dedicated `.kimi-code/AGENTS.md` — the shared rules-card plus a pointer to
+  `sdlc/.playbook/` — the same lite-tier treatment every non-Claude tool gets: no hooks, no
+  skills, no agents, just the rules-card and the validator as the enforcement floor. Detection
+  looks for an existing `.kimi-code/` directory, mirroring `claude`/`cursor`/`windsurf`; its
+  absence never blocks picking `kimi` explicitly with `--tool kimi` or `--tool all`. The file
+  is manifest-owned like `.cursor/rules/sdlc.mdc`: a hand-written file at that path is left
+  untouched and never claimed, and it is correctly pruned if a project later deselects the tool.
+
 ## 0.13.0 (2026-09-19)
 
 - **Feature (update notice)**: the notice that a newer version exists now **asks** instead of

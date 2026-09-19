@@ -110,8 +110,8 @@ test('row 12: a fresh claude install carries the options and picker rules', (t) 
   assert.match(installed, /AskUserQuestion/);
 });
 
-test('row 13: fresh cursor and windsurf installs embed an ambiguity line that names options', (t) => {
-  for (const [tool, file] of [['cursor', '.cursor/rules/sdlc.mdc'], ['windsurf', '.windsurf/rules/sdlc.md']]) {
+test('row 13: fresh lite-adapter installs embed an ambiguity line that names options', (t) => {
+  for (const [tool, file] of [['cursor', '.cursor/rules/sdlc.mdc'], ['windsurf', '.windsurf/rules/sdlc.md'], ['kimi', '.kimi-code/AGENTS.md']]) {
     const dir = makeTempProject(t);
     const res = runCli(dir, ['init', '--tool', tool]);
     assert.equal(res.status, 0, res.stderr);

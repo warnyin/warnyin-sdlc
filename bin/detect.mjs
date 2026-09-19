@@ -15,6 +15,7 @@ export const ADAPTER_PATHS = Object.freeze({
   cline: '.clinerules',
   gemini: 'GEMINI.md',
   'agents-md': 'AGENTS.md',
+  kimi: '.kimi-code/AGENTS.md',
 });
 
 export const TOOL_NAMES = Object.freeze({
@@ -25,6 +26,7 @@ export const TOOL_NAMES = Object.freeze({
   cline: 'Cline',
   gemini: 'Gemini CLI',
   'agents-md': 'AGENTS.md',
+  kimi: 'Kimi Code',
 });
 
 // A tool counts as present when the project already carries its home directory
@@ -38,6 +40,7 @@ const MARKERS = Object.freeze({
   cline: ['.clinerules'],
   gemini: ['GEMINI.md', '.gemini'],
   'agents-md': ['AGENTS.md'],
+  kimi: ['.kimi-code'],
 });
 
 export function detectTools(projectRoot) {

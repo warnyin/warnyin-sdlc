@@ -34,7 +34,7 @@ const MARKER = '<!-- sdlc:start -->';
 const OWN_PACKAGE_NAME = '@warnyin/sdlc';
 
 export const TOOLS = Object.freeze([
-  'claude', 'cursor', 'windsurf', 'copilot', 'cline', 'gemini', 'agents-md',
+  'claude', 'cursor', 'windsurf', 'copilot', 'cline', 'gemini', 'agents-md', 'kimi',
 ]);
 
 const TEXT_EXT = new Set(['.md', '.mdc', '.mjs', '.json', '.yaml', '.yml', '.txt']);
@@ -202,6 +202,9 @@ function installToolAdapters(projectRoot, tools, ctx) {
   }
   if (tools.includes('agents-md')) {
     appendWithMarker(projectRoot, 'AGENTS.md', renderAdapter('adapters/agents-md.md'));
+  }
+  if (tools.includes('kimi')) {
+    installFile(projectRoot, path.join('.kimi-code', 'AGENTS.md'), renderAdapter('adapters/kimi.md'), ctx);
   }
 }
 
