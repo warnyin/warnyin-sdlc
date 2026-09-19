@@ -312,7 +312,7 @@ export async function resolveTools(args, {
   return picked;
 }
 
-function printInitSummary(tools, ctx, style, symbols, { configExisted }) {
+function printInitSummary(tools, ctx, style, symbols, { configExisted, toolsAdded }) {
   const s = summarizeInstall(ctx.manifest.keys(), tools);
   const stats = ctx.stats;
   const line = (text) => console.log(`  ${text}`);
@@ -329,7 +329,10 @@ function printInitSummary(tools, ctx, style, symbols, { configExisted }) {
   }
   line(`${s.hooks} hooks in sdlc/.hooks/`);
   line(`Playbook: sdlc/.playbook/ (${s.playbook} stages + ${s.templates} templates)`);
-  line(`Config: sdlc/config.yaml${configExisted ? ' (kept)' : ''}`);
+  const configNote = toolsAdded?.length
+    ? ` (recorded ${toolsAdded.map(toolName).join(', ')})`
+    : configExisted ? ' (kept)' : '';
+  line(`Config: sdlc/config.yaml${configNote}`);
   line(style.dim(`Files: ${stats.written} written · ${stats.current} unchanged · ${stats.updated} refreshed · ${stats.kept} kept (yours)`));
   console.log('');
   console.log(`  ${style.bold('Getting started:')}`);
@@ -341,7 +344,26 @@ export async function cmdInit(projectRoot, args) {
   const style = createStyle(colorEnabled());
   const symbols = symbolsFor();
   const tools = await resolveTools(args, { projectRoot, style });
-  const configExisted = fs.existsSync(path.join(projectRoot, 'sdlc', 'config.yaml'));
+  const configPath = path.join(projectRoot, 'sdlc', 'config.yaml');
+  const configExisted = fs.existsSync(configPath);
+
+  // config.yaml is a seed — written once, never rewritten wholesale. But its `tools:` line
+  // is the one field this command promises to keep current ("filled by `warnyin-sdlc init`"
+  // in the template), so a second init adding a tool must not leave it stale: union what's
+  // already recorded with what this run installs, never removing an entry (init has no prune
+  // capability, and this doesn't give it one — only `update --tool <list>` can shrink the set).
+  let toolsAdded = [];
+  if (configExisted) {
+    const recorded = parseConfig(fs.readFileSync(configPath, 'utf8')).tools;
+    const newlySelected = tools.filter((t) => !recorded.includes(t));
+    // Only claim "recorded" in the summary when a write actually happened — a config
+    // predating the `tools:` key makes persistToolsLine a no-op, and the message must not
+    // say otherwise.
+    if (newlySelected.length && persistToolsLine(configPath, [...recorded, ...newlySelected])) {
+      toolsAdded = newlySelected;
+    }
+  }
+
   const ctx = {
     mode: 'install',
     manifest: new Map(),
@@ -354,7 +376,7 @@ export async function cmdInit(projectRoot, args) {
   writeManifestFile(projectRoot, ctx.manifest);
   ensureGitignore(projectRoot);
   for (const w of ctx.warnings) console.warn(`  ${style.yellow(symbols.warn)} ${w}`);
-  printInitSummary(tools, ctx, style, symbols, { configExisted });
+  printInitSummary(tools, ctx, style, symbols, { configExisted, toolsAdded });
   return { tools };
 }
 
@@ -395,6 +417,25 @@ export function forceNeedsAPerson(args, env = process.env, stdin = process.stdin
     + ' Run it yourself, or set WARNYIN_SDLC_FORCE=1 if this really is automation that meant it.';
 }
 
+// Rewrites just the `tools:` line of `config.yaml` in place, leaving every other line
+// untouched — a no-op when the file carries no `tools:` line at all (a config predating the
+// key; matched, not fixed). Shared by `cmdInit` and `cmdUpdate` so the two paths can't drift.
+// Reproduces the existing behavior exactly, trailing inline comment included: the line is
+// replaced wholesale, so a hand-added comment after `tools: [...]` does not survive a rewrite.
+// Returns whether it actually wrote — callers that report "recorded X" to the user must not
+// claim it when this was a no-op (no `tools:` line to rewrite).
+export function persistToolsLine(configPath, tools) {
+  const raw = fs.readFileSync(configPath, 'utf8');
+  if (!/^tools:/m.test(raw)) return false;
+  // A replacer FUNCTION, not a string: `recorded` (unioned in by cmdInit) is free text read
+  // back from the project's own config.yaml, not validated against the TOOLS registry the way
+  // CLI-sourced tool names are — a string replacement would let `$&`/`$'`/`` $` `` in a
+  // hand-edited or corrupted config get interpreted as replacement patterns instead of literal
+  // text, silently duplicating or mangling the surrounding file.
+  fs.writeFileSync(configPath, raw.replace(/^tools:.*$/m, () => `tools: [${tools.join(', ')}]`));
+  return true;
+}
+
 export function cmdUpdate(projectRoot, args) {
   const refusal = refuseSelfUpdate(projectRoot, PKG_ROOT);
   if (refusal) throw new Error(refusal);
@@ -414,9 +455,7 @@ export function cmdUpdate(projectRoot, args) {
   // Persist an explicit --tool override so declared and installed state never
   // diverge (otherwise pruning tool-specific files leaves config.yaml stale).
   if (args.toolProvided) {
-    const configPath = path.join(sdlcRoot, 'config.yaml');
-    const raw = fs.readFileSync(configPath, 'utf8');
-    fs.writeFileSync(configPath, raw.replace(/^tools:.*$/m, `tools: [${tools.join(', ')}]`));
+    persistToolsLine(path.join(sdlcRoot, 'config.yaml'), tools);
   }
 
   // Read before scaffolding: recordPayloadVersion overwrites version.json with our own.

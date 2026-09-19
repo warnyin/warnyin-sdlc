@@ -38,3 +38,27 @@ use, pre-selecting it in the interactive picker; its absence never blocks a manu
 #### Scenario: no directory yet, explicit selection still works
 - WHEN a project has no `.kimi-code/` directory
 - THEN `init --tool kimi` still installs the adapter
+
+### Requirement: A project's recorded tool list stays in sync with what init installs
+The system SHALL, when `init` runs against a project whose `sdlc/config.yaml` already exists,
+record every tool it installs this run in that file's `tools:` line, added to whatever was
+already recorded there — never removing a tool that isn't part of this run's selection.
+
+#### Scenario: adding a tool to an existing install
+- WHEN a project's `config.yaml` records `tools: [claude]` and `init --tool kimi` runs
+- THEN `config.yaml` records `tools: [claude, kimi]`, and a later plain `update` keeps both
+  instead of pruning either
+
+#### Scenario: re-running init for an already-recorded tool changes nothing
+- WHEN `config.yaml` already records a tool and `init --tool <that same tool>` runs again
+- THEN the recorded list is unchanged — no duplicate entry, no reordering
+
+#### Scenario: unchecking an already-installed tool in the picker does not remove it
+- WHEN a project already has `.cursor/` (detected, pre-selected) and the person interactively
+  deselects it before confirming
+- THEN `init` does not touch `.cursor/`'s files, and `config.yaml` still records `cursor` in
+  `tools:` — only `update --tool` can shrink that list
+
+#### Scenario: a config predating the tools key is left as it is
+- WHEN `config.yaml` exists but carries no `tools:` line at all
+- THEN `init` does not add one, same as `update` already behaves in that situation

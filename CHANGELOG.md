@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- **Fix (init)**: adding a tool to a project that already has `sdlc/` no longer loses it on the
+  next update. `init --tool <newtool>` installed the tool's files but never recorded it in
+  `sdlc/config.yaml`'s `tools:` line, so the next plain `update` read that stale list and
+  **silently pruned the files it had just installed**. `init` now records what it installs,
+  added to whatever was already listed — never removing an entry, because `init` has no prune
+  capability and this does not give it one. Only `update --tool <list>` still replaces the list
+  wholesale and prunes what is left out. The install summary says `(recorded <tools>)` when the
+  list actually grew, and only then. A `config.yaml` carrying no `tools:` line at all is still
+  left alone, exactly as `update` already leaves it.
+- **Fix (config)**: the `tools:` line rewrite — now shared by `init` and `update` instead of
+  living inline in one of them — passes its replacement as a function rather than a string, so
+  a tool name containing `$&`, `` $` `` or `$'` in a hand-edited config is written literally
+  instead of being interpreted by `String.replace` and mangling the surrounding file.
+
 ## 0.14.0 (2026-09-19)
 
 - **Feature (init)**: `kimi` (Kimi Code CLI) is now a supported tool. Selecting or detecting it
