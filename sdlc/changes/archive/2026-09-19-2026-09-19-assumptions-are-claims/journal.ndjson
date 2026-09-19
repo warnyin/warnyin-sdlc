@@ -1,0 +1,6 @@
+{"ts":"2026-09-19T06:29:19.353Z","event":"contract","tests":"8"}
+{"ts":"2026-09-19T06:29:20.412Z","event":"build","tasks":"5"}
+{"ts":"2026-09-19T06:29:58.162Z","event":"verify","result":"pass round=1 gate=fast scope=scoped mode=solo"}
+{"ts":"2026-09-19T06:30:18.282Z","event":"verify","result":"pass round=1 gate=final mode=solo"}
+{"ts":"2026-09-19T06:30:18.384Z","event":"gate","gate":"ship","action":"open","expires":"2026-09-19T07:00:18.383Z"}
+{"ts":"2026-09-19T06:30:18.425Z","event":"ship","change":"2026-09-19-assumptions-are-claims","specs":["clarification-rounds"]}

@@ -95,10 +95,11 @@ test('row 10: the rules card names options and the picker; card stays within 40 
 });
 
 // Cap pin, raised on purpose from 38: 42 was approved, the options rules landed at 43 and the
-// human approved 43 (2026-09-15). The next addition to new.md has to raise it again.
-test('row 11: new.md stays within its pinned line budget of 43', () => {
+// human approved 43 (2026-09-15). Raised 43 → 46 for the verify-or-mark rule, human-directed
+// (2026-09-19). The next addition to new.md has to raise it again.
+test('row 11: new.md stays within its pinned line budget of 46', () => {
   const lines = countEffectiveLines(pb('new.md'));
-  assert.ok(lines <= 43, `new.md is ${lines} effective lines, budget is 43`);
+  assert.ok(lines <= 46, `new.md is ${lines} effective lines, budget is 46`);
 });
 
 test('row 12: a fresh claude install carries the options and picker rules', (t) => {

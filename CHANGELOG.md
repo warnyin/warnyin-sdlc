@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- **Doctrine (new/contract/review)**: an assumption that *removes work* is now treated as a
+  claim about the code, not a judgement call. When a change assumes something need not be
+  built, tested or checked — "already covered", "unchanged", "harmless", "pre-existing",
+  "self-heals" — the playbook requires running it and proving it before recording it, or
+  recording it as `[UNVERIFIED]`. It is the sibling of the rule already there: what the repo
+  or tools can answer is looked up, never asked — and never assumed either. The rule is stated
+  where the claim is made (`new.md`), where it is spent to drop a test row (`contract.md`'s
+  out-of-scope list), and where the review panel picks targets (`review.md`, which now hands
+  every reviewer the unverified claims to attack first). The rules card and all three change
+  templates carry it too, so a tool with no hooks gets the same rule. Earned the hard way:
+  three consecutive changes shipped with a bug hiding inside the very sentence used to argue
+  the work away, each disprovable in under two minutes by running it, none of them ever run.
+
 ## 0.14.2 (2026-09-19)
 
 - **Fix (init)**: `init` no longer disowns the tools it did not install that run. It rebuilt the

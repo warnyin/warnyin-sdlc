@@ -11,6 +11,7 @@ status: new
 
 ## Assumptions
 - <assumption made instead of asking, with the reason it is safe>
+<!-- one that removes work ("already covered", "unchanged", "harmless") is a claim about the code: run it and prove it, or mark it [UNVERIFIED] -->
 
 ## Delta: <capability>
 

@@ -5,7 +5,9 @@ status is `new`.
 
 1. From the Delta scenarios, write `contract/tests.md` (≤60 lines): one row per
    behavior — Given/When/Then, kind, mapped requirement. List what is explicitly
-   out of scope and why.
+   out of scope and why — and where that why rests on how the code already behaves
+   ("already covered", "unchanged elsewhere"), cite the check that proved it or mark it
+   `[UNVERIFIED]`. The claim that deletes a row is the one to run first.
 1b. A non-empty `lenses`: add each lens's contract bars (`lenses.md` § contributes) as
    test rows where a test can prove them, and as evals quality lines where only judgment
    can — so any tier with lenses writes `contract/evals.md` in step 2.

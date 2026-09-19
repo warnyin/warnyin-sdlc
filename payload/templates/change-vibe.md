@@ -11,6 +11,7 @@ status: new
 
 ## Assumptions
 - <assumption the agent made instead of asking — delete section if none>
+<!-- an assumption that removes work is a claim about the code: run it and prove it, or mark it [UNVERIFIED] -->
 
 ## Tasks
 - [ ] T1 <task>

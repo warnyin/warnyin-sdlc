@@ -19,6 +19,9 @@ verify re-checks the signals itself and never counts it as a review.
    - Plus one reviewer per recorded lens, only for lenses whose stages include review:
      its review focus from `lenses.md`, per `lenses.md` § Using a recorded lens.
      Run it as a read-only subagent when possible; the four core reviewers still run.
+1c. Hand every reviewer the change's `[UNVERIFIED]` assumptions and out-of-scope claims
+   and have them attack those first: a claim nobody ran is where the bug hides, and the
+   panel is the first stage that reads the code rather than the Delta.
 2. Merge findings in the main loop. Classify: blocker | improvement | note.
 3. Blockers → append as fix tasks and route back to /sdlc:build (counts toward
    the same 3-round budget as verify). Improvements: apply if ≤5 min each,

@@ -107,3 +107,30 @@ lettered choices.
 - WHEN the agent runs in a tool without a structured question interface
 - THEN options are written inline as lettered choices under each numbered question, so the
   human can reply like `1b, 2a`
+
+### Requirement: What can be looked up is never assumed either
+The system SHALL require that an assumption asserting how existing code already behaves —
+that something is already covered, unchanged, harmless, pre-existing or self-healing — is
+either proven by running it before it is recorded, or recorded as explicitly unverified. This
+is the sibling of "What can be looked up is never asked": the same facts the agent must not
+put to the human, it must not quietly assume either. The doctrine SHALL state this where the
+assumption is written, where it is spent to drop a test, and where the panel picks its targets.
+
+#### Scenario: an assumption that drops work
+- WHEN a change records an assumption whose effect is that some behavior need not be built,
+  tested or checked
+- THEN the doctrine requires it to be run and proven first, or to carry an explicit unverified
+  marker
+
+#### Scenario: an out-of-scope line resting on current behavior
+- WHEN `contract/tests.md` lists something out of scope because the code is claimed to behave
+  a certain way already
+- THEN the doctrine requires that line to name the check that proved it, or to mark it unverified
+
+#### Scenario: the panel picks a starting point
+- WHEN a review panel runs on a change carrying unverified scope-narrowing claims
+- THEN the doctrine directs the reviewers at those claims first
+
+#### Scenario: a tool with no hooks still gets the rule
+- WHEN a project installs a non-Claude tool whose only enforcement is the rules card
+- THEN the card carries the same verify-or-mark rule, within its 40-line budget

@@ -6,6 +6,8 @@
   via a change's `## Delta:` section, merged by `npx @warnyin/sdlc archive <id>` at ship.
 - NEVER hand-edit `journal.ndjson` or `sdlc/.state/**` — they are machine-owned.
 - Write tests + evals (`contract/`) BEFORE code. No implementation while status is `new`.
+- An assumption that removes work ("already covered", "unchanged", "harmless") is a claim
+  about the code: run it and prove it, or record it `[UNVERIFIED]`.
 - Ambiguity: make the safest assumption and record it under `## Assumptions`; use
   `[NEEDS CLARIFICATION: q]` only for facts you cannot obtain — ask those in rounds ordered
   by dependency, each with a recommended answer and, for a few concrete choices, 2–4 options

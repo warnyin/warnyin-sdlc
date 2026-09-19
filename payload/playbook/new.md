@@ -21,8 +21,11 @@
    and suggest the missing kind of skill in one Assumptions line; never fetch or install one.
 5. Ambiguity (AI-driven): make the safest assumption and record it under `## Assumptions` with
    why it is safe. Use `[NEEDS CLARIFICATION: q]` ONLY for facts you cannot obtain or
-   safely assume. What the repo or tools can answer is looked up, never asked; while a lookup
-   runs, only questions that depend on it wait. Ask the rest in rounds: a round holds every open
+   safely assume. What the repo or tools can answer is looked up, never asked — and never
+   assumed: an assumption that makes something need NOT be built, tested or checked ("already
+   covered", "unchanged", "harmless", "pre-existing", "self-heals") is a claim about the code —
+   run it and prove it, or record it `[UNVERIFIED]`; the claim that removes work is the one most
+   worth testing. While a lookup runs, only questions that depend on it wait. Ask the rest in rounds: a round holds every open
    question whose prerequisites are already answered; one depending on a question still open is
    deferred, one made moot or already decided is dropped. Number each question with its
    recommended answer so the human can reply by number, each answer applied to that number. For a
