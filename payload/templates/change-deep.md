@@ -6,6 +6,8 @@ status: new
 # Change: <title>
 <!-- cap:150 · deep tier: hard-floor surface (security/payments/data-loss/irreversible) or new/multi-capability delta. Human gates apply per Autonomy policy. -->
 
+<!-- optional frontmatter: blocked-by: [id] (this change waits on it) · spawned-from: [id] -->
+
 ## Why (≤5 lines)
 <problem + outcome. No solutioning.>
 

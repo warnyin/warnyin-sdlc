@@ -6,6 +6,8 @@ status: new
 # Change: <title>
 <!-- cap:40 · vibe tier = one file, no contract. Reversible, no behavior-contract change, ≤2 files. -->
 
+<!-- optional frontmatter: blocked-by: [id] (this change waits on it) · spawned-from: [id] -->
+
 ## Why (≤3 lines)
 <problem + outcome>
 

@@ -14,9 +14,13 @@
      passing verify note with no `gate`) awaits review
      (review signals per `review.md`, no `review blockers=0` note that is not `skipped=`)
    - `verified` → /sdlc:ship
+   Waiting overrides this map: if that change is waiting on an open change,
+   report the blocker by name as the work instead — never the waiting change's
+   own next command. With no change set, take the first of the frees-most order
+   `status` prints (`⇢ frees N`) rather than the first line.
    Changes marked `(not this session)` are context only — mention them in at
-   most one line, never as this session's next command, never picked up. If the
-   human says this session is on a different change, their answer wins — use it,
+   most one line, never as this session's next command, never picked up.
+   If the human says this session is on a different change, their answer wins — use it,
    and give them `node sdlc/.hooks/journal.mjs set-active <id>` so the next status agrees. If no
    line carries any marker, list the open changes and ask which one this
    session is on; do not choose for the human.

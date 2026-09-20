@@ -8,9 +8,10 @@ change worth opening at all.
 ## Requirements
 
 ### Requirement: Next answers for this session's change first
-The system SHALL report the change the current session is working on ahead of any
-other open change and, only when this session set that change itself, mark every other
-open change as not belonging to this session.
+The system SHALL report the change the current session is working on ahead of any other open
+change and, only when this session set that change itself, mark every other open change as not
+belonging to this session. When that change is waiting on another, the system SHALL report what
+it waits on instead of offering it as the work to do next.
 
 #### Scenario: several changes open, this session set one
 - WHEN several changes are open and the current session has set one of them active
@@ -25,6 +26,10 @@ open change as not belonging to this session.
 #### Scenario: no usable pointer
 - WHEN no active change is set, or the one set no longer exists as an open change
 - THEN the open changes are listed and none is claimed as this session's
+
+#### Scenario: this session's change is waiting
+- WHEN the change this session set active is waiting on an open change
+- THEN the change it waits on is reported as the work, and the waiting one is not
 
 ### Requirement: One session's focus does not move another's
 The system SHALL keep the active change per session, so that setting it in one session

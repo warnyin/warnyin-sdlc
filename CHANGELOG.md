@@ -1,5 +1,30 @@
 # Changelog
 
+## Unreleased
+
+- **Feature (relations)**: a change can now say what it is waiting on. `blocked-by: [id, ...]`
+  and `spawned-from: [id, ...]` in a change's frontmatter record the link that used to live only
+  in someone's head — you opened a change, found something underneath it, opened another, and
+  nothing tied the two together. The edge is stored once, on the change that is waiting; the
+  reverse direction is derived, so there is no second copy to drift. Many changes can wait on
+  many, which is why `ship` **counts** rather than announces: shipping one of two blockers
+  reports the waiter as still waiting and names what remains, and only the last one frees it —
+  with the command that resumes it. That report is the point. The moment a paused change becomes
+  workable again used to be the one moment with no signal at all.
+- **`ship` refuses while a blocker is still open**, before a single spec is merged or a folder
+  moved, and an archive folder is now evidence to check rather than a receipt: a blocker counts
+  as retired only when the archived change itself says so (matching id, `status: shipped`).
+  A planted empty `changes/archive/<date>-<id>/` previously let a change ship straight past a
+  blocker that was still open.
+- **`status` says why a change is paused** — `⇠ waiting on a, b` — and, for a change that is
+  ready, `⇢ frees N`. Ordering among ready changes is derived (frees-most, then tier, then how
+  long it has sat), not declared: a `priority:` key would be a second source of truth about what
+  matters, and the one nobody re-reads is the one that lies. `observe` flags a change whose
+  blockers all shipped but which never resumed, and one that too many are waiting on.
+- **Fixed**: `validate` crashed with a raw Node stack trace, reporting nothing, when a
+  `change.md` existed but could not be read — it now reports a named issue, which matters
+  because the same validator runs inside a write-time hook.
+
 ## 0.17.0 (2026-09-19)
 
 - **Feature (groom)**: a new optional stage BEFORE a change exists — `/sdlc:groom "<rough idea>"`

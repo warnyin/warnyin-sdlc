@@ -6,6 +6,8 @@ status: new
 # Change: <title>
 <!-- cap:100 · standard tier. Delta sections ARE the spec change — merged mechanically at ship, never re-narrated. -->
 
+<!-- optional frontmatter: blocked-by: [id] (this change waits on it) · spawned-from: [id] -->
+
 ## Why (≤5 lines)
 <problem + outcome. No solutioning.>
 

@@ -21,6 +21,7 @@ import {
   isSafeChangeId,
 } from '../lib/journal.mjs';
 import { resolveActive, clearPointersFor } from '../lib/active.mjs';
+import { analyze, shipImpact, renderShipImpact } from '../lib/relations.mjs';
 import { scanInventory, renderInventory } from '../lib/skills.mjs';
 import { detectTools, toolName } from './detect.mjs';
 import { colorEnabled, createStyle, symbolsFor, summarizeInstall, startHints } from './ui.mjs';
@@ -623,11 +624,23 @@ export function readChanges(sdlcRoot) {
 export function cmdStatus(projectRoot, { json = false } = {}) {
   const sdlcRoot = path.join(projectRoot, 'sdlc');
   requireSdlc(sdlcRoot);
-  const changes = readChanges(sdlcRoot);
   const archiveDir = path.join(sdlcRoot, 'changes', 'archive');
   const archived = fs.existsSync(archiveDir)
     ? fs.readdirSync(archiveDir, { withFileTypes: true }).filter((d) => d.isDirectory()).length
     : 0;
+
+  // Relations are additive: the array keeps the order and the fields it already had, and a
+  // project using none of this reads exactly as it did before, with empty values.
+  const relations = analyze(sdlcRoot);
+  const changes = readChanges(sdlcRoot).map((c) => {
+    const node = relations.byId.get(c.id);
+    return {
+      ...c,
+      blockedBy: node?.blockedBy ?? [],
+      spawnedFrom: node?.spawnedFrom ?? [],
+      waitedOnBy: node?.waitedOnBy ?? [],
+    };
+  });
 
   const resolved = resolveActive(sdlcRoot, { sessionId: process.env.CLAUDE_CODE_SESSION_ID });
   const current = resolved && (resolved.source === 'session' || resolved.source === 'project')
@@ -635,13 +648,16 @@ export function cmdStatus(projectRoot, { json = false } = {}) {
     ? { id: resolved.change, source: resolved.source }
     : null;
 
+  const order = relations.order;
+  const next = nextWork(changes, current, order);
+
   const orderedChanges = current
     ? [changes.find((c) => c.id === current.id), ...changes.filter((c) => c.id !== current.id)]
     : changes;
 
   // JSON is a machine contract: `current` names the id, so the list keeps its order.
   if (json) {
-    console.log(JSON.stringify({ changes, archived, current }, null, 2));
+    console.log(JSON.stringify({ changes, archived, current, order, next }, null, 2));
   } else if (!changes.length) {
     console.log(`No active changes (${archived} archived). Start one with /sdlc:new or /sdlc:auto.`);
   } else {
@@ -654,11 +670,28 @@ export function cmdStatus(projectRoot, { json = false } = {}) {
         // project pointer is someone's last choice, so claiming the rest would be a guess.
         marker = '  (not this session)';
       }
-      console.log(`${c.id}  [${c.tier}/${c.status}]  ${c.title}${marker}`);
+      // The frees-count rides the human listing, not only the JSON: the ordering rule is
+      // doctrine a model reads off `status`, and a count nobody sees decides nothing.
+      const waiting = c.blockedBy.length ? `  ⇠ waiting on ${c.blockedBy.join(', ')}` : '';
+      const frees = !c.blockedBy.length && c.waitedOnBy.length ? `  ⇢ frees ${c.waitedOnBy.length}` : '';
+      console.log(`${c.id}  [${c.tier}/${c.status}]  ${c.title}${waiting}${frees}${marker}`);
     }
     console.log(`${changes.length} active · ${archived} archived`);
   }
-  return { changes, archived, current };
+  return { changes, archived, current, order, next };
+}
+
+// What to actually work on. A change that is waiting hands the answer to what it waits on;
+// everything else answers for itself, and with nothing set the ranking decides.
+function nextWork(changes, current, order) {
+  const pick = (id) => (id ? { id } : null);
+  const node = current ? changes.find((c) => c.id === current.id) : null;
+  if (node && node.blockedBy.length) {
+    const open = node.blockedBy.find((b) => changes.some((c) => c.id === b));
+    return pick(open ?? node.blockedBy[0]);
+  }
+  if (node) return pick(node.id);
+  return pick(order[0]);
 }
 
 // ---------- observe ----------
@@ -726,6 +759,19 @@ export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
     console.error(formatIssues(errors));
     throw new Error(`validate --strict failed with ${errors.length} error(s) — not archiving`);
   }
+
+  // Relations, while nothing has been written yet. A still-waiting change does not ship, and
+  // the changes waiting on this one are READ here: after the rename there is nothing left to
+  // read, and nothing down there may throw.
+  const relations = analyze(sdlcRoot);
+  const self = relations.byId.get(changeId);
+  if (self && self.blockedBy.length) {
+    throw new Error(`"${changeId}" is still waiting on: ${self.blockedBy.join(', ')} — nothing was merged`);
+  }
+  const impact = shipImpact(relations, changeId);
+  // An unreadable neighbour makes the report incomplete, not the merge wrong. Saying so beats
+  // refusing every ship in the project over a folder this change has nothing to do with.
+  for (const msg of relations.readErrors) console.error(`⚠ ${msg}`);
 
   const changeText = fs.readFileSync(path.join(changeDir, 'change.md'), 'utf8');
   const { deltas, errors: parseErrors } = parseDelta(changeText);
@@ -804,6 +850,14 @@ export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
     console.log(`  ⚠ ${driftWarnings.length} scenario warning(s) above — re-read the spec diff before pushing`);
   }
   console.log(`  archived: changes/archive/${date}-${changeId}/`);
+  // Counted before the merge, rendered now. Nothing here may fail the ship: it has happened.
+  try {
+    const lines = renderShipImpact(impact);
+    if (lines.length) console.log(`  ${impact.freed.length} freed · ${impact.waiting.length} still waiting`);
+    for (const line of lines) console.log(`  ${line}`);
+  } catch (err) {
+    console.error(`⚠ shipped, but the waiting changes could not be reported: ${err.message}`);
+  }
   return { archived: `${date}-${changeId}`, specs: merged.map((m) => m.capability), warnings: driftWarnings };
 }
 

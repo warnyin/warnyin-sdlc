@@ -16,6 +16,9 @@ split) → run /sdlc:review first, and its pass returns to that final gate.
    stamps `status: shipped`, moves the folder to `changes/archive/<date>-<id>/`).
    Any `⚠ MODIFIED Requirement …` line means the new body carried away a scenario
    the spec still promised: confirm it was intended and name it in the digest.
+   Any `↳ … is free to resume` / `↳ … waits on` line is the point of the whole
+   relation: relay those names to the human in your own message — a change becomes
+   workable exactly once, and this is the only moment it is announced.
 3. **Learn** — delegate to `sdlc-learner` (cheap) with the archived change.md +
    its journal.ndjson. It proposes ≤3 items: add-rule (with evidence pointer) /
    expire-or-demote (rule or steering that never fired) / harness tweak.
@@ -23,7 +26,8 @@ split) → run /sdlc:review first, and its pass returns to that final gate.
    Additions to always-loaded context are NOT applied — list them in the digest.
 4. **Digest** — write `sdlc/changes/archive/<date>-<id>/digest.md` (≤15 lines):
    what shipped, spec deltas merged, assumptions made, verify rounds, tokens/cost
-   (from journal `session` events), learner proposals awaiting the human.
+   (from journal `session` events), learner proposals awaiting the human, and the
+   changes this ship freed or left waiting, by name.
    When any verify or review note carries `mode=solo`, the digest SHALL say which
    outcomes were self-produced. A reader months from now cannot otherwise tell a
    panel's verdict from the author's own.
