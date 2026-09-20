@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.19.0 (2026-09-20)
 
 - **Feature (parking)**: a change you are not ready to work on can step aside instead of
   competing for attention forever. `node sdlc/.hooks/journal.mjs park <id>` takes the reason on
