@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.18.0 (2026-09-20)
 
 - **Feature (relations)**: a change can now say what it is waiting on. `blocked-by: [id, ...]`
   and `spawned-from: [id, ...]` in a change's frontmatter record the link that used to live only
