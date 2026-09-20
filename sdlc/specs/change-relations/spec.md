@@ -22,15 +22,19 @@ from what the open changes declare, never stored a second time.
 
 ### Requirement: A relation must name a real change
 The system SHALL reject a relation that resolves to no change, names the change declaring it,
-repeats a name already listed, or is not a single safe path segment. A relation SHALL count as
-satisfied only against a change that really shipped — matched on its whole id, and proven by
-the archived change itself rather than by the name of a folder. A refusal SHALL name the
-offending entry, escaped and length-capped, and SHALL name the remedy.
+repeats a name already listed, names a parked change, or is not a single safe path segment. A
+relation SHALL count as satisfied only against a change that really shipped — matched on its
+whole id, and proven by the archived change itself rather than by the name of a folder. A
+refusal SHALL name the offending entry, escaped and length-capped, and SHALL name the remedy.
 
 #### Scenario: an entry that is not a change
 - WHEN a relation names the archive folder, a change that no longer exists, itself, or an entry
   carrying a separator, `..`, a control character or a display-reordering character
 - THEN validation fails naming the entry and how to remove it, and no path is derived from it
+
+#### Scenario: an entry naming a parked change
+- WHEN a relation names a change that is parked
+- THEN validation fails naming that change and its reason, and how to remove the entry
 
 #### Scenario: an archive folder that proves nothing
 - WHEN an archive folder carries a blocker's name but holds no shipped change, or carries a
@@ -60,7 +64,7 @@ whose neighbours cannot be read SHALL still be shippable, with its report report
   validation still reports the unreadable change as an error
 
 ### Requirement: Status says why a change is paused
-The system SHALL show, for each open change, what it is still waiting on, what it was
+The system SHALL show, for each open change it lists, what it is still waiting on, what it was
 discovered from, and — for a change that is ready — how many others it would free, in both the
 human listing and the machine output.
 
@@ -107,3 +111,23 @@ activity is recorded — as it is not, in a fresh checkout.
 #### Scenario: two ready changes, one frees more
 - WHEN two others wait on the first of two ready changes
 - THEN it is offered ahead of the second, with the count that decided it
+
+### Requirement: A parked change is not offered as work
+The system SHALL leave a parked change out of the default listing, the ordering, what is offered
+as next work, and the flag for work freed but never resumed — while counting it, listing it on
+request, naming it as parked wherever it is shown, and refusing to ship it. A change that is
+itself waiting SHALL still be parkable, and a report that stops it waiting SHALL say it is
+parked rather than offer a command that would be refused.
+
+#### Scenario: parked, and every surface that offers work
+- WHEN a parked change would otherwise be listed, ordered, offered as next work, or flagged as
+  freed but not resumed
+- THEN it appears in none of them, is counted, and is shown with its reason on request
+
+#### Scenario: a blocker of a parked change ships
+- WHEN the last change a parked change waited on ships
+- THEN it is reported as no longer waiting but parked, with no command that would be refused
+
+#### Scenario: a parked change is shipped
+- WHEN a parked change is shipped
+- THEN the ship is refused naming the reason, and nothing is merged or moved

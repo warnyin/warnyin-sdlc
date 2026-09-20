@@ -60,12 +60,17 @@ not a single safe path segment.
 
 ### Requirement: Only an open change can be made active
 The system SHALL refuse to make active any change id that is not a single safe path segment
-naming an existing open change, leaving every pointer unchanged when it refuses.
+naming an existing open change, or that names a parked change, leaving every pointer unchanged
+when it refuses.
 
 #### Scenario: an unsafe, missing or archived change id
 - WHEN the active change is set to an id that is unsafe, has no open change folder, or names
   the archive
 - THEN the command fails with a usage error and no pointer is created or changed
+
+#### Scenario: a parked change id
+- WHEN the active change is set to a change that is parked
+- THEN the command fails naming the park reason, and no pointer is created or changed
 
 ### Requirement: Shipping a change releases every pointer to it
 The system SHALL remove, when a change ships, every session and project pointer naming that

@@ -6,7 +6,7 @@ status: new
 # Change: <title>
 <!-- cap:100 · standard tier. Delta sections ARE the spec change — merged mechanically at ship, never re-narrated. -->
 
-<!-- optional frontmatter: blocked-by: [id] (this change waits on it) · spawned-from: [id] -->
+<!-- optional frontmatter: blocked-by: [id] (this change waits on it) · spawned-from: [id] · parked: "reason" (written only by `journal.mjs park`, never by hand) -->
 
 ## Why (≤5 lines)
 <problem + outcome. No solutioning.>

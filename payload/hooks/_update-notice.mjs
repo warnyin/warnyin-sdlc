@@ -4,6 +4,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { isRealPathInside } from './lib/safe-path.mjs';
 import process from 'node:process';
 import { spawn } from 'node:child_process';
 import { parseConfig } from './lib/config.mjs';
@@ -23,7 +24,7 @@ function isRealStateDir(sdlcRoot) {
   try {
     const stateDir = path.join(sdlcRoot, '.state');
     return fs.lstatSync(stateDir).isDirectory()
-      && fs.realpathSync.native(stateDir) === path.join(fs.realpathSync.native(sdlcRoot), '.state');
+      && isRealPathInside(sdlcRoot, stateDir);
   } catch {
     return false;
   }

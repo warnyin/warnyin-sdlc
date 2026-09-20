@@ -35,7 +35,7 @@ jobs:
             const files = JSON.parse(require("fs").readFileSync("pack.json"))[0].files.map(f => f.path);
             const bad = files.filter(f => f.startsWith("tests/") || f.startsWith("sdlc/") || f.startsWith("docs/") || f.startsWith(".claude/"));
             if (bad.length) { console.error("leaked into pack:", bad); process.exit(1); }
-            for (const need of ["bin/cli.mjs", "lib/caps.mjs", "lib/journal.mjs", "lib/active.mjs", "lib/relations.mjs","payload/playbook/README.md", "payload/hooks/guard-writes.mjs", "payload/adapters/claude/commands/sdlc/update.md", "bin/changelog.mjs", "CHANGELOG.md"]) {
+            for (const need of ["bin/cli.mjs", "lib/caps.mjs", "lib/journal.mjs", "lib/active.mjs", "lib/relations.mjs", "lib/park.mjs", "lib/safe-path.mjs","payload/playbook/README.md", "payload/hooks/guard-writes.mjs", "payload/adapters/claude/commands/sdlc/update.md", "bin/changelog.mjs", "CHANGELOG.md"]) {
               if (!files.includes(need)) { console.error("missing from pack:", need); process.exit(1); }
             }
             console.log("pack ok:", files.length, "files");

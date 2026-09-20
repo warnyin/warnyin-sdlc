@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- **Feature (parking)**: a change you are not ready to work on can step aside instead of
+  competing for attention forever. `node sdlc/.hooks/journal.mjs park <id>` takes the reason on
+  stdin as `{"reason": "..."}` — never as an argument, because human prose on a command line is
+  the hazard the framework refuses everywhere else — and `unpark <id>` brings it back. A parked
+  change keeps its stage, drops out of the listing, the ordering, next work and the
+  freed-but-not-resumed flag, is counted in the summary and listed with `status --all`, and
+  refuses to be made active or shipped until it is unparked. Nothing may be stranded behind one:
+  parking a change others wait on is refused, and so is a `blocked-by` that names a parked change.
+- **Writes into your files are checked at the path being written**, immediately before the write
+  and with the kernel refusing to follow a symlink where the platform allows it. The same rule
+  now guards the journal append, which previously checked only `sdlc/.state` and would follow a
+  planted `.state/journal` link out of the project.
+- **A park or unpark that did not happen is never reported as done**: both prove the file changed
+  and re-read it to confirm the state they intended, and a failing write exits non-zero naming
+  the change instead of exiting silently.
+
 ## 0.18.0 (2026-09-20)
 
 - **Feature (relations)**: a change can now say what it is waiting on. `blocked-by: [id, ...]`

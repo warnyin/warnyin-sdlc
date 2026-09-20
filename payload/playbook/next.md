@@ -20,6 +20,10 @@
    `status` prints (`⇢ frees N`) rather than the first line.
    Changes marked `(not this session)` are context only — mention them in at
    most one line, never as this session's next command, never picked up.
+   A parked change is never offered as this session's next command, and is never resolved
+   as this session's change when no pointer names one — mention it only in that one-line
+   context, with its reason. Bring one back with
+   `node sdlc/.hooks/journal.mjs unpark <id>`.
    If the human says this session is on a different change, their answer wins — use it,
    and give them `node sdlc/.hooks/journal.mjs set-active <id>` so the next status agrees. If no
    line carries any marker, list the open changes and ask which one this

@@ -26,5 +26,6 @@ Hard rules (hook-enforced):
 - `journal.ndjson` + `.state/**`: machine-owned, never hand-edit.
 
 Gates: `node sdlc/.hooks/journal.mjs open-ship <id> | open-steer | close |
-set-active <id> (sets this session's pointer + the project fallback) | note <name> [k=v]`.
+set-active <id> (sets this session's pointer + the project fallback) | park <id> / unpark <id>
+(the park reason arrives on stdin as `{"reason": "..."}`, never as an argument) | note <name> [k=v]`.
 Validation: `npx @warnyin/sdlc validate [id] [--strict]` — red = the gate did not pass.

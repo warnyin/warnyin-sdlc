@@ -19,6 +19,8 @@ split) → run /sdlc:review first, and its pass returns to that final gate.
    Any `↳ … is free to resume` / `↳ … waits on` line is the point of the whole
    relation: relay those names to the human in your own message — a change becomes
    workable exactly once, and this is the only moment it is announced.
+   A `↳ … no longer waiting but parked` line is not resumable work: relay it as
+   parked, and never hand the human a resume command — it would be refused.
 3. **Learn** — delegate to `sdlc-learner` (cheap) with the archived change.md +
    its journal.ndjson. It proposes ≤3 items: add-rule (with evidence pointer) /
    expire-or-demote (rule or steering that never fired) / harness tweak.

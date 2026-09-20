@@ -9,6 +9,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { liveJournalPath, globalJournalPath, appendEvent } from './lib/journal.mjs';
 import { resolveActive } from './lib/active.mjs';
+import { pathIsContained } from './lib/safe-path.mjs';
 
 export function resolveRoots(importMetaUrl) {
   const hooksDir = path.dirname(fileURLToPath(importMetaUrl));
@@ -132,7 +133,11 @@ export function activeChange(sdlcRoot, sessionId = null) {
 // still records the event under that id rather than silently reattributing it.
 export function appendJournal(sdlcRoot, change, event) {
   try {
+    // Guarded at the TARGET, not at `.state`: an ancestor check passes while `.state/journal`
+    // is itself a link, and the append then follows it out of the project. An event is not
+    // worth writing outside the project someone handed us; dropping it is.
     const target = (change && liveJournalPath(sdlcRoot, change)) || globalJournalPath(sdlcRoot);
+    if (!target || !pathIsContained(sdlcRoot, target)) return;
     appendEvent(target, { ts: new Date().toISOString(), ...event });
   } catch { /* fail open */ }
 }

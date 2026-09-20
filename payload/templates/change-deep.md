@@ -6,7 +6,7 @@ status: new
 # Change: <title>
 <!-- cap:150 · deep tier: hard-floor surface (security/payments/data-loss/irreversible) or new/multi-capability delta. Human gates apply per Autonomy policy. -->
 
-<!-- optional frontmatter: blocked-by: [id] (this change waits on it) · spawned-from: [id] -->
+<!-- optional frontmatter: blocked-by: [id] (this change waits on it) · spawned-from: [id] · parked: "reason" (written only by `journal.mjs park`, never by hand) -->
 
 ## Why (≤5 lines)
 <problem + outcome. No solutioning.>

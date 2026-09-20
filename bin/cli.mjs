@@ -21,7 +21,7 @@ import {
   isSafeChangeId,
 } from '../lib/journal.mjs';
 import { resolveActive, clearPointersFor } from '../lib/active.mjs';
-import { analyze, shipImpact, renderShipImpact } from '../lib/relations.mjs';
+import { analyze, shipImpact, renderShipImpact, escapeEntry } from '../lib/relations.mjs';
 import { scanInventory, renderInventory } from '../lib/skills.mjs';
 import { detectTools, toolName } from './detect.mjs';
 import { colorEnabled, createStyle, symbolsFor, summarizeInstall, startHints } from './ui.mjs';
@@ -55,7 +55,7 @@ export function sha256(content) {
 }
 
 export function parseArgs(argv) {
-  const args = { _: [], tool: null, toolProvided: false, strict: false, force: false, json: false, help: false, version: false, since: null };
+  const args = { _: [], tool: null, toolProvided: false, strict: false, force: false, json: false, help: false, version: false, since: null, all: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--tool' || a === '--tools') {
@@ -66,6 +66,7 @@ export function parseArgs(argv) {
     else if (a === '--strict') args.strict = true;
     else if (a === '--force') args.force = true;
     else if (a === '--json') args.json = true;
+    else if (a === '--all') args.all = true;
     else if (a === '--help' || a === '-h') args.help = true;
     else if (a === '--version' || a === '-v') args.version = true;
     else if (a.startsWith('--')) console.warn(`unknown flag ${a} (ignored)`);
@@ -621,7 +622,7 @@ export function readChanges(sdlcRoot) {
   });
 }
 
-export function cmdStatus(projectRoot, { json = false } = {}) {
+export function cmdStatus(projectRoot, { json = false, all = false } = {}) {
   const sdlcRoot = path.join(projectRoot, 'sdlc');
   requireSdlc(sdlcRoot);
   const archiveDir = path.join(sdlcRoot, 'changes', 'archive');
@@ -638,6 +639,7 @@ export function cmdStatus(projectRoot, { json = false } = {}) {
       ...c,
       blockedBy: node?.blockedBy ?? [],
       spawnedFrom: node?.spawnedFrom ?? [],
+      parked: node?.parked ?? null,
       waitedOnBy: node?.waitedOnBy ?? [],
     };
   });
@@ -648,6 +650,7 @@ export function cmdStatus(projectRoot, { json = false } = {}) {
     ? { id: resolved.change, source: resolved.source }
     : null;
 
+  const parkedCount = changes.filter((c) => c.parked).length;
   const order = relations.order;
   const next = nextWork(changes, current, order);
 
@@ -657,11 +660,13 @@ export function cmdStatus(projectRoot, { json = false } = {}) {
 
   // JSON is a machine contract: `current` names the id, so the list keeps its order.
   if (json) {
-    console.log(JSON.stringify({ changes, archived, current, order, next }, null, 2));
+    console.log(JSON.stringify({ changes, archived, current, parked: parkedCount, order, next }, null, 2));
   } else if (!changes.length) {
     console.log(`No active changes (${archived} archived). Start one with /sdlc:new or /sdlc:auto.`);
   } else {
-    for (const c of orderedChanges) {
+    // Parked is out of the way by default and reachable with --all: stepping aside is the
+    // whole point, and a listing that still shows it has not let the change step aside.
+    for (const c of orderedChanges.filter((c) => all || !c.parked)) {
       let marker = '';
       if (current && c.id === current.id) {
         marker = current.source === 'session' ? '  ← this session' : '  ← last set for project';
@@ -674,11 +679,14 @@ export function cmdStatus(projectRoot, { json = false } = {}) {
       // doctrine a model reads off `status`, and a count nobody sees decides nothing.
       const waiting = c.blockedBy.length ? `  ⇠ waiting on ${c.blockedBy.join(', ')}` : '';
       const frees = !c.blockedBy.length && c.waitedOnBy.length ? `  ⇢ frees ${c.waitedOnBy.length}` : '';
-      console.log(`${c.id}  [${c.tier}/${c.status}]  ${c.title}${waiting}${frees}${marker}`);
+      // The reason is prose out of a user-writable file: escaped and capped like any other
+      // untrusted value, so a listing cannot be repainted or reordered by what someone typed.
+      const parked = c.parked ? `  ⏸ parked: ${escapeEntry(c.parked, 60)}` : '';
+      console.log(`${c.id}  [${c.tier}/${c.status}]  ${c.title}${waiting}${frees}${parked}${marker}`);
     }
-    console.log(`${changes.length} active · ${archived} archived`);
+    console.log(`${changes.length} active · ${archived} archived${parkedCount ? ` · ${parkedCount} parked` : ''}`);
   }
-  return { changes, archived, current, order, next };
+  return { changes, archived, current, parked: parkedCount, order, next };
 }
 
 // What to actually work on. A change that is waiting hands the answer to what it waits on;
@@ -690,7 +698,7 @@ function nextWork(changes, current, order) {
     const open = node.blockedBy.find((b) => changes.some((c) => c.id === b));
     return pick(open ?? node.blockedBy[0]);
   }
-  if (node) return pick(node.id);
+  if (node && !node.parked) return pick(node.id);
   return pick(order[0]);
 }
 
@@ -765,6 +773,9 @@ export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
   // read, and nothing down there may throw.
   const relations = analyze(sdlcRoot);
   const self = relations.byId.get(changeId);
+  if (self?.parked) {
+    throw new Error(`"${changeId}" is parked (${escapeEntry(self.parked, 60)}) — unpark it before shipping; nothing was merged`);
+  }
   if (self && self.blockedBy.length) {
     throw new Error(`"${changeId}" is still waiting on: ${self.blockedBy.join(', ')} — nothing was merged`);
   }
@@ -853,7 +864,10 @@ export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
   // Counted before the merge, rendered now. Nothing here may fail the ship: it has happened.
   try {
     const lines = renderShipImpact(impact);
-    if (lines.length) console.log(`  ${impact.freed.length} freed · ${impact.waiting.length} still waiting`);
+    if (lines.length) {
+      const parked = impact.stillParked.length ? ` · ${impact.stillParked.length} parked` : '';
+      console.log(`  ${impact.freed.length} freed · ${impact.waiting.length} still waiting${parked}`);
+    }
     for (const line of lines) console.log(`  ${line}`);
   } catch (err) {
     console.error(`⚠ shipped, but the waiting changes could not be reported: ${err.message}`);
@@ -891,7 +905,7 @@ usage: warnyin-sdlc <command> [options]
                                     --force needs a terminal, or WARNYIN_SDLC_FORCE=1
   changelog [--since X.Y.Z]         what this package changes above a version (writes nothing)
   validate [id] [--strict]          structural validation (caps, delta grammar, gates)
-  status [--json]                   list active changes and their stage
+  status [--json] [--all]           list active changes and their stage (--all includes parked)
   observe [--json]                  tokens/cost per change, residency, steering hits, drift flags
   archive <id>                      merge delta specs into living specs and archive the change
   skills [--json]                   list installed Claude skills/agents (project + user) for lens resolution
@@ -911,7 +925,7 @@ export async function main(argv = process.argv.slice(2), projectRoot = process.c
     else if (cmd === 'update') cmdUpdate(projectRoot, args);
     else if (cmd === 'changelog') cmdChangelog(projectRoot, args);
     else if (cmd === 'validate') runValidate(projectRoot, args);
-    else if (cmd === 'status') cmdStatus(projectRoot, { json: args.json });
+    else if (cmd === 'status') cmdStatus(projectRoot, { json: args.json, all: args.all });
     else if (cmd === 'observe') cmdObserve(projectRoot, { json: args.json });
     else if (cmd === 'archive') cmdArchive(projectRoot, args._[1]);
     else if (cmd === 'skills') cmdSkills(projectRoot, { json: args.json });
