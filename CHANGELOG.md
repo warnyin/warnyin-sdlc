@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.21.1 (2026-09-24)
 
 - **Docs (model routing)**: the README explains how to retune routing. A project installed
   before 0.21.0 has no `## Stage routing` table and uses the defaults. To change them, copy the
