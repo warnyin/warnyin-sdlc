@@ -70,6 +70,19 @@ sdlc/
   the always-loaded budget is fixed, so learning must distill, not accumulate.
 - **Measured**: `npx @warnyin/sdlc observe` — tokens/cost per change, first-pass rate,
   lead time, dead steering, context-overflow flags.
+- **Routed by cost** (Claude Code): mechanical stages run on cheaper models (verify on haiku,
+  build on sonnet), and judgment stages keep your session's model. Unattended runs hand build
+  tasks and test runs to subagents at their tier.
+
+### Retuning model routing
+
+`sdlc/harness.md § Stage routing` sets the tier for unattended delegation: the `build` row is
+the default task tier and the `verify` row is the test runner's model. Tiers are cheap, balanced,
+deepest and session. A project installed before 0.21.0 has no such table, and it uses the
+defaults. To retune, copy the `## Stage routing` table from `sdlc/.playbook/routing.md` into
+your `harness.md` and edit the rows. `update` never touches `harness.md`. To change the model of
+a command you type directly, edit `model:` in `.claude/commands/sdlc/<stage>.md`; `update` keeps
+your edit.
 
 ## CLI
 

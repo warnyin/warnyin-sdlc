@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- **Docs (model routing)**: the README explains how to retune routing. A project installed
+  before 0.21.0 has no `## Stage routing` table and uses the defaults. To change them, copy the
+  table from `sdlc/.playbook/routing.md` into `sdlc/harness.md`; `update` never touches that
+  file. To change the model of a command you type directly, edit `model:` in its stub under
+  `.claude/commands/sdlc/`; `update` keeps your edit.
+- **Tests (Windows)**: `npm test` is now green on a Windows checkout. The kimi rules-card test
+  compares text after EOL normalization, like the installer does. Temp-dir cleanup retries
+  EPERM/EBUSY for up to about 5 s, because a detached update-check child can still hold the
+  directory and Node 24's native `rmSync` does not retry that. No runtime behavior changed.
+
 ## 0.21.0 (2026-09-24)
 
 - **Feature (model routing per stage)**: stage commands now pick a model for their stage.
