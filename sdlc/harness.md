@@ -10,6 +10,8 @@
 ## Sandbox & execution
 - test command: `npm test`
 - sandbox notes: black-box tests spawn the real CLI into `mkdtemp` dirs; never write outside them.
+- contract rows: every row of `contract/tests.md` runs before a fast gate opens; a row added
+  later (e.g. from review) is written red first, then built.
 
 ## Guardrails (mirror of installed hooks — deterministic, the agent cannot skip them)
 - `sdlc/specs/**` and archive are write-locked outside ship.
