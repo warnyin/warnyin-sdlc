@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.21.0 (2026-09-24)
 
 - **Feature (model routing per stage)**: stage commands now pick a model for their stage.
   `verify`, `next`, `observe` and `update` run on `haiku`, and `contract`, `build` and `review`
