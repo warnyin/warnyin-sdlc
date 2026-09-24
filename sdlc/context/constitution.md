@@ -13,6 +13,8 @@
 - The agent SHALL NOT report a defect class fixed, or a pattern unified, on the instances a
   report named — the class SHALL first be enumerated by a command over the whole tree, and that
   command and what it returned SHALL appear in what the human reads.
+- A free-text value that decides whether an escalation or a human's refusal applies SHALL be read
+  in canonical form (trimmed, case-folded) against a closed set; anything outside it SHALL fail closed.
 - Every behavior change SHALL update BOTH the payload source and its tests in the same change.
 - Caps SHALL change only in `lib/caps.mjs` + template comments together (caps-sync test).
 - The agent SHALL NOT add npm dependencies.
