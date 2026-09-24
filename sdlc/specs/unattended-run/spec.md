@@ -40,8 +40,12 @@ for, and SHALL record in the journal each escalation it passed under that author
 - THEN it proceeds and the outcome records that it ran under pre-authorization
 
 #### Scenario: an escalation nobody pre-approved
-- WHEN the run hits a condition outside what was confirmed
+- WHEN a `/sdlc:auto` or `--auto` run hits a condition outside what was confirmed
 - THEN it stops there and asks, exactly as an unattended flag had never been passed
+
+#### Scenario: the same condition under autopilot
+- WHEN an `/sdlc:autopilot` run hits a condition outside what was confirmed
+- THEN the `autopilot` capability decides it instead
 
 ### Requirement: The digest shows where a human would have stood
 The system SHALL name, in the digest of a change shipped unattended, the escalations

@@ -39,6 +39,11 @@ split) → run /sdlc:review first, and its pass returns to that final gate.
    When any `escalation` event carries `preauth=yes`, the digest SHALL list those
    pre-authorized escalations by condition — the points where a human would normally
    have stood and, this run, did not.
+   When any `escalation` event carries `preauth=pilot` (a decision the agent took alone
+   under `/sdlc:autopilot`), the digest SHALL list those apart from the `preauth=yes` ones,
+   hard-floor ones first (any `hardfloor` other than `no`), each with its choice, whether it is reversible,
+   and its recovery line from `grill.md § Decisions` — the delegator reads this to own what
+   was decided in their name.
 5. Close the gate: `node sdlc/.hooks/journal.mjs close`. Tell the user in one
    line: shipped + where the digest is.
 

@@ -89,9 +89,16 @@ async function main() {
     const extra = {};
     for (const kv of rest.slice(1)) {
       const [k, ...v] = kv.split('=');
-      if (k && v.length) extra[k] = v.join('=');
+      // `event`, `ts` and `session` are the harness-trusted envelope, not shell arguments:
+      // a forged `k=v` must never overwrite what happened, when, or who ran it (G2).
+      if (k && v.length && k !== 'event' && k !== 'ts' && k !== 'session') extra[k] = v.join('=');
     }
-    appendJournal(sdlcRoot, activeChange(sdlcRoot, sessionId), { event: name, ...extra });
+    // "one run only" (F3) is enforced by the validator matching a pilot decision's session
+    // against an earlier `delegation` event of the same session — so the session must be
+    // on the event when one is known, and absent (not blank) when it is not. It comes only
+    // from the harness (`pickSessionId`), never from an argument.
+    appendJournal(sdlcRoot, activeChange(sdlcRoot, sessionId),
+      { event: name, ...extra, ...(sessionId ? { session: sessionId } : {}) });
   } else {
     console.error('usage: journal.mjs open-ship|open-steer|close|set-active|park|unpark|note ...');
     process.exit(2);

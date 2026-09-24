@@ -1,5 +1,36 @@
 # Changelog
 
+## Unreleased
+
+- **Feature (autopilot)**: `/sdlc:autopilot <idea|change-id>` is a delegate above `/sdlc:auto`.
+  It grills you once, up front, in rounds: the requirement, your priority order among
+  requirement, quality, time and cost, a choice for every escalation, each hard-floor item, and
+  whether a hard-floor found mid-run may be decided without you. Nothing is written until you
+  confirm. Then it runs to ship without asking again — even past conditions `auto` cannot
+  pre-approve, such as `cap-pin-exceeded` — deciding each by your priorities, preferring the
+  reversible option. It resumes a change you already opened and grills only what is unsettled.
+  `/sdlc:auto` and `--auto` are unchanged.
+- **Every decision it takes alone is on the record, and checked**: the mandate lives in
+  `sdlc/changes/<id>/grill.md` (who delegated, priorities, what may and may not be decided), and
+  each decision adds one `§ Decisions` bullet with how to recover from it — written before an
+  irreversible act — plus a `preauth=pilot` journal event carrying a kebab token, never prose.
+  `archive` (strict validate) refuses a pilot decision with no bullet, one on a condition you
+  refused, or one made in a session where you did not confirm the delegation. The grill template
+  fixes one token per escalation, plus `cap-pin-exceeded`, `final-gate-env-failures` and
+  `hardfloor-midrun`, so a refusal binds the decision it names; refusals match case-folded, a
+  malformed refusal fails strict validation, and refusing `hardfloor-midrun` refuses every
+  hard-floor decision whatever it was called. Journal fields are read fail-closed: casing never
+  changes what an event is, and a `hardfloor` other than `no` or `approved` counts as `yes`. A
+  hard-floor surface is approved (`- payments: approved`; a decision on it names
+  `surface=payments`) or refused as a token — anything else under `### Hard floors` fails, and an
+  `approved` flag without a matching surface counts as `yes`. The hard-floor flag, like the
+  delegation event, is recorded by the agent: validate holds it to what it recorded, and a decision
+  it never flagged is outside what any check can see. `journal.mjs note` now records the session when the harness provides one, and ignores
+  `event=`, `ts=` and `session=` passed as arguments. A delegation event is written by the agent:
+  it proves a confirmation was recorded for the run, not that a human spoke — the grill is that.
+- **You take ownership back at ship**: the digest lists pilot decisions apart from pre-approved
+  ones, hard-floor first, and `observe` counts them as `pilot×N`.
+
 ## 0.19.0 (2026-09-20)
 
 - **Feature (parking)**: a change you are not ready to work on can step aside instead of

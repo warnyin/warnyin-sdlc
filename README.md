@@ -32,12 +32,21 @@ Then in your coding agent:
 /sdlc:auto Add rate limiting    # AI runs new → contract → build → verify → ship
 /sdlc:auto add-rate-limiting    # already opened it with /sdlc:new? auto resumes from there
 /sdlc:new Add rate limiting --auto   # any stage takes --auto: confirm once, then run to ship
+/sdlc:autopilot Add rate limiting    # a delegate: one grill up front, then it decides and ships
 ```
 
 `--auto` asks everything up front — scope, tier, each ambiguity, and every escalation
 it wants pre-approved as its own line you can refuse — then runs unattended. Nothing
 is written until you confirm, the approval covers that run only, and anything you did
 not pre-approve still stops and asks.
+
+`/sdlc:autopilot` goes one step further: it grills you once — the requirement, your priority
+order among requirement, quality, time and cost, every escalation, each hard-floor item — writes
+that mandate to `grill.md`, then runs to ship without asking again. Whatever it meets that you
+did not settle, it decides by your priorities, preferring the reversible option, and records
+before acting — one line in `grill.md` with how to undo it, one `preauth=pilot` journal event.
+The digest hands every such decision back to you, hard-floor first. Refuse the "hard-floor found
+mid-run" item and that condition still stops. It resumes a change you already opened.
 
 ## How it works
 
@@ -78,7 +87,7 @@ warnyin-sdlc version | --version    print the installed framework version
 
 ## Commands (in your agent)
 
-`/sdlc:init` · `/sdlc:auto` · `/sdlc:new` · `/sdlc:design` · `/sdlc:contract` · `/sdlc:build`
+`/sdlc:init` · `/sdlc:auto` · `/sdlc:autopilot` · `/sdlc:new` · `/sdlc:design` · `/sdlc:contract` · `/sdlc:build`
 · `/sdlc:verify` · `/sdlc:review` · `/sdlc:ship` · `/sdlc:observe` · `/sdlc:converge`
 · `/sdlc:steer` · `/sdlc:next` · `/sdlc:feedback`
 

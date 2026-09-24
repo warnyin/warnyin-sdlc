@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { makeTempProject, runCli, PKG_ROOT } from './helpers.mjs';
 
-const COMMANDS = ['init', 'auto', 'new', 'design', 'contract', 'build', 'verify',
+const COMMANDS = ['init', 'auto', 'autopilot', 'new', 'design', 'contract', 'build', 'verify',
   'review', 'ship', 'observe', 'converge', 'steer', 'next', 'feedback'];
 const SKILLS = ['delta-spec-format', 'contract-writing', 'sdlc-conventions'];
 const AGENTS = ['sdlc-architect', 'sdlc-security', 'sdlc-quality', 'sdlc-ops',

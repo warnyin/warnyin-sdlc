@@ -11,6 +11,7 @@ One change = one folder in `sdlc/changes/<id>/` moving through:
 | /sdlc:init | Configure harness | interview | constitution, harness.md | human approves (once) |
 | /sdlc:groom | before Requirements | the code, the human | nothing — hands its findings to new | optional; may end in "not worth building" |
 | /sdlc:auto | whole loop | status (resumes an open change) | everything below | escalation only |
+| /sdlc:autopilot | whole loop, delegated | status + one grill (resumes an open change) | grill.md, then everything below | one grill up front; decides the rest, recorded |
 | any stage `--auto` | that stage → ship | status + your answers | everything from there | one confirmation up front |
 | /sdlc:new | Requirements | specs Purpose headers | change.md | validator: delta + assumptions |
 | /sdlc:design | Architecture | change + touched specs | change.md § Design | escalate irreversible only |

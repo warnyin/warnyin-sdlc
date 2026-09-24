@@ -30,6 +30,7 @@ function validateSdlcWrite(rel) {
   if (changeMatch && changeMatch[1] !== 'archive') {
     issues = validateChange(path.join(sdlcRoot, 'changes', changeMatch[1]), {
       specsDir: path.join(sdlcRoot, 'specs'),
+      sdlcRoot,
     });
   } else if (rel.startsWith('sdlc/context/') || rel === 'sdlc/harness.md') {
     issues = validateContext(sdlcRoot);
