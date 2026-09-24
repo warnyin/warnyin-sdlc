@@ -27,5 +27,7 @@ Escalate only if the delta itself turns out ambiguous (back to /sdlc:new step 5)
 
 Next: /sdlc:build.
 
-`--auto`: do this stage, then continue to ship under `auto.md`'s unattended
-mode — gather, confirm once, run. The stage still does its own work first.
+`--auto`: do this stage, then stop and tell the human to continue with `/sdlc:auto <id>`.
+This command runs on a cheaper model than the session, and `auto.md`'s unattended mode —
+gather, confirm once, decide escalations — belongs on the session's model; it resumes from the next stage.
+When `/sdlc:auto` or autopilot runs this stage, this paragraph does not apply.

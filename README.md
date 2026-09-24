@@ -54,7 +54,7 @@ mid-run" item and that condition still stops. It resumes a change you already op
 sdlc/
 ├── context/constitution.md   ≤30 lines — the ONLY always-loaded prose (hook-injected)
 ├── context/steering/*.md     scoped knowledge · inclusion: always|paths|manual|agent
-├── harness.md                tools, model routing, tier triage, autonomy policy
+├── harness.md                tools, model + stage routing, tier triage, autonomy policy
 ├── specs/<capability>/       living specs — WHEN/THEN SHALL, merged mechanically at ship
 ├── changes/<id>/             one change: change.md (Why+Delta+Tasks) + contract/
 └── changes/archive/          shipped changes + digests (the async human touchpoint)

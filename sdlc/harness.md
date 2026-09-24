@@ -23,6 +23,28 @@
 | standard implementation | balanced |
 | test generation, review passes, mechanical/scaffold, eval judging, learning | cheap |
 
+## Stage routing (cheap | balanced | deepest | session)
+<!-- unattended delegation reads the build + verify rows; the others record each command's `model:` -->
+| Stage | Tier |
+|---|---|
+| groom | session |
+| new | session |
+| design | session |
+| init | session |
+| steer | session |
+| converge | session |
+| feedback | session |
+| auto | session |
+| autopilot | session |
+| ship | session |
+| contract | balanced |
+| build | balanced |
+| review | balanced |
+| verify | cheap |
+| next | cheap |
+| observe | cheap |
+| update | cheap |
+
 ## Tier triage (stakes → tier)
 - vibe: reversible, no behavior-contract change, ≤2 files (docs typo, test tweak).
 - deep: installer ownership/prune logic, hook guard behavior, delta-merge semantics,

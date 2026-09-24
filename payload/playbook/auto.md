@@ -61,7 +61,8 @@ Entry stage — resolve this first, never assume `new`:
   or the validator rejects it.
 - Start at `new` only when the argument matches no active change.
 - With `--auto` on a stage command: the stage still does its own work first, then
-  the pipeline continues from there. A stage typed earlier than what the change's
+  the pipeline continues from there — unless that command carries a `model:`: it stops
+  and hands off to `/sdlc:auto <id>`, as its own playbook says. A stage typed earlier than what the change's
   status maps to is skipped with a one-line announcement, never re-run — the
   pipeline is a ratchet.
 
@@ -75,5 +76,8 @@ Rules:
   never restart the pipeline. One that IS pre-approved: take the approved choice,
   journal it, and keep going without asking.
 - On completion report one line: shipped + digest path + total cost if known.
+
+Work units (build tasks, the verify test run) go to subagents at their tier — `routing.md`
+§ Unattended delegation; decisions stay in this session.
 
 This is orchestrator mode: the human describes the outcome and walks away.

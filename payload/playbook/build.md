@@ -4,7 +4,9 @@ Precondition: status ≥ contracted (vibe tier is exempt from contracts).
 Set `status: building`.
 
 Mode by size:
-- **Conductor** (≤2 tasks): implement in this session, task by task.
+- **Conductor** (≤2 tasks, attended runs only): implement in this session, task by task.
+- **Unattended** (`--auto`, auto, autopilot): every task goes to its own `sdlc-builder` at its
+  tier, whatever the count — `routing.md` § Unattended delegation, which `auto.md` defers to.
 - **Orchestrator** (>2 tasks): fan out one `sdlc-builder` subagent per task in a
   `[P]` wave; serialize between dependent waves. Each builder receives ONLY:
   its task line, `contract/tests.md`, the touched capability's spec, and steering
@@ -22,5 +24,7 @@ Rules for whoever implements:
 Done when all tasks are ticked and the code compiles/lints.
 `node sdlc/.hooks/journal.mjs note build tasks=<n>` then → /sdlc:verify.
 
-`--auto`: do this stage, then continue to ship under `auto.md`'s unattended
-mode — gather, confirm once, run. The stage still does its own work first.
+`--auto`: do this stage, then stop and tell the human to continue with `/sdlc:auto <id>`.
+This command runs on a cheaper model than the session, and `auto.md`'s unattended mode —
+gather, confirm once, decide escalations — belongs on the session's model; it resumes from the next stage.
+When `/sdlc:auto` or autopilot runs this stage, this paragraph does not apply.

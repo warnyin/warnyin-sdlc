@@ -12,7 +12,7 @@ ceremonial review is garbage — and record it:
 verify re-checks the signals itself and never counts it as a review.
 
 1. Fan out in parallel, all read-only, each with the diff + change.md only:
-   - `sdlc-architect` (deepest): design integrity, coupling, contract drift.
+   - `sdlc-architect` (balanced): design integrity, coupling, contract drift.
    - `sdlc-security` (balanced): injection, authz, secrets, unsafe deps.
    - `sdlc-quality` (cheap): contract coverage gaps, edge cases, dead code.
    - `sdlc-ops` (cheap): config, migrations, rollback, observability impact.
@@ -40,5 +40,7 @@ verify re-checks the signals itself and never counts it as a review.
 Pass condition: zero open blockers. Next: /sdlc:verify, which runs its final gate — the full
 test command, once.
 
-`--auto`: do this stage, then continue to ship under `auto.md`'s unattended
-mode — gather, confirm once, run. The stage still does its own work first.
+`--auto`: do this stage, then stop and tell the human to continue with `/sdlc:auto <id>`.
+This command runs on a cheaper model than the session, and `auto.md`'s unattended mode —
+gather, confirm once, decide escalations — belongs on the session's model; it resumes from the next stage.
+When `/sdlc:auto` or autopilot runs this stage, this paragraph does not apply.

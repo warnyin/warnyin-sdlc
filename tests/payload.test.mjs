@@ -8,7 +8,7 @@ const COMMANDS = ['init', 'auto', 'autopilot', 'new', 'design', 'contract', 'bui
   'review', 'ship', 'observe', 'converge', 'steer', 'next', 'feedback'];
 const SKILLS = ['delta-spec-format', 'contract-writing', 'sdlc-conventions'];
 const AGENTS = ['sdlc-architect', 'sdlc-security', 'sdlc-quality', 'sdlc-ops',
-  'sdlc-contractor', 'sdlc-evaluator', 'sdlc-builder', 'sdlc-learner'];
+  'sdlc-contractor', 'sdlc-evaluator', 'sdlc-builder', 'sdlc-learner', 'sdlc-runner'];
 const HOOKS = ['_shared.mjs', 'journal.mjs', 'inject-context.mjs', 'guard-writes.mjs',
   'validate-artifact.mjs', 'session-summary.mjs', '_update-notice.mjs', 'check-update.mjs'];
 
@@ -63,7 +63,7 @@ test('agents declare model + tools frontmatter; reviewers are read-only', () => 
     'sdlc-evaluator', 'sdlc-learner'];
   for (const f of fs.readdirSync(agentsDir)) {
     const text = fs.readFileSync(path.join(agentsDir, f), 'utf8');
-    assert.match(text, /^model: (haiku|sonnet|opus)$/m, `${f}: model`);
+    assert.match(text, /^model: (haiku|sonnet)$/m, `${f}: model`);
     assert.match(text, /^tools: /m, `${f}: tools`);
     const name = f.replace('.md', '');
     if (readOnly.includes(name)) {

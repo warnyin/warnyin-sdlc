@@ -1,5 +1,35 @@
 # Changelog
 
+## Unreleased
+
+- **Feature (model routing per stage)**: stage commands now pick a model for their stage.
+  `verify`, `next`, `observe` and `update` run on `haiku`, and `contract`, `build` and `review`
+  run on `sonnet`. Judgment stages (groom, new, design, init, steer, converge, feedback, auto,
+  autopilot, ship) carry no override and run on your session's model. No stage costs more than
+  before. To change a direct command's model, edit its stub: `update` keeps your edit.
+- **Unattended runs delegate work units at their tier**: in `/sdlc:auto`, `/sdlc:autopilot` and
+  `--auto`, every build task goes to its own `sdlc-builder` at its `[tier:x]`, whatever the
+  count. A task on a hard-floor surface is never below balanced. The verify test run goes to the
+  new `sdlc-runner` (haiku), which returns pass/fail per contract row with short failure
+  excerpts; verify reads that report as data. Grill, confirmation and escalation decisions stay
+  in the main session. The rule lives in `routing.md` § Unattended delegation.
+- **`--auto` on a tiered command hands off**: a model override lasts the rest of the turn. So
+  `/sdlc:contract|build|verify|review <id> --auto` finish their own stage, then tell you to
+  continue with `/sdlc:auto <id>`. Gathering, confirming and deciding never run on the cheaper
+  model. `new`, `design` and `ship` given `--auto` still carry on to ship.
+- **`## Stage routing` in `harness.md`**: new projects get a table from each stage to a tier
+  (cheap, balanced, deepest or session). Its `build` and `verify` rows set the builder default
+  and the runner's model for delegation. The other rows record each command's `model:`. Existing
+  projects keep their harness, and delegation falls back to `routing.md`'s defaults.
+- **Review panel**: `sdlc-architect` moves from opus to sonnet, so no agent defaults to opus.
+- **Fix (cost)**: `/sdlc:observe` overcounted every change. The Stop hook records a session's
+  running total at every turn, and observe summed all those records: about 5× on a long
+  session. Each session now counts once, at its latest record, so reported costs for existing
+  changes drop to their real figure. Session cost now also includes the subagents it spawned
+  (`<session>/subagents/agent-*.jsonl`), which were never counted before.
+- **Known gap, recorded**: `sdlc-runner` has Bash, and hooks match Edit/Write only, the same
+  accepted gap as `sdlc-contractor`. See `docs/design.md`.
+
 ## 0.20.0 (2026-09-24)
 
 - **Feature (autopilot)**: `/sdlc:autopilot <idea|change-id>` is a delegate above `/sdlc:auto`.

@@ -57,6 +57,11 @@ contract; if an artifact loses its reason, delete it.
   prose, `validate --strict` gates ship regardless of how files were written, journals
   make it auditable, and symlink tricks under sdlc/ are denied by the guards. A Bash
   command-string heuristic was rejected as high-false-negative theater.
+  The same gap covers `sdlc-runner` (haiku, Bash, reads untrusted test output): its
+  "never edit" is prompt-only, as it already was for `sdlc-contractor`. Mitigations: the
+  runner runs only the command it is given, verify reads its report as data, and a
+  write it made still has to pass the next verify and `validate --strict`. Dropping Bash
+  would move the full test log into the main session, which is the cost it exists to save.
 - **The `--force` gate reads a terminal, not a person** — `update --force` refuses unless stdin
   and stdout are both terminals or `WARNYIN_SDLC_FORCE=1` is set. That reliably stops an agent
   emitting a bare `--force` by mistake. It does not stop one that sets the override, and a

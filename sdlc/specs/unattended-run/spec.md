@@ -8,7 +8,9 @@ in, and what has to be asked, bounded and recorded before that is allowed.
 
 ### Requirement: Every stage command accepts `--auto`
 The system SHALL accept `--auto` on each stage command, and SHALL then carry the
-change from that stage through to ship without asking again.
+change from that stage through to ship without asking again — except that a stage command
+carrying a model override SHALL finish its own stage and then hand the rest to `/sdlc:auto <id>`,
+so gathering, confirming and deciding escalations never run on the cheaper model.
 
 #### Scenario: from the first stage
 - WHEN the human opens a change with `--auto`
@@ -17,6 +19,10 @@ change from that stage through to ship without asking again.
 #### Scenario: from a later stage
 - WHEN the human passes `--auto` to a stage after the change already exists
 - THEN the run continues from that stage onward and never re-runs an earlier one
+
+#### Scenario: from a tiered stage
+- WHEN the human runs `/sdlc:verify <id> --auto`
+- THEN verify runs, and the human is told to continue with `/sdlc:auto <id>`, not left on haiku
 
 ### Requirement: Everything decidable is asked before any work starts
 The system SHALL gather, in one confirmation, what it needs to run unattended: the
