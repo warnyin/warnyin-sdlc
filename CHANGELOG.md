@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.22.0 (2026-09-24)
 
 - **Review blockers name their defect class**: every review blocker now carries
   `class:`, `sweep:` (the search run across the whole tree, which must match the reported
