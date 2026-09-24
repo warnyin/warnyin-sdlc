@@ -6,7 +6,7 @@ import os from 'node:os';
 import { makeTempProject, runCli, PKG_ROOT } from './helpers.mjs';
 import { detectTools, toolName } from '../bin/detect.mjs';
 import { parseManifest } from '../lib/manifest.mjs';
-import { TOOLS } from '../bin/cli.mjs';
+import { TOOLS, normalizeEol } from '../bin/cli.mjs';
 
 // ========== Contract Row 1 ==========
 // Integration: fresh project · init --tool kimi → .kimi-code/AGENTS.md exists, no placeholder, manifest records it
@@ -32,8 +32,8 @@ test('kimi adapter: installed AGENTS.md contains rules-card matching the payload
   const dir = makeTempProject(t);
   runCli(dir, ['init', '--tool', 'kimi']);
 
-  const agentsContent = fs.readFileSync(path.join(dir, '.kimi-code', 'AGENTS.md'), 'utf8');
-  const card = fs.readFileSync(path.join(PKG_ROOT, 'payload', 'playbook', 'rules-card.md'), 'utf8').trim();
+  const agentsContent = normalizeEol(fs.readFileSync(path.join(dir, '.kimi-code', 'AGENTS.md'), 'utf8'));
+  const card = normalizeEol(fs.readFileSync(path.join(PKG_ROOT, 'payload', 'playbook', 'rules-card.md'), 'utf8').trim());
 
   assert.ok(agentsContent.includes(card), 'rules-card body must match payload/playbook/rules-card.md byte for byte');
 });

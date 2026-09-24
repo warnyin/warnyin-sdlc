@@ -7,9 +7,23 @@ import { fileURLToPath } from 'node:url';
 export const PKG_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const CLI = path.join(PKG_ROOT, 'bin', 'cli.mjs');
 
+// Windows: a detached hook child (update check) may still hold the dir for a moment, and
+// Node 24's native rmSync does not retry EPERM — so retry here, for up to ~5 s.
+async function removeTempDir(dir) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+      return;
+    } catch (err) {
+      if (attempt >= 50 || !['EPERM', 'EBUSY', 'ENOTEMPTY'].includes(err.code)) throw err;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  }
+}
+
 export function makeTempProject(t) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wsdlc-'));
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  t.after(() => removeTempDir(dir));
   return dir;
 }
 
