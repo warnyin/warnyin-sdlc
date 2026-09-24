@@ -19,6 +19,9 @@ Rules for whoever implements:
 - Per-task self-check = that task's tests + lint only; the full test run belongs
   to /sdlc:verify (moved, not removed).
 - Tick `- [x]` in `## Tasks` as each task lands; note surprises in one line max.
+- A fix task carrying a sweep (from /sdlc:review) is not ticked until that sweep is re-run over
+  the whole tree and finds no instance left; the sweep's command and its result go on the task's
+  line.
 - Honor `[tier:x]` markers when delegating (see routing.md).
 
 Done when all tasks are ticked and the code compiles/lints.

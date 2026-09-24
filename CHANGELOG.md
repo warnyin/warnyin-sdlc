@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **Review blockers name their defect class**: every review blocker now carries
+  `class:`, `sweep:` (the search run across the whole tree, which must match the reported
+  instance) and `hits:` (every instance found), not only the one a reviewer tripped on. The main
+  loop sweeps a blocker that arrives without one. Blockers become one fix task per class, and
+  `build` does not tick it until the sweep, re-run, finds nothing left. Before this, a panel
+  could find the same bug class one instance per round (one change went 4→3→1→1→1→0).
+  Stated in `review.md`, `build.md` and the four reviewer agents; tools without subagents get it
+  through `review.md`.
+
 ## 0.21.1 (2026-09-24)
 
 - **Docs (model routing)**: the README explains how to retune routing. A project installed

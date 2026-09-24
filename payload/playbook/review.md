@@ -22,9 +22,15 @@ verify re-checks the signals itself and never counts it as a review.
 1c. Hand every reviewer the change's `[UNVERIFIED]` assumptions and out-of-scope claims
    and have them attack those first: a claim nobody ran is where the bug hides, and the
    panel is the first stage that reads the code rather than the Delta.
-2. Merge findings in the main loop. Classify: blocker | improvement | note.
-3. Blockers → append as fix tasks and route back to /sdlc:build (counts toward
-   the same 3-round budget as verify). Improvements: apply if ≤5 min each,
+2. Merge findings in the main loop. Classify: blocker | improvement | note. A blocker carries
+   `class:` the defect class, `sweep:` the search run across the whole tree, which must match the
+   reported instance itself, and `hits:` every instance it found — not only the one a reviewer
+   tripped on. A blocker that arrives with only one instance and no `sweep:` gets its sweep run
+   by the main loop before its fix task is written. Blockers sharing a class merge into one.
+3. Blockers → one fix task per defect class, not per instance, carrying its sweep and hits; the
+   task is done only when the sweep, re-run over the whole tree, finds no instance left — its
+   command and result written on the task. Route each back to /sdlc:build (counts toward the
+   same 3-round budget as verify). Improvements: apply if ≤5 min each,
    otherwise record one line in the change for the digest. Any file you edit here is a build:
    `node sdlc/.hooks/journal.mjs note build tasks=<n> source=review`, so verify's fast gate
    runs over it before the final gate.

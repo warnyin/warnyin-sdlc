@@ -1,0 +1,12 @@
+# Digest — review-blocker-defect-class (standard, autopilot)
+- **Shipped**: review blockers carry `class: · sweep: · hits:`; the main loop sweeps a bare instance; one fix task per class, done only when the re-run sweep is empty (`review.md` steps 2–3, `build.md` tick rule, the four reviewer agents). Why: `autopilot` looped 4→3→1→1→1→0 blockers, all in ONE class.
+- **Spec merged**: new capability `review-panel` — 2 ADDED requirements (class + every instance; fix task closes a class). No MODIFIED/REMOVED.
+- **Assumptions**: all five verified by command (listed in change.md); none `[UNVERIFIED]`.
+- **Contract**: 17 tests (9 rows); adversarial pass found row 9 passing red + vague fields → rows pinned literal tokens. Builder caught a contract bug: `extractSection` read only a step's first line (`$` under /m); helper fixed, rows 1/3 re-proven red with `review.md` stashed.
+- **Verify**: fast gate 139/139 (scoped, `sdlc-runner`), final gate `npm test` 610/610 — both run by independent agents; no `mode=solo` outcome.
+- **Review**: skipped, no signal (standard, 10 files — threshold is >10, no lenses). This change was never panel-reviewed; its prose was checked only by its tests and the contract attacker.
+- **Pilot decisions** (hard-floor: 0): `final-gate` · chose run · reversible · recover: re-run `npm test`.
+- **Cost**: session tokens in journal (`session` event); no price computed here.
+- **Learner — declined**: delete the constitution's "enumerate the class" rule — it covers every fix/unify claim, not only review blockers, so it is not redundant.
+- **Learner — awaiting human (not applied)**: constitution rule "never pass a literal replacement string to `String.replace` on free text; use a replacer function". Evidence is real (`bin/cli.mjs:489`, earlier change); this run's two `$\`` corruptions were in ad-hoc scripts, not shipped code — weak case for always-loaded residency.
+- **Relations**: none freed or left waiting.
