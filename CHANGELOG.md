@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.20.0 (2026-09-24)
 
 - **Feature (autopilot)**: `/sdlc:autopilot <idea|change-id>` is a delegate above `/sdlc:auto`.
   It grills you once, up front, in rounds: the requirement, your priority order among
