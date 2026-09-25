@@ -14,6 +14,12 @@
   always improvements, never blockers, so taste never spends the fix-round budget. Stated in
   `sdlc-quality.md` and in `review.md` step 1. The `contract-evals.md` template gains an
   Over-build rubric line, which covers changes that skip review.
+- **Contract tests fail for the right reason**: `sdlc-contractor` now checks that each red test
+  fails for its own row's reason, by reading the failure message. It bounds a text section by
+  splitting lines up to the next heading or step, never with an end anchor (a regex `$`), which
+  in multiline mode ends at the first line. It also asserts a row's literal tokens, order and
+  polarity instead of wide gap patterns. Two consecutive changes had a first draft that went red
+  for the wrong reason and would have stayed red after the build.
 
 ## 0.22.0 (2026-09-24)
 

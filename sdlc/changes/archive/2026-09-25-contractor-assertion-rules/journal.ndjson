@@ -1,0 +1,7 @@
+{"ts":"2026-09-25T06:12:49.740Z","event":"contract","tests":"5","session":"343471a4-bf85-4150-8ea0-be68bd7446fc"}
+{"ts":"2026-09-25T06:12:59.652Z","event":"build","tasks":"2","session":"343471a4-bf85-4150-8ea0-be68bd7446fc"}
+{"ts":"2026-09-25T06:12:59.864Z","event":"verify","result":"pass","round":"1","gate":"fast","scope":"scoped","mode":"solo","session":"343471a4-bf85-4150-8ea0-be68bd7446fc"}
+{"ts":"2026-09-25T06:15:09.604Z","event":"escalation","condition":"final-gate-env-failures","preauth":"no","session":"343471a4-bf85-4150-8ea0-be68bd7446fc"}
+{"ts":"2026-09-25T06:15:09.666Z","event":"verify","result":"pass","round":"1","gate":"final","mode":"solo","session":"343471a4-bf85-4150-8ea0-be68bd7446fc"}
+{"ts":"2026-09-25T06:15:10.775Z","event":"gate","gate":"ship","action":"open","expires":"2026-09-25T06:45:10.772Z"}
+{"ts":"2026-09-25T06:15:10.923Z","event":"ship","change":"contractor-assertion-rules","specs":["test-contract"]}
