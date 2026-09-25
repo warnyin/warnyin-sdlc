@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.23.1 (2026-09-25)
+
+- **Tests (Windows)**: `update-notice` rows 6 and 11 no longer time out under a full `npm test`.
+  The registry stub answers on the test process's event loop, and concurrent rows' synchronous
+  `init` runs blocked that loop past the checker's 3 s fetch timeout. The checker then gave up
+  and wrote no cache. Every CLI run in that file is now an async spawn, queued one at a time.
+  No runtime behavior changed.
+
 ## 0.23.0 (2026-09-25)
 
 - **Minimal-code ladder reaches the builders**: `principles.md` § Minimalism is now a full
