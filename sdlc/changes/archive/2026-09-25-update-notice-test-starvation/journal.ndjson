@@ -1,0 +1,5 @@
+{"ts":"2026-09-25T06:48:14.646Z","event":"build","tasks":"1","session":"343471a4-bf85-4150-8ea0-be68bd7446fc"}
+{"ts":"2026-09-25T06:48:15.769Z","event":"verify","result":"pass","round":"1","gate":"fast","scope":"full","mode":"solo","session":"343471a4-bf85-4150-8ea0-be68bd7446fc"}
+{"ts":"2026-09-25T06:48:16.832Z","event":"verify","result":"skipped","by":"tier","round":"1","gate":"final","mode":"solo","session":"343471a4-bf85-4150-8ea0-be68bd7446fc"}
+{"ts":"2026-09-25T06:48:17.023Z","event":"gate","gate":"ship","action":"open","expires":"2026-09-25T07:18:17.022Z"}
+{"ts":"2026-09-25T06:48:17.099Z","event":"ship","change":"update-notice-test-starvation","specs":[]}
