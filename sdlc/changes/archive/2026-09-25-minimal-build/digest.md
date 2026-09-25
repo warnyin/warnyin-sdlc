@@ -1,0 +1,12 @@
+# Digest — minimal-build (2026-09-25, standard, autopilot)
+- Shipped: `principles.md` § Minimalism is a full ladder (need → codebase → stdlib → native → installed dep → smallest new code; trace first; fix where every caller routes; never cut adds accessibility); `build.md` + `sdlc-builder.md` point builders at it; `sdlc-quality.md` + `review.md` step 1 report over-build as `delete:/stdlib:/native:/yagni:/shrink:` improvements (never blockers) with `net: -<N> lines`; `contract-evals.md` gains an Over-build rubric line.
+- Spec merged: new capability `minimal-build` — 3 ADDED requirements. No MODIFIED/REMOVED.
+- Assumptions: all verified by command in change.md; ladder wording is ours, informed by MIT-licensed ponytail, nothing copied.
+- Contract: 9 rows, red first; contractor's first draft had the `$`-under-m-flag section bug (captured headings only) — rewritten; adversarial pass tightened rows 2,4,6,7,8,9; row 8 later loosened `added` → `add(s|ed)?` (the "no unrequested" negative still required).
+- Verify: 1 round. Full suite ran once, in the fast gate (scope=full), not repeated — final gate `reused=yes`. Self-produced (`mode=solo`): both verify notes; tests executed by sdlc-runner, the pass judgment was the main loop's. Review: no signal, not run.
+- Pilot decisions (hard-floor: 0):
+  - final-gate-env-failures · chose pass-with-record · reversible · recover: re-run `npm test` — `update-notice.test.mjs` rows 6/11 time out waiting on the detached update check under full-suite load; alone 3/3 green; clean HEAD worktree fails row 6 too (609/610).
+  - final-gate · chose run · reversible · recover: re-run `npm test`.
+- Learner proposals awaiting the human (not applied — additions): (1) `sdlc-contractor.md`: never extract sections with `$` under the m flag — split lines (evidence: this change T1 + 2026-09-24-review-blocker-defect-class T2); (2) `sdlc-contractor.md`: prefer literal tokens over wide `[^.]{0,N}` windows (evidence: both changes' adversarial passes).
+- Follow-up worth a change: the pre-existing `update-notice` timeout flake on Windows under load.
+- Cost: not journaled (no session cost events). Freed/waiting changes: none.

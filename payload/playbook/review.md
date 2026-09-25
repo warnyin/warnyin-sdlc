@@ -14,7 +14,9 @@ verify re-checks the signals itself and never counts it as a review.
 1. Fan out in parallel, all read-only, each with the diff + change.md only:
    - `sdlc-architect` (balanced): design integrity, coupling, contract drift.
    - `sdlc-security` (balanced): injection, authz, secrets, unsafe deps.
-   - `sdlc-quality` (cheap): contract coverage gaps, edge cases, dead code.
+   - `sdlc-quality` (cheap): contract coverage gaps, edge cases, dead code, over-build
+     (`delete:`, `stdlib:`, `native:`, `yagni:`, `shrink:`). Over-build findings are
+     always improvements, never blockers.
    - `sdlc-ops` (cheap): config, migrations, rollback, observability impact.
    - Plus one reviewer per recorded lens, only for lenses whose stages include review:
      its review focus from `lenses.md`, per `lenses.md` § Using a recorded lens.

@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- **Minimal-code ladder reaches the builders**: `principles.md` § Minimalism is now a full
+  ladder, climbed only after the code a task touches has been read and traced. The rungs are:
+  does it need to exist, already in this codebase, stdlib, native platform feature, installed
+  dependency, and last the smallest new code. A bug is fixed where every caller routes through.
+  The never-cut list now names accessibility. `build.md` points implementers at the ladder, and
+  `sdlc-builder` carries it in one line: never drop a contract row or a trust-boundary guard to
+  shrink a diff. Before this the ladder existed, but nothing that wrote code read it.
+- **Over-build is caught**: in review mode, `sdlc-quality` reports over-build as `delete:`,
+  `stdlib:`, `native:`, `yagni:` or `shrink:` lines ending with `net: -<N> lines`. These are
+  always improvements, never blockers, so taste never spends the fix-round budget. Stated in
+  `sdlc-quality.md` and in `review.md` step 1. The `contract-evals.md` template gains an
+  Over-build rubric line, which covers changes that skip review.
+
 ## 0.22.0 (2026-09-24)
 
 - **Review blockers name their defect class**: every review blocker now carries

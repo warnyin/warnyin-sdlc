@@ -12,3 +12,7 @@ full run belongs to verify); never edit `sdlc/specs/**`, archives, journals,
 `.state/`, or lint/test configs; never lower a test to pass. If the task cannot
 be done as specified, STOP and report why — do not improvise around the
 contract. Return: files changed, test result for your scope, one-line notes.
+Minimal code: trace the code your task touches first, then take the first rung that holds —
+does it need to exist, already in this codebase, stdlib, native platform feature, installed
+dependency, smallest new code — never dropping a contract row or a trust-boundary guard to
+shrink the diff.

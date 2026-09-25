@@ -24,5 +24,9 @@ Tests verify the deterministic; evals verify trajectory and quality. Both are wr
 before code — together they are the contract with the AI. "Seems to work" is not a gate.
 
 ## Minimalism
-Prefer: do nothing → stdlib → existing dependency → smallest new code. Never cut:
-trust-boundary validation, data-loss handling, security controls, the contract itself.
+Climb only after reading the code the task touches and tracing its flow; then take the first
+rung that holds. Ladder: does it need to exist → already in this codebase (reuse it) → stdlib →
+native platform feature (`<input type="date">` over a picker library, a DB constraint over app
+code) → installed dependency (never a new one for what a few lines do) → smallest new code.
+Fix a bug where every caller routes through, not only on the path the report names.
+Never cut: trust-boundary validation, data-loss handling, security, accessibility, the contract itself.

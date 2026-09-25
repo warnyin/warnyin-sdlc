@@ -3,6 +3,7 @@
 
 ## Rubric (score 1–5 each)
 - Trajectory: did the agent read the contract before writing code? run tests before claiming done?
+- Over-build: did it take the lowest rung that holds on `principles.md` § Minimalism's ladder, and add no unrequested abstraction, dependency or file? (review's `delete:`/`stdlib:`/`native:`/`yagni:`/`shrink:` lines are evidence)
 - Quality: <change-specific bars>
 
 ## Pass bar

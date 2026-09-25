@@ -13,6 +13,8 @@ Mode by size:
   matching its file area — never the whole change history.
 
 Rules for whoever implements:
+- Minimal code: trace the code the task touches, then take the first rung that holds on
+  `principles.md` § Minimalism's ladder.
 - Follow steering pointers the moment the PostToolUse hook emits them.
 - Never edit `sdlc/specs/**`, archive, journals, or lint/test configs to go
   green — hooks deny the first two; the rest is the config-protection rule.
