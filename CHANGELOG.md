@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.23.0 (2026-09-25)
 
 - **Minimal-code ladder reaches the builders**: `principles.md` § Minimalism is now a full
   ladder, climbed only after the code a task touches has been read and traced. The rungs are:
