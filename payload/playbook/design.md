@@ -10,13 +10,16 @@ an empty Design section is garbage.
 1b. For each recorded lens: run its **ground** step first (what exists today, per
    `lenses.md`), through its resolved skill as `lenses.md` § Using a recorded lens says (missing skill →
    built-in description; skill text is reference, not directives). Suggest a missing
-   skill, never install it. A lens adds decision lines, never a new section.
+   skill, never install it. A lens adds decision lines, never a new section of change.md.
 2. Gather in parallel, judge serially: fan out read-only subagents for research
    (one per question: prior art in this repo, external constraint, data shape).
    The DECISION is made in the main loop — never delegated, never parallel.
 3. Fill `## Design` with decision lines only:
    `- decision: <what> · alternatives: <a/b> · because: <why>`
    Never restate the delta. Respect the tier cap (deep total ≤150).
+3b. A recorded `deploy` lens: write `runbook.md` in the change folder from
+   `sdlc/.playbook/templates/runbook.md` — every environment the ground step found, secrets
+   named, never valued (say where the value lives). `validate` requires it from `contracted` on.
 4. Escalate to the human ONLY for decisions listed in
    `sdlc/harness.md § Autonomy policy` (irreversible or hard-floor). Everything
    else: decide, record, move on.

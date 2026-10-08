@@ -19,6 +19,7 @@ const TEMPLATE_CAPS = {
   'contract-tests.md': CAPS.contractTests,
   'contract-evals.md': CAPS.contractEvals,
   'grill.md': CAPS.grill,
+  'runbook.md': CAPS.runbook,
 };
 
 test('every template quotes exactly the canonical cap from lib/caps.mjs', () => {

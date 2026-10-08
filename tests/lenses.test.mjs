@@ -39,7 +39,7 @@ const loadLenses = async () => (await import(pathToFileURL(path.join(PKG_ROOT, '
 test('row 12: well-formed lenses (inline array and - item list) pass validation', async (t) => {
   // Red until the catalog exists: accepting lenses without knowing the catalog proves nothing.
   const LENSES = await loadLenses();
-  assert.deepEqual([...LENSES].sort(), ['api', 'data', 'ux-ui']);
+  assert.deepEqual([...LENSES].sort(), ['api', 'data', 'deploy', 'ux-ui']);
 
   const root = makeTempProject(t);
   const inline = writeLensChange(root, 'inline',

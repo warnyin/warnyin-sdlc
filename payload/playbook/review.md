@@ -17,7 +17,8 @@ verify re-checks the signals itself and never counts it as a review.
    - `sdlc-quality` (cheap): contract coverage gaps, edge cases, dead code, over-build
      (`delete:`, `stdlib:`, `native:`, `yagni:`, `shrink:`). Over-build findings are
      always improvements, never blockers.
-   - `sdlc-ops` (cheap): config, migrations, rollback, observability impact.
+   - `sdlc-ops` (cheap): config, migrations, rollback, observability impact — and the change's
+     `runbook.md` when it has one.
    - Plus one reviewer per recorded lens, only for lenses whose stages include review:
      its review focus from `lenses.md`, per `lenses.md` § Using a recorded lens.
      Run it as a read-only subagent when possible; the four core reviewers still run.

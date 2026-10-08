@@ -30,6 +30,7 @@ split) → run /sdlc:review first, and its pass returns to that final gate.
    what shipped, spec deltas merged, assumptions made, verify rounds, tokens/cost
    (from journal `session` events), learner proposals awaiting the human, and the
    changes this ship freed or left waiting, by name.
+   When the change has a `runbook.md`, link it from the digest — the person who deploys starts there.
    When any verify or review note carries `mode=solo`, the digest SHALL say which
    outcomes were self-produced. A reader months from now cannot otherwise tell a
    panel's verdict from the author's own.

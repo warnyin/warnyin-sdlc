@@ -6,18 +6,18 @@ user-invocable: false
 # sdlc/ conventions
 
 Layout: `config.yaml` · `context/{constitution.md, steering/*.md}` · `harness.md`
-· `specs/<capability>/spec.md` · `changes/<id>/{change.md, contract/}`
+· `specs/<capability>/spec.md` · `changes/<id>/{change.md, contract/, runbook.md (deploy lens)}`
 · telemetry: `.state/journal/<id>.ndjson` while open, sealed into the archived folder at ship
 · `changes/archive/<date>-<id>/` · `evals/<capability>/rubric.md` · `.state/` (machine)
 · `.state/sessions/<sid>.json` (this session's active-change pointer; `.state/active.json` is the project-wide fallback).
 
 Line caps (validator-enforced; count = non-blank, non-comment body lines):
 constitution 30 · steering 40 each · always-budget 60 total · harness 60 ·
-change vibe/standard/deep 40/100/150 · tests.md 60 · evals.md 40 · spec soft 150.
+change vibe/standard/deep 40/100/150 · tests.md 60 · evals.md 40 · runbook.md 60 · spec soft 150.
 
 Frontmatter: `id` (= folder name) · `tier: vibe|standard|deep` ·
 `status: new|contracted|building|verified|shipped` · optional
-`lenses: [<ux-ui|api|data>@builtin | @project:<skill> | @user:<skill>]` (see `.playbook/lenses.md`).
+`lenses: [<ux-ui|api|data|deploy>@builtin | @project:<skill> | @user:<skill>]` (see `.playbook/lenses.md`).
 Steering: `inclusion: always|paths|manual|agent` (+ `pathMatch` for paths).
 
 Hard rules (hook-enforced):

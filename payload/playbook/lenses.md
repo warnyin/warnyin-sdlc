@@ -1,5 +1,5 @@
 # Lens catalog — expertise a change brings in only when it needs it
-<!-- cap:60 · read by /sdlc:new on every change and by later stages only for recorded lenses. Add a lens only with signals that stay specific. -->
+<!-- cap:70 · read by /sdlc:new on every change and by later stages only for recorded lenses. Add a lens only with signals that stay specific. -->
 
 Read by `/sdlc:new` to choose lenses, and by a later stage only for the lenses a change
 recorded. A change with no `lenses:` never opens this file again. Lens names are frozen
@@ -62,3 +62,17 @@ in one Assumptions line — never fetch or install one; installing is a human de
   · review — data-loss and lock risk, N+1/unbounded reads · verify — scores those bars.
 - stages: design, contract, review, verify
 - skill query: database, migrations, SQL, data modeling
+
+## Lens: deploy
+- signals: the change runs a migration, ships config that differs per environment (`.env.*`,
+  `values-*.yaml`, overlays), or adds an environment variable, secret, feature flag or piece
+  of infrastructure someone must put in place before or during the rollout.
+- ground: list the environments the project deploys to and how (CI/CD files, deploy scripts,
+  existing runbooks or ops docs), and the config and migrations the change touches.
+- contributes: design — `runbook.md` from `templates/runbook.md`: pre-checks, config and secrets
+  per environment (named, never valued), ordered steps per environment, migration order, how to
+  verify, rollback per step · contract — evals lines: every environment has steps, a verify
+  check and a rollback, migration order is safe for the app versions running, no secret value
+  · review — the runbook matches the diff · verify — scores those bars.
+- stages: design, contract, review, verify
+- skill query: deployment, DevOps, CI/CD, infrastructure, migrations

@@ -1,0 +1,12 @@
+# Digest — deploy-runbook (standard, shipped 2026-10-08)
+- Shipped: a `deploy` lens (migration / per-env config / new secret·flag·infra) whose design writes `runbook.md` from `templates/runbook.md`; `validate` requires it from `contracted` with six sections (Pre-checks, Config & Secrets, Steps, Migration order, Verify, Rollback), no `<…>` placeholder, regular file, cap 60. sdlc-ops reviews it; ship's digest links it. `CAPS.lensCatalog` 60 → 70 (69 used).
+- Spec merged: new `specs/deploy-runbook/spec.md` (3 requirements). No MODIFIED requirement.
+- Assumptions: secrets-never-valued is doctrine only (no validator pattern); a signalled change that skips the lens writes one Assumptions line (prose in new.md, unenforced).
+- Verify: fast gate 2 rounds, both pass, full suite (646/646). The final gate reused the round-2 full run (`reused=yes`) and was not repeated. Both gates were self-run (`mode=solo`); the review was a 4-agent panel (blocker 1 → 0).
+- Pilot decisions (autopilot, decided alone; no hard-floor ones):
+  - `review-blockers` → fix and continue: the deploy lens had no contract bar (verify requires one per lens); the same pass added placeholder rejection, link/oversized refusal, `hasLens`, and a reworked template · reversible: yes · recover: revert the R1 hunk.
+  - `deferred-mixed-fence` → deferred: the shared `linesOutsideFences` treats a ``` fence closed by ~~~ as closed (grill.md too) · reversible: yes · recover: a follow-up change.
+- Learner proposal awaiting you: move new.md's line budget (46), pinned in 3 tests, into one constant in `lib/caps.mjs`.
+- Release notes: a project that kept an edited design.md or lenses.md gets the runbook rule without the prose. An older CLI rejects `deploy@…` entries.
+- Runbook: this change itself had no deploy signal, so it has no runbook.md. Tokens: 140k output, 18.8M cache-read, 1 session. Cost unknown.
+- Freed / waiting: none.
