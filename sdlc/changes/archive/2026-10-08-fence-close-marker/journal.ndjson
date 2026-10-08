@@ -1,0 +1,7 @@
+{"ts":"2026-10-08T06:02:51.806Z","event":"contract","tests":"5","session":"733e9bac-d7d6-49e7-af81-1bca3c009855"}
+{"ts":"2026-10-08T06:02:52.875Z","event":"build","session":"733e9bac-d7d6-49e7-af81-1bca3c009855"}
+{"ts":"2026-10-08T06:04:22.076Z","event":"verify","result":"pass","round":"1","gate":"fast","scope":"full","mode":"solo","session":"733e9bac-d7d6-49e7-af81-1bca3c009855"}
+{"ts":"2026-10-08T06:04:23.144Z","event":"review","blockers":"0","skipped":"no-signal","session":"733e9bac-d7d6-49e7-af81-1bca3c009855"}
+{"ts":"2026-10-08T06:04:24.241Z","event":"verify","result":"pass","round":"1","gate":"final","mode":"solo","reused":"yes","session":"733e9bac-d7d6-49e7-af81-1bca3c009855"}
+{"ts":"2026-10-08T06:04:24.304Z","event":"gate","gate":"ship","action":"open","expires":"2026-10-08T06:34:24.302Z"}
+{"ts":"2026-10-08T06:04:24.386Z","event":"ship","change":"fence-close-marker","specs":["fenced-code"]}
