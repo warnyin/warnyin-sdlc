@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.24.0 (2026-10-08)
+
+- **Runbooks for changes that are hard to deploy**: a new `deploy` lens is chosen when a change
+  runs a migration, ships config that differs per environment, or adds an env var, secret,
+  feature flag or infrastructure. Design writes `changes/<id>/runbook.md` from the new
+  `templates/runbook.md` with six sections: Pre-checks, Config & Secrets, Steps, Migration order,
+  Verify and Rollback. Secrets are named, never valued. Steps carry per-environment ids that
+  Rollback refers to, migrations follow expand/contract, and a step that cannot be undone is
+  marked IRREVERSIBLE. `validate` requires the runbook from `contracted` on. It must have all
+  six sections, no `<…>` placeholders left, be a regular file and stay within 60 lines.
+  `sdlc-ops` reviews it against the diff, and the ship digest links it. A change that shows a
+  deploy signal but does not record the lens says why in one Assumptions line. The lens catalog
+  cap rises from 60 to 70.
+  - Upgrade note: a project that kept an edited `design.md` or `lenses.md` gets the runbook
+    requirement without the prose that asks for it. An older CLI rejects `deploy@…` entries.
+- **Code fences close only on their own marker**: a `~~~` line quoted inside a ```` ``` ````
+  block no longer ends it, so a required `grill.md` or `runbook.md` heading that sits only in
+  code is reported missing. Fences follow CommonMark.
+- **Payload line budgets live in `lib/caps.mjs`**: the budgets for `new.md`, `rules-card.md`,
+  `auto.md`, `autopilot.md` and command stubs are now `CAPS.playbook` and `CAPS.commandStub`,
+  with their approval history beside them. A test fails if any test pins a line budget as a
+  number. Values are unchanged.
+
 ## 0.23.1 (2026-09-25)
 
 - **Tests (Windows)**: `update-notice` rows 6 and 11 no longer time out under a full `npm test`.
