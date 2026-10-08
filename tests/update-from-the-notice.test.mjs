@@ -12,6 +12,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import { makeTempProject, runCli, PKG_ROOT } from './helpers.mjs';
+import { CAPS } from '../lib/caps.mjs';
 
 const PKG_VERSION = JSON.parse(fs.readFileSync(path.join(PKG_ROOT, 'package.json'), 'utf8')).version;
 const oneLine = (s) => s.replace(/\s+/g, ' ');
@@ -235,10 +236,10 @@ describe('update-from-the-notice', () => {
     assert.match(after, /node my-own-hook\.mjs/, "the user's own hook was dropped by update");
   });
 
-  it('row 13: the command stub is <=15 non-blank lines and names a playbook that exists', () => {
+  it('row 13: the command stub is within CAPS.commandStub non-blank lines and names a playbook that exists', () => {
     const body = commandStub().replace(/^---\n[\s\S]*?\n---\n/, '');
     const lines = body.split(/\r?\n/).filter((l) => l.trim() !== '');
-    assert.ok(lines.length <= 15, `command stub is ${lines.length} non-blank lines`);
+    assert.ok(lines.length <= CAPS.commandStub, `command stub is ${lines.length} non-blank lines`);
     const named = commandStub().match(/sdlc\/\.playbook\/([\w-]+\.md)/);
     assert.ok(named, 'the stub names no playbook');
     assert.ok(fs.existsSync(path.join(PKG_ROOT, 'payload/playbook', named[1])),

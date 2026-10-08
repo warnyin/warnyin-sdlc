@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { makeTempProject, runCli, PKG_ROOT } from './helpers.mjs';
+import { CAPS } from '../lib/caps.mjs';
 
 const COMMANDS = ['init', 'auto', 'autopilot', 'new', 'design', 'contract', 'build', 'verify',
   'review', 'ship', 'observe', 'converge', 'steer', 'next', 'feedback'];
@@ -43,7 +44,7 @@ test('every command stub points at a playbook file that exists in the payload', 
   }
 });
 
-test('every playbook stage named in README exists, and command stubs stay thin (≤15 body lines)', () => {
+test('every playbook stage named in README exists, and command stubs stay thin (CAPS.commandStub)', () => {
   const playbookDir = path.join(PKG_ROOT, 'payload/playbook');
   const readme = fs.readFileSync(path.join(playbookDir, 'README.md'), 'utf8');
   for (const m of readme.matchAll(/\/sdlc:([a-z]+)/g)) {
@@ -53,7 +54,7 @@ test('every playbook stage named in README exists, and command stubs stay thin (
   for (const f of fs.readdirSync(cmdDir)) {
     const body = fs.readFileSync(path.join(cmdDir, f), 'utf8').split('---').slice(2).join('---');
     const lines = body.split('\n').filter((l) => l.trim()).length;
-    assert.ok(lines <= 15, `${f}: command body has ${lines} lines (thin-adapter rule: ≤15)`);
+    assert.ok(lines <= CAPS.commandStub, `${f}: command body has ${lines} lines (thin-adapter rule: ≤${CAPS.commandStub})`);
   }
 });
 

@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { makeTempProject, runCli, PKG_ROOT } from './helpers.mjs';
-import { countEffectiveLines } from '../lib/caps.mjs';
+import { CAPS, countEffectiveLines } from '../lib/caps.mjs';
 
 const pb = (n) => fs.readFileSync(path.join(PKG_ROOT, 'payload/playbook', n), 'utf8');
 const oneLine = (s) => s.replace(/\s+/g, ' ');
@@ -85,21 +85,19 @@ test('row 9: numbering, a recommended answer per question and reply-by-number st
   assert.match(s, /reply by number/i);
 });
 
-test('row 10: the rules card names options and the picker; card stays within 40 lines', () => {
+test('row 10: the rules card names options and the picker; card stays within its budget', () => {
   const card = pb('rules-card.md');
   const line = ambiguityLine(card);
   assert.match(line, /options/i);
   assert.match(line, /picker/i);
   const lines = countEffectiveLines(card);
-  assert.ok(lines <= 40, `rules-card.md is ${lines} effective lines, budget is 40`);
+  assert.ok(lines <= CAPS.playbook.rulesCard, `rules-card.md is ${lines} effective lines, budget is ${CAPS.playbook.rulesCard}`);
 });
 
-// Cap pin, raised on purpose from 38: 42 was approved, the options rules landed at 43 and the
-// human approved 43 (2026-09-15). Raised 43 → 46 for the verify-or-mark rule, human-directed
-// (2026-09-19). The next addition to new.md has to raise it again.
-test('row 11: new.md stays within its pinned line budget of 46', () => {
+// Cap pin: the budget and its approval history live in CAPS.playbook.new (lib/caps.mjs).
+test('row 11: new.md stays within its pinned line budget', () => {
   const lines = countEffectiveLines(pb('new.md'));
-  assert.ok(lines <= 46, `new.md is ${lines} effective lines, budget is 46`);
+  assert.ok(lines <= CAPS.playbook.new, `new.md is ${lines} effective lines, budget is ${CAPS.playbook.new}`);
 });
 
 test('row 12: a fresh claude install carries the options and picker rules', (t) => {

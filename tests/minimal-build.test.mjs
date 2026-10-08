@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { countEffectiveLines } from '../lib/caps.mjs';
+import { CAPS, countEffectiveLines } from '../lib/caps.mjs';
 import { makeTempProject, runCli, PKG_ROOT } from './helpers.mjs';
 
 const read = (...rel) => fs.readFileSync(path.join(...rel), 'utf8');
@@ -87,8 +87,8 @@ function assertEvalsOverBuild(text, desc) {
   assert.match(rubric, /over-?build[^.]{0,200}lowest rung/i, `${desc}: rubric scores the lowest rung that holds`);
   assert.match(rubric, /\badd(s|ed)? no unrequested[^.]{0,20}abstraction[^.]{0,40}dependency[^.]{0,20}file/i,
     `${desc}: rubric scores unrequested abstraction, dependency or file`);
-  assert.match(text, /cap:40\b/, `${desc}: keeps cap:40`);
-  assert.ok(countEffectiveLines(text) <= 40, `${desc}: ≤40 effective lines`);
+  assert.match(text, new RegExp(`cap:${CAPS.contractEvals}\\b`), `${desc}: keeps cap:${CAPS.contractEvals}`);
+  assert.ok(countEffectiveLines(text) <= CAPS.contractEvals, `${desc}: ≤${CAPS.contractEvals} effective lines`);
 }
 
 test('row 1: principles.md § Minimalism states the rungs in order', () => {

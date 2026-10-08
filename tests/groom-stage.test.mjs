@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { makeTempProject, runCli, PKG_ROOT } from './helpers.mjs';
-import { countEffectiveLines } from '../lib/caps.mjs';
+import { CAPS, countEffectiveLines } from '../lib/caps.mjs';
 import { parseFrontmatter } from '../lib/frontmatter.mjs';
 
 const pb = (rel) => fs.readFileSync(path.join(PKG_ROOT, 'payload/playbook', rel), 'utf8');
@@ -60,7 +60,7 @@ test('row 6: the groom command stub looks like every other stage stub', () => {
   const { data, body } = parseFrontmatter(raw);
   assert.ok(data.description && data.description.length > 0, 'stubs carry a description');
   assert.match(body, /sdlc\/\.playbook\/groom\.md/, 'and name their playbook');
-  assert.ok(raw.split('\n').filter((l) => l.trim()).length <= 15, 'stubs stay thin');
+  assert.ok(raw.split('\n').filter((l) => l.trim()).length <= CAPS.commandStub, 'stubs stay thin');
 });
 
 // row 7 — the 0.16.0 single-source design proving itself on the first stage added since
@@ -90,10 +90,10 @@ test('row 9: the playbook README lists grooming and next offers it', () => {
 
 // row 10 — always-loaded context did not grow
 test('row 10: grooming costs no always-loaded budget', () => {
-  assert.ok(countEffectiveLines(pb('rules-card.md')) <= 40, 'rules card within budget');
+  assert.ok(countEffectiveLines(pb('rules-card.md')) <= CAPS.playbook.rulesCard, 'rules card within budget');
   const constitution = fs.readFileSync(
     path.join(PKG_ROOT, 'payload/templates/constitution.md'), 'utf8');
-  assert.ok(countEffectiveLines(constitution) <= 30, 'constitution within cap');
+  assert.ok(countEffectiveLines(constitution) <= CAPS.constitution, 'constitution within cap');
   // Grooming precedes a change, so the lifecycle flow line must not have absorbed it.
   assert.doesNotMatch(oneLine(pb('rules-card.md')), /groom/i,
     'the always-loaded flow line describes a change\'s lifecycle, which grooming precedes');

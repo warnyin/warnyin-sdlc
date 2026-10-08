@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { makeTempProject, runCli, PKG_ROOT } from './helpers.mjs';
-import { countEffectiveLines } from '../lib/caps.mjs';
+import { CAPS, countEffectiveLines } from '../lib/caps.mjs';
 
 const pb = (rel) => fs.readFileSync(path.join(PKG_ROOT, 'payload', 'playbook', rel), 'utf8');
 const tpl = (rel) => fs.readFileSync(path.join(PKG_ROOT, 'payload', 'templates', rel), 'utf8');
@@ -22,20 +22,11 @@ test('row 1: new.md makes a work-removing assumption a claim to run, not a judge
     'it must name the kind of claim it means');
 });
 
-// row 2 — the budget was raised deliberately, in both places that pin it
-test('row 2: new.md is within its deliberately raised budget, and both pins moved together', () => {
+// row 2 — the budget was raised deliberately; it lives once in CAPS.playbook.new, and
+// playbook-budgets.test.mjs keeps any test from pinning it by hand again.
+test('row 2: new.md is within its deliberately raised budget', () => {
   const lines = countEffectiveLines(pb('new.md'));
-  assert.ok(lines <= 46, `new.md is ${lines} effective lines, raised budget is 46`);
-
-  // The two tests that pin this file must assert the same raised number — a pin left at 43
-  // would go red on the next edit for a reason nobody could explain.
-  for (const f of ['question-options.test.mjs', 'clarification-rounds.test.mjs']) {
-    const src = fs.readFileSync(path.join(PKG_ROOT, 'tests', f), 'utf8');
-    const pins = [...src.matchAll(/new\.md is \$\{lines\} effective lines, budget is (\d+)/g)]
-      .map((m) => Number(m[1]));
-    assert.ok(pins.length > 0, `${f} should still pin new.md's budget`);
-    for (const pin of pins) assert.equal(pin, 46, `${f} still pins the old budget`);
-  }
+  assert.ok(lines <= CAPS.playbook.new, `new.md is ${lines} effective lines, budget is ${CAPS.playbook.new}`);
 });
 
 // row 3 — the rule exists where the assumption is SPENT to drop a test
@@ -59,12 +50,12 @@ test('row 4: review.md points the panel at unverified scope-narrowing claims fir
 });
 
 // row 5 — tools with no hooks get the same rule, within the card's budget
-test('row 5: the rules card carries the rule and stays within 40 lines', () => {
+test('row 5: the rules card carries the rule and stays within its budget', () => {
   const card = pb('rules-card.md');
   assert.match(oneLine(card), /assum[^]{0,200}(run|prove|verif|UNVERIFIED)/i,
     'the card is the only enforcement a non-Claude tool gets — the rule has to be on it');
   const lines = countEffectiveLines(card);
-  assert.ok(lines <= 40, `rules-card.md is ${lines} effective lines, budget is 40`);
+  assert.ok(lines <= CAPS.playbook.rulesCard, `rules-card.md is ${lines} effective lines, budget is ${CAPS.playbook.rulesCard}`);
 });
 
 // row 6 — the templates prompt for it at the moment of writing
@@ -111,7 +102,7 @@ test('row 9: the seeded constitution carries the rule, within its 30-line cap', 
   assert.match(text, /## Assumptions`? before acting on it,[^]{0,200}UNVERIFIED/i,
     'it should extend the assumption rule already there rather than add a separate one');
   const lines = countEffectiveLines(seed);
-  assert.ok(lines <= 30, `constitution template is ${lines} effective lines, cap is 30`);
+  assert.ok(lines <= CAPS.constitution, `constitution template is ${lines} effective lines, cap is ${CAPS.constitution}`);
 });
 
 // row 10 — it reaches a new project's own constitution, which `update` never overwrites

@@ -1,0 +1,6 @@
+# Digest — new-md-budget-constant (standard, shipped 2026-10-08)
+- Shipped: payload authoring budgets live once in `lib/caps.mjs` — `CAPS.playbook` {new 46, rulesCard 40, auto 75, autopilot 60} and `CAPS.commandStub` 15, values unchanged, new.md's approval history beside it. Every test reads `CAPS`; `tests/playbook-budgets.test.mjs` fails on any test that pins a line budget as a number. Existing CAPS values repeated as literals (grill, constitution, evals, lensCatalog, runbook) now read `CAPS` too.
+- Spec merged: new `specs/playbook-budgets/spec.md` (1 requirement). docs/design.md "caps.mjs is canonical" notes the test-only budgets.
+- Verify: fast gate 2 rounds, both pass, full suite (653/653). The final gate reused round 2 (`reused=yes`) and was not repeated. Self-run (`mode=solo`). Review: 4-agent panel, blocker 1 → 0. The guard regex missed `.filter(…).length <= 15` pins, and the author's enumeration under-matched twice.
+- Not applied: row 2 only scans one line at a time (a multi-line or reversed pin escapes it). A shared `within(file, key)` helper. A CLAUDE.md Caps note on `CAPS.playbook`, left to you.
+- Learner: no durable lesson. Watch for a repeat of under-matched class sweeps. Freed / waiting: none.

@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { makeTempProject, runCli, writeChange, STANDARD_BODY, PKG_ROOT } from './helpers.mjs';
 import { buildReport } from '../lib/observe.mjs';
-import { countEffectiveLines } from '../lib/caps.mjs';
+import { CAPS, countEffectiveLines } from '../lib/caps.mjs';
 
 const read = (rel) => fs.readFileSync(path.join(PKG_ROOT, 'payload', rel), 'utf8');
 const pb = (n) => read(`playbook/${n}`);
@@ -180,12 +180,12 @@ test('row 18: the harness seed names an optional fast test command, and init see
   assert.match(fs.readFileSync(path.join(dir, 'sdlc/harness.md'), 'utf8'), /^- fast test command:/m);
 });
 
-test('row 19: flow lines put a final verify after [review]; the card stays within 40 lines', () => {
+test('row 19: flow lines put a final verify after [review]; the card stays within its budget', () => {
   for (const f of ['rules-card.md', 'README.md', 'auto.md']) {
     assert.match(flowLine(pb(f), f), FINAL_AFTER_REVIEW, `${f} flow line`);
   }
   const lines = countEffectiveLines(pb('rules-card.md'));
-  assert.ok(lines <= 40, `rules-card.md is ${lines} effective lines, budget is 40`);
+  assert.ok(lines <= CAPS.playbook.rulesCard, `rules-card.md is ${lines} effective lines, budget is ${CAPS.playbook.rulesCard}`);
 });
 
 test('row 20: the verify command description no longer promises full tests every round', () => {

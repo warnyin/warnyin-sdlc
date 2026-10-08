@@ -1,0 +1,13 @@
+{"ts":"2026-10-08T06:05:48.961Z","event":"contract","tests":"2","session":"733e9bac-d7d6-49e7-af81-1bca3c009855"}
+{"ts":"2026-10-08T06:05:49.077Z","event":"build","session":"733e9bac-d7d6-49e7-af81-1bca3c009855"}
+{"ts":"2026-10-08T06:09:38.094Z","event":"verify","result":"pass","round":"1","gate":"fast","scope":"full","mode":"solo","session":"733e9bac-d7d6-49e7-af81-1bca3c009855"}
+{"ts":"2026-10-08T06:10:03.353Z","event":"session","session":"733e9bac-d7d6-49e7-af81-1bca3c009855","totals":{"input":776,"output":247280,"cacheRead":47224225,"cacheWrite":2135571},"models":{"claude-opus-5-5":{"input":460,"output":190813,"cacheRead":41908098,"cacheWrite":416079},"claude-sonnet-5-5":{"input":64,"output":5218,"cacheRead":914702,"cacheWrite":300986},"claude-haiku-5-5":{"input":252,"output":51249,"cacheRead":4401425,"cacheWrite":1418506}},"costUsd":null}
+{"ts":"2026-10-08T06:10:12.733Z","event":"session","session":"733e9bac-d7d6-49e7-af81-1bca3c009855","totals":{"input":808,"output":249989,"cacheRead":47491017,"cacheWrite":2344013},"models":{"claude-opus-5-5":{"input":460,"output":190813,"cacheRead":41908098,"cacheWrite":416079},"claude-sonnet-5-5":{"input":84,"output":6646,"cacheRead":1035727,"cacheWrite":470239},"claude-haiku-5-5":{"input":264,"output":52530,"cacheRead":4547192,"cacheWrite":1457695}},"costUsd":null}
+{"ts":"2026-10-08T06:10:42.309Z","event":"session","session":"733e9bac-d7d6-49e7-af81-1bca3c009855","totals":{"input":886,"output":264307,"cacheRead":50047154,"cacheWrite":2486078},"models":{"claude-opus-5-5":{"input":476,"output":192411,"cacheRead":43292227,"cacheWrite":425774},"claude-sonnet-5-5":{"input":90,"output":7105,"cacheRead":1141946,"cacheWrite":474873},"claude-haiku-5-5":{"input":320,"output":64791,"cacheRead":5612981,"cacheWrite":1585431}},"costUsd":null}
+{"ts":"2026-10-08T06:11:03.666Z","event":"review","blockers":"1","mode":"panel","session":"733e9bac-d7d6-49e7-af81-1bca3c009855"}
+{"ts":"2026-10-08T06:11:38.916Z","event":"build","tasks":"1","source":"review","session":"733e9bac-d7d6-49e7-af81-1bca3c009855"}
+{"ts":"2026-10-08T06:14:44.432Z","event":"verify","result":"pass","round":"2","gate":"fast","scope":"full","mode":"solo","session":"733e9bac-d7d6-49e7-af81-1bca3c009855"}
+{"ts":"2026-10-08T06:14:44.509Z","event":"review","blockers":"0","mode":"panel","session":"733e9bac-d7d6-49e7-af81-1bca3c009855"}
+{"ts":"2026-10-08T06:14:44.649Z","event":"verify","result":"pass","round":"2","gate":"final","mode":"solo","reused":"yes","session":"733e9bac-d7d6-49e7-af81-1bca3c009855"}
+{"ts":"2026-10-08T06:14:44.736Z","event":"gate","gate":"ship","action":"open","expires":"2026-10-08T06:44:44.734Z"}
+{"ts":"2026-10-08T06:14:44.888Z","event":"ship","change":"new-md-budget-constant","specs":["playbook-budgets"]}

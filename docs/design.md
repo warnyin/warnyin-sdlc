@@ -48,7 +48,9 @@ contract; if an artifact loses its reason, delete it.
   expertise is dynamic without adding always-loaded context or agent files; installing
   third-party instructions stays a human decision.
 - **caps.mjs is canonical**: templates quote caps in comments; `caps-sync.test.mjs`
-  fails the build on drift.
+  fails the build on drift. Payload authoring budgets (`CAPS.playbook`, `CAPS.commandStub`) have
+  no template comment: tests read them from `CAPS`, and `playbook-budgets.test.mjs` fails on any
+  test that pins a line budget as a number.
 
 ## Known limitations (accepted for v1)
 

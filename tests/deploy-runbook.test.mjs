@@ -135,8 +135,8 @@ test('row 2: the catalog has a deploy lens with its four parts, runbook.md contr
   assert.equal(CAPS.lensCatalog, 70);
   const quoted = catalog.match(/cap:(\d+)/);
   assert.ok(quoted, 'lenses.md must quote its cap');
-  assert.equal(Number(quoted[1]), 70);
-  assert.ok(countEffectiveLines(catalog) <= 70, `lenses.md is ${countEffectiveLines(catalog)} lines`);
+  assert.equal(Number(quoted[1]), CAPS.lensCatalog);
+  assert.ok(countEffectiveLines(catalog) <= CAPS.lensCatalog, `lenses.md is ${countEffectiveLines(catalog)} lines`);
 });
 
 test('row 3: a deploy change without runbook.md fails validate at contracted, building and verified', (t) => {
@@ -322,10 +322,11 @@ test('row 17: the conventions skill lists deploy, runbook.md and cap 60; the led
   assert.ok(skill.includes('<ux-ui|api|data|deploy>'), 'the skill lens list must read <ux-ui|api|data|deploy>');
   const skillLines = skill.split(/\r?\n/);
   assert.ok(skillLines.some((l) => l.includes('runbook.md')), 'the skill layout must name runbook.md');
-  assert.ok(skillLines.some((l) => /runbook/i.test(l) && /\b60\b/.test(l)), 'the skill must give the runbook cap 60');
+  const cap = new RegExp(`\\b${CAPS.runbook}\\b`);
+  assert.ok(skillLines.some((l) => /runbook/i.test(l) && cap.test(l)), 'the skill must give the runbook cap');
   const ledger = fs.readFileSync(path.join(PKG_ROOT, 'docs', 'design.md'), 'utf8').split(/\r?\n/);
-  assert.ok(ledger.some((l) => /^\|\s*`[^`]*runbook\.md`/.test(l) && /\b60\b/.test(l)),
-    'docs/design.md must have a runbook.md table row quoting 60');
+  assert.ok(ledger.some((l) => /^\|\s*`[^`]*runbook\.md`/.test(l) && cap.test(l)),
+    'docs/design.md must have a runbook.md table row quoting its cap');
 });
 
 test('row 18: runbook.md as a directory does not throw and is reported as an error naming runbook.md', (t) => {

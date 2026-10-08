@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { makeTempProject, runCli, writeChange, STANDARD_BODY, PKG_ROOT } from './helpers.mjs';
 import { buildReport } from '../lib/observe.mjs';
-import { countEffectiveLines } from '../lib/caps.mjs';
+import { CAPS, countEffectiveLines } from '../lib/caps.mjs';
 
 const pb = (n) => fs.readFileSync(path.join(PKG_ROOT, 'payload/playbook', n), 'utf8');
 const oneLine = (s) => s.replace(/\s+/g, ' ');
@@ -61,7 +61,7 @@ test('row 7: the rules card says the full run is confirmed and vibe skips it', (
   assert.match(line, /confirm/i);
   assert.match(line, /vibe[^.]{0,40}skip/i);
   const lines = countEffectiveLines(card);
-  assert.ok(lines <= 40, `rules-card.md is ${lines} effective lines, budget is 40`);
+  assert.ok(lines <= CAPS.playbook.rulesCard, `rules-card.md is ${lines} effective lines, budget is ${CAPS.playbook.rulesCard}`);
 });
 
 function reportFor(t, events) {

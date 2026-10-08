@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { makeTempProject, runCli, PKG_ROOT } from './helpers.mjs';
-import { countEffectiveLines } from '../lib/caps.mjs';
+import { CAPS, countEffectiveLines } from '../lib/caps.mjs';
 
 const pb = (n) => fs.readFileSync(path.join(PKG_ROOT, 'payload/playbook', n), 'utf8');
 
@@ -134,19 +134,18 @@ test('row 13: the AI-driven assumption policy still stands', () => {
 });
 
 // row 14
-test('row 14: rules-card.md\'s ambiguity line names rounds and a recommended answer; the card stays <=40 effective lines', () => {
+test('row 14: rules-card.md\'s ambiguity line names rounds and a recommended answer; the card stays within its budget', () => {
   const line = ambiguityLine();
   assert.match(line, /\brounds?\b/i);
   assert.match(line, /recommend(ed|ation)/i);
   const lines = countEffectiveLines(pb('rules-card.md'));
-  assert.ok(lines <= 40, `rules-card.md is ${lines} effective lines, budget is 40`);
+  assert.ok(lines <= CAPS.playbook.rulesCard, `rules-card.md is ${lines} effective lines, budget is ${CAPS.playbook.rulesCard}`);
 });
 
-// row 15 — cap pin: green at 30 when set, so step 5 grows only by what its rules need.
-// Raised 38 → 43 by question-options (options + picker rules), approved by the human.
+// row 15 — cap pin: the budget and its history live in CAPS.playbook.new (lib/caps.mjs).
 test('row 15: new.md stays within its pinned line budget', () => {
   const lines = countEffectiveLines(pb('new.md'));
-  assert.ok(lines <= 46, `new.md is ${lines} effective lines, budget is 46`);
+  assert.ok(lines <= CAPS.playbook.new, `new.md is ${lines} effective lines, budget is ${CAPS.playbook.new}`);
 });
 
 // row 16

@@ -5,7 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { makeTempProject, runCli, writeChange, STANDARD_BODY, PKG_ROOT } from './helpers.mjs';
 import { buildReport, renderReport } from '../lib/observe.mjs';
-import { countEffectiveLines } from '../lib/caps.mjs';
+import { CAPS, countEffectiveLines } from '../lib/caps.mjs';
 
 const pb = (n) => fs.readFileSync(path.join(PKG_ROOT, 'payload/playbook', n), 'utf8');
 const stub = (n) => fs.readFileSync(
@@ -52,8 +52,8 @@ test('autopilot: init --tool claude installs autopilot.md, playbook, and grill.m
   assert.match(manifest, /templates\/grill\.md/, 'grill template in manifest');
 });
 
-// row 2: autopilot command stub points at playbook, has argument hint, body ≤15 lines
-test('autopilot: command stub points at autopilot.md, has argument-hint, body ≤15 lines', () => {
+// row 2: autopilot command stub points at playbook, has argument hint, body within CAPS.commandStub
+test('autopilot: command stub points at autopilot.md, has argument-hint, body within the stub budget', () => {
   const text = stub('autopilot');
   assert.match(text, /sdlc\/\.playbook\/autopilot\.md/,
     'autopilot.md: command stub must reference autopilot.md playbook');
@@ -61,7 +61,7 @@ test('autopilot: command stub points at autopilot.md, has argument-hint, body �
     'autopilot.md: command stub must have argument-hint');
   const body = text.split('---').slice(2).join('---');
   const lines = body.split('\n').filter((l) => l.trim()).length;
-  assert.ok(lines <= 15, `autopilot.md: command body has ${lines} lines (≤15)`);
+  assert.ok(lines <= CAPS.commandStub, `autopilot.md: command body has ${lines} lines (≤${CAPS.commandStub})`);
 });
 
 // row 3: autopilot.md grills in rounds with frontier, numbered questions, recommended answers, facts looked up, picker available
@@ -124,8 +124,7 @@ test('autopilot: grill.md template carries 4 sections and cap annotation', () =>
 
   const m = text.match(/cap:(\d+)/);
   assert.ok(m, 'grill.md: missing cap:<n> annotation');
-  const grillCap = 80; // Use hardcoded 80 since CAPS.grill is not yet implemented
-  assert.equal(Number(m[1]), grillCap, `grill.md cap ${m[1]} != expected ${grillCap}`);
+  assert.equal(Number(m[1]), CAPS.grill, `grill.md cap ${m[1]} != CAPS.grill ${CAPS.grill}`);
 });
 
 // row 9: change with valid grill.md within cap / validate runs / 0 errors
@@ -182,7 +181,7 @@ test('autopilot: validate rejects grill.md exceeding cap', (t) => {
     '# Tests\n| # | Given | unit |\n|---|---|---|\n| 1 | x | y |\n');
 
   // Write grill.md exceeding cap
-  const capPlus = 80 + 5; // grill cap is 80
+  const capPlus = CAPS.grill + 5;
   const lines = [];
   lines.push('---', 'id: grill-over-cap', '---', '# Grill', '', '## Delegation', 'Delegated.', '',
     '## Priorities', 'req > qual > time > cost', '', '## Mandate', 'Implement feature.', '', '## Decisions');
@@ -864,7 +863,7 @@ test('autopilot: Refused is read case-insensitively, and a non-token refused ent
 });
 
 // row 44
-test('autopilot: the grill template fixes one token per escalation, and autopilot.md reuses them within 60 lines', () => {
+test('autopilot: the grill template fixes one token per escalation, and autopilot.md reuses them within its budget', () => {
   const tpl = fs.readFileSync(path.join(PKG_ROOT, 'payload/templates/grill.md'), 'utf8');
   for (const tok of [...ESCALATION_TOKENS, ...FORESEEN_TOKENS]) assert.match(tpl, new RegExp(`\\b${tok}\\b`), `template names ${tok}`);
   const rows = pb('auto.md').split('\n').filter((l) => /^\|/.test(l) && !/^\|\s*(Condition|---)/.test(l));
@@ -872,7 +871,7 @@ test('autopilot: the grill template fixes one token per escalation, and autopilo
   const t = pb('autopilot.md');
   assert.match(t, /hardfloor-midrun/);
   assert.match(t, /(reuse|same) (the )?template'?s? tokens?|tokens? (from|in) the template/i);
-  assert.ok(countEffectiveLines(t) <= 60, `autopilot.md is ${countEffectiveLines(t)} effective lines (≤60)`);
+  assert.ok(countEffectiveLines(t) <= CAPS.playbook.autopilot, `autopilot.md is ${countEffectiveLines(t)} effective lines (≤${CAPS.playbook.autopilot})`);
 });
 
 // row 39 (cont.): the Confirm step and next.md §2 anchors

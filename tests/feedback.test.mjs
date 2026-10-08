@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { makeTempProject, runCli, PKG_ROOT } from './helpers.mjs';
+import { CAPS } from '../lib/caps.mjs';
 
 const CMD_REL = '.claude/commands/sdlc/feedback.md';
 const PLAYBOOK_REL = 'sdlc/.playbook/feedback.md';
@@ -44,7 +45,7 @@ test('feedback: update adds it to a project installed before this change', (t) =
 test('feedback: the stub stays thin and points at a playbook that ships', () => {
   const stub = fs.readFileSync(STUB_SRC, 'utf8');
   const body = stub.split('---').slice(2).join('---');
-  assert.ok(body.split('\n').filter((l) => l.trim()).length <= 15, 'stub body ≤15 lines');
+  assert.ok(body.split('\n').filter((l) => l.trim()).length <= CAPS.commandStub, 'stub body within CAPS.commandStub');
   const m = stub.match(/sdlc\/\.playbook\/([a-z-]+\.md)/);
   assert.ok(m, 'stub references a playbook');
   assert.ok(fs.existsSync(path.join(PKG_ROOT, 'payload/playbook', m[1])), 'playbook exists');

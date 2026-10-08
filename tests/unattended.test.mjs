@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { makeTempProject, runCli, writeChange, STANDARD_BODY, PKG_ROOT } from './helpers.mjs';
 import { buildReport, renderReport } from '../lib/observe.mjs';
-import { countEffectiveLines } from '../lib/caps.mjs';
+import { CAPS, countEffectiveLines } from '../lib/caps.mjs';
 
 const STAGES = ['new', 'design', 'contract', 'build', 'verify', 'review', 'ship'];
 const pb = (n) => fs.readFileSync(path.join(PKG_ROOT, 'payload/playbook', n), 'utf8');
@@ -251,13 +251,9 @@ test('scope-evidence: per-item refusability of the escalation rows still stands'
   assert.match(s, /hard-floor surface/);
 });
 
-// row 10 — playbooks carry no cap in lib/caps.mjs and the validator does not check them,
-// so this number is the only thing standing between auto.md and unbounded growth. It is
-// deliberately pinned just above the current count: auto.md is already 2-3x its sibling
-// playbooks (21-31 lines), and the point is that the next addition has to be a decision
-// somebody makes on purpose, not a drift nobody notices. Raising it is allowed; raising
-// it silently is not.
+// row 10 — the validator does not check playbooks, so CAPS.playbook.auto is the only thing
+// standing between auto.md and unbounded growth; raising it is a decision, not a drift.
 test('scope-evidence: auto.md stays within its stated line budget', () => {
   const lines = countEffectiveLines(pb('auto.md'));
-  assert.ok(lines <= 75, `auto.md is ${lines} effective lines, budget is 75 — raise it deliberately or trim`);
+  assert.ok(lines <= CAPS.playbook.auto, `auto.md is ${lines} effective lines, budget is ${CAPS.playbook.auto} — raise it deliberately or trim`);
 });
