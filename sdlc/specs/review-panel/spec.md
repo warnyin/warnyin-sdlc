@@ -33,3 +33,18 @@ this in `review.md` (where the task is written) and in `build.md` (where it is t
 #### Scenario: a class fix is ticked
 - WHEN a builder ticks a fix task that carries a sweep
 - THEN `build.md` requires the sweep re-run first and its command and result noted on the task
+
+### Requirement: A repeated panel reviews the fix, not the change again
+The system SHALL, when review runs again after a review that recorded blockers, brief every
+reviewer with the previous blockers and the fix diff: a blocker may be raised only where a
+previous blocker is not closed, the fix diff causes a defect, or the defect is a security,
+data-loss or contract one wherever it is; any other finding is an improvement for the digest.
+`review.md` SHALL state it.
+
+#### Scenario: a repeated panel finds an old issue
+- WHEN a reviewer in a repeated panel finds a non-security defect in code the fix diff did not touch
+- THEN it is recorded as an improvement, and the panel can still record zero blockers
+
+#### Scenario: a repeated panel finds a late security defect
+- WHEN a reviewer in a repeated panel finds a security, data-loss or contract defect anywhere
+- THEN it is a blocker

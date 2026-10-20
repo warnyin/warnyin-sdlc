@@ -21,8 +21,17 @@ Pick the gate from the change's journal, in this order:
    - **Live**: when the change has a runnable surface (a CLI, server or UI a person can run),
      exercise the changed behavior once as a smoke check.
    - **Evals (non-deterministic)** — when `contract/evals.md` exists: delegate to
-     the `sdlc-evaluator` agent (cheap) with the rubric + the diff + the task log;
-     it returns a score per rubric line. Pass bar is written in the file.
+     the `sdlc-evaluator` agent (cheap) with the rubric + the diff + this round's
+     test output + the change's journal; it returns a score per rubric line. This
+     round's verify note is written after its verdict, so the evaluator does not wait for it.
+     Pass bar is written in the file.
+     The re-score after a failed fast gate also hands it the previous verdict and
+     the fix diff — everything edited since the failed round's verify note: a line that
+     met the bar keeps its score unless the fix diff touched what it judged; a touched
+     line now below the bar fails the round; a new finding on untouched code goes to the
+     change for the digest and does not fail the round, unless it is a security, data-loss
+     or contract defect, which fails the round wherever it is (a contract defect: a
+     behavior a `contract/tests.md` row or a Delta scenario pins, now broken).
      If the evaluator cannot run — subagents unavailable or disallowed in this
      session — score in the main loop instead and record that. A panel that could
      not run is a fact to write down, never a reason to stop the pipeline; but a

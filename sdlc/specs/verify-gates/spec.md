@@ -102,3 +102,45 @@ with running recommended. A skip SHALL be recorded with who decided and named in
 #### Scenario: a report counts a skipped final gate
 - WHEN a change's journal holds a fast pass and a skipped final gate
 - THEN its report shows one round and first-pass true
+
+### Requirement: Advisory rubric lines never fail the gate
+The system SHALL treat a rubric line marked `(advisory)` as scored and reported but outside the
+pass bar. Only a minimalism (over-build) line may be advisory, never a security, data or
+contract line. `contract-evals.md` (the pass bar), `sdlc-evaluator.md` (the verdict) and
+`contract-writing/SKILL.md` (how a rubric is written) SHALL each state it.
+
+#### Scenario: the evaluator returns its verdict
+- WHEN an advisory line scores below the bar and every other line meets it
+- THEN the verdict is PASS, and the advisory line's score and evidence are still listed
+
+### Requirement: The evaluator judges a fixed evidence bundle
+The system SHALL have verify hand `sdlc-evaluator` the rubric, the diff, the output of this
+round's test run and the change's journal, and SHALL tell it that this round's verify note is
+written after its verdict. `verify.md` (what is handed) and `sdlc-evaluator.md` (what it
+scores from) SHALL each state it.
+
+#### Scenario: trajectory is scored
+- WHEN the evaluator scores the trajectory line
+- THEN it scores from the bundle, and the absence of this round's own verify note is not evidence
+
+### Requirement: A re-score judges what failed and what the fix touched
+The system SHALL, when the evals are scored again after a failed fast gate, hand the evaluator
+the previous verdict and the fix diff — everything edited since the failed round's verify
+note, defined once in `verify.md`. A line that met the bar keeps its score unless the fix diff
+touched what it judged; a new finding on code the fix did not touch is recorded on the change
+for the digest and does not fail the round — unless it is a security, data-loss or contract
+defect (a contract defect: a behavior a `contract/tests.md` row or a Delta scenario pins, now
+broken), which fails the round wherever it is. `verify.md` and `sdlc-evaluator.md` SHALL each
+state it, using that exact phrase; `review.md` uses the same phrase.
+
+#### Scenario: a fresh finding on untouched code
+- WHEN a re-score finds a new issue in code the fix diff did not touch
+- THEN it is listed as a digest item, and the round passes if every scoped line meets the bar
+
+#### Scenario: the fix breaks something it touched
+- WHEN the fix diff touches what a passing line judged and that line now scores below the bar
+- THEN the round fails on that line
+
+#### Scenario: a late-found security defect
+- WHEN a re-score finds a security, data-loss or contract defect in code the fix did not touch
+- THEN the round fails on it

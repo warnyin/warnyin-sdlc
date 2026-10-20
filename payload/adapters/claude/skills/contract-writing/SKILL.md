@@ -19,8 +19,10 @@ user-invocable: false
 - Trajectory lines: did the agent read the contract first, run tests before
   claiming done, stay inside its file scope?
 - Quality lines: change-specific bars a human reviewer would check.
-- A written pass bar (e.g. "all ≥4") — the sdlc-evaluator scores 1–5 per line
-  and failures route back to build with a cluster note.
+- A written pass bar (e.g. "all non-advisory ≥ 4") — the sdlc-evaluator scores 1–5 per line
+  and failures route back to build with a cluster note. A rubric line marked
+  `(advisory)` (over-build is seeded so) is scored but outside the pass bar. Only a
+  minimalism line may be advisory, never a security, data or contract line.
 
 Anti-patterns: restating the delta as prose, rows nobody can automate,
 rubric lines that cannot be scored from the diff + task log.
