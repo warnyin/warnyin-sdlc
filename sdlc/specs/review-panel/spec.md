@@ -48,3 +48,22 @@ data-loss or contract one wherever it is; any other finding is an improvement fo
 #### Scenario: a repeated panel finds a late security defect
 - WHEN a reviewer in a repeated panel finds a security, data-loss or contract defect anywhere
 - THEN it is a blocker
+
+### Requirement: Every reviewer applies the repeated-panel scope itself
+The system SHALL have each panel reviewer state that in a repeated panel — one briefed with previous
+blockers and a fix diff — it raises a blocker only for a previous blocker not closed, a defect the
+fix diff causes, or a security, data-loss or contract defect wherever it is, and reports anything
+else as an improvement. `sdlc-architect.md`, `sdlc-security.md`, `sdlc-quality.md` and `sdlc-ops.md`
+SHALL each state it, carrying `review.md`'s rule clause verbatim ("a blocker is raised only for …;
+anything else is an improvement") behind one shared lead-in addressed to the reviewer.
+
+#### Scenario: a reviewer in a repeated panel finds an old non-security issue
+- WHEN it is in code the fix diff did not touch
+- THEN the reviewer reports it as an improvement, from its own agent file
+
+### Requirement: A repeated panel never narrows the security review
+The system SHALL have `sdlc-security.md` state that a repeated panel never narrows what it checks.
+
+#### Scenario: a late-found vulnerability in untouched code
+- WHEN the security reviewer in a repeated panel finds it
+- THEN it reports a blocker

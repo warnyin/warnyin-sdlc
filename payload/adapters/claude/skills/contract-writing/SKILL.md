@@ -10,6 +10,7 @@ user-invocable: false
 - Derive rows FROM the Delta scenarios; every ADDED/MODIFIED requirement must
   appear in at least one row. Uncovered requirement = contract gap.
 - Prefer the cheapest kind that proves the behavior (unit > int > e2e).
+- A row that pins a rule written in prose asserts it as one exact sentence, whitespace collapsed, inside a non-empty anchor, and pins known contradicting wording absent as literal text; it never uses a regex over the rule's meaning.
 - `## Out of scope` names what is deliberately untested and why — silence is not
   a decision.
 - Generated tests must FAIL before implementation (red). A pre-passing test

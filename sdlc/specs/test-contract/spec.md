@@ -24,3 +24,14 @@ pass. `sdlc-contractor.md` SHALL state it.
 #### Scenario: a row requires a finding to be an improvement, never a blocker
 - WHEN the contractor writes the assertion
 - THEN `sdlc-contractor.md` has it pin those words and their polarity, not any text containing both
+
+### Requirement: A prose rule is pinned as an exact sentence
+The system SHALL tell whoever writes a contract test that a row pinning a rule stated in prose (a
+playbook, agent file, template or changelog) asserts the rule as one exact sentence — whitespace
+collapsed, inside a non-empty anchor — and pins known contradicting wording absent as literal text,
+never a regex over the rule's meaning. `sdlc-contractor.md` (who writes the tests) and
+`contract-writing/SKILL.md` (how a contract is written) SHALL each state it, in the same sentence.
+
+#### Scenario: a row pins "a touched line below the bar fails the round"
+- WHEN the contractor writes the test
+- THEN it asserts that sentence verbatim in its anchor, so "does not fail the round" turns it red

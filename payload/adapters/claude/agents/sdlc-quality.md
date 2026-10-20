@@ -21,3 +21,4 @@ In review mode, a blocker also names its class, not only this instance:
 append `· class: <defect class> · sweep: <the Grep pattern you ran> · hits:
 <every file:line it matched>`. Run the sweep across the whole tree before
 reporting; it must match this instance too.
+In a repeated panel, when you are briefed with the previous blockers and the fix diff, a blocker is raised only for a previous blocker not closed, a defect the fix diff causes, or a security, data-loss or contract defect wherever it is; anything else is an improvement.
