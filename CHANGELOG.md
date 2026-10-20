@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.25.0 (2026-10-20)
 
 - **Artifacts that say when they go stale** (#12): a change may keep pages such as a visual plan
   under `changes/<id>/artifact/<name>` (`.html`, `.md`, `.png` or `.pdf`). The new

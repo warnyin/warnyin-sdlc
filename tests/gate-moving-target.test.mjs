@@ -215,11 +215,14 @@ test('row 13: "fix diff" is defined once, in verify.md, and nowhere defined agai
   }
 });
 
-test('row 14: CHANGELOG ## Unreleased names the advisory over-build line and the evals.md that keep the old one', () => {
+// The entry lives in the newest CHANGELOG section: `## Unreleased` until a release renames it to
+// `## X.Y.Z (date)` (README, release step 1). Pin the content, not the transient heading.
+test('row 14: the newest CHANGELOG section names the advisory over-build line and the evals.md that keep the old one', () => {
   const changelog = read(PKG_ROOT, 'CHANGELOG.md');
-  const firstHeading = changelog.split(/\r?\n/).find((l) => l.startsWith('## '));
-  assert.equal(firstHeading, '## Unreleased', 'the first ## heading of CHANGELOG.md must be ## Unreleased');
-  const unreleased = nonEmpty(section(changelog, 'Unreleased'), 'CHANGELOG.md ## Unreleased');
-  assertRule(unreleased, 'changelogAdvisory', 'CHANGELOG.md ## Unreleased');
-  assertRule(unreleased, 'changelogExistingEvals', 'CHANGELOG.md ## Unreleased');
+  const firstHeading = changelog.split(/\r?\n/).find((l) => l.startsWith('## ')) ?? '';
+  assert.ok(firstHeading === '## Unreleased' || /^## \d+\.\d+\.\d+ \(\d{4}-\d{2}-\d{2}\)$/.test(firstHeading),
+    `the newest CHANGELOG heading must be ## Unreleased or ## X.Y.Z (date), got "${firstHeading}"`);
+  const newest = nonEmpty(section(changelog, firstHeading.slice(3)), `CHANGELOG.md ${firstHeading}`);
+  assertRule(newest, 'changelogAdvisory', `CHANGELOG.md ${firstHeading}`);
+  assertRule(newest, 'changelogExistingEvals', `CHANGELOG.md ${firstHeading}`);
 });
