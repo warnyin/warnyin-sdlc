@@ -12,6 +12,19 @@
   rather than guess: a Windows reserved name such as `con.html`, a symlink or junction, a path
   listed twice, a change with no Design or Delta, or a result it could not read back.
   Validate never opens an artifact; it only looks at what is on disk.
+- **Verify and review stop moving the target**: the over-build rubric line is now
+  `(advisory)` — scored and reported, never deciding the pass bar, as review never made
+  over-build a blocker. A change's existing `contract/evals.md` keeps its old unmarked line
+  until edited by hand. The evaluator is handed a fixed bundle (rubric, diff, this round's test
+  output, the journal). A re-score after a failed fast gate judges what failed and what the fix
+  touched, and a repeated review panel judges the fix; a new finding elsewhere goes to the digest
+  unless it is a security, data-loss or contract defect, which still fails the round.
+- **Reviewers and contracts carry the anti-loop rules**: `sdlc-contractor` and the
+  contract-writing skill now pin a rule written in prose as one exact sentence, never a regex
+  over its meaning. The four reviewers carry the repeated-panel scope themselves, and the security
+  reviewer states that a repeated panel never narrows what it checks.
+  - Upgrade note: a project that kept an edited `verify.md`, `review.md`, `sdlc-evaluator.md` or
+    reviewer agent file keeps its old text on `update`; merge the new rules by hand.
 
 ## 0.24.0 (2026-10-08)
 

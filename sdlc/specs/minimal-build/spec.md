@@ -36,8 +36,14 @@ panel) SHALL both state it.
 
 ### Requirement: The eval rubric scores over-build
 The system SHALL seed `contract-evals.md` with a rubric line scoring whether the change took the
-lowest rung that holds and added no unrequested abstraction, dependency or file.
+lowest rung that holds and added no unrequested abstraction, dependency or file, marked
+`(advisory)`: it is scored and reported, and never decides the pass bar — as review never
+makes over-build a blocker.
 
 #### Scenario: a change writes its evals
 - WHEN `/sdlc:contract` seeds `contract/evals.md` from the template
-- THEN the rubric carries the over-build line for `sdlc-evaluator` to score
+- THEN the rubric carries the over-build line marked `(advisory)` for `sdlc-evaluator` to score
+
+#### Scenario: over-build scores low
+- WHEN every non-advisory line scores ≥ 4 and the advisory over-build line scores 3
+- THEN the evals pass, and the over-build findings go to the change for the digest

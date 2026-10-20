@@ -10,6 +10,7 @@ user-invocable: false
 - Derive rows FROM the Delta scenarios; every ADDED/MODIFIED requirement must
   appear in at least one row. Uncovered requirement = contract gap.
 - Prefer the cheapest kind that proves the behavior (unit > int > e2e).
+- A row that pins a rule written in prose asserts it as one exact sentence, whitespace collapsed, inside a non-empty anchor, and pins known contradicting wording absent as literal text; it never uses a regex over the rule's meaning.
 - `## Out of scope` names what is deliberately untested and why — silence is not
   a decision.
 - Generated tests must FAIL before implementation (red). A pre-passing test
@@ -19,8 +20,10 @@ user-invocable: false
 - Trajectory lines: did the agent read the contract first, run tests before
   claiming done, stay inside its file scope?
 - Quality lines: change-specific bars a human reviewer would check.
-- A written pass bar (e.g. "all ≥4") — the sdlc-evaluator scores 1–5 per line
-  and failures route back to build with a cluster note.
+- A written pass bar (e.g. "all non-advisory ≥ 4") — the sdlc-evaluator scores 1–5 per line
+  and failures route back to build with a cluster note. A rubric line marked
+  `(advisory)` (over-build is seeded so) is scored but outside the pass bar. Only a
+  minimalism line may be advisory, never a security, data or contract line.
 
 Anti-patterns: restating the delta as prose, rows nobody can automate,
 rubric lines that cannot be scored from the diff + task log.

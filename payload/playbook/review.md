@@ -11,7 +11,11 @@ ceremonial review is garbage — and record it:
 `node sdlc/.hooks/journal.mjs note review blockers=0 skipped=no-signal`. It is a record only;
 verify re-checks the signals itself and never counts it as a review.
 
-1. Fan out in parallel, all read-only, each with the diff + change.md only:
+1. Fan out in parallel, all read-only, each given the diff + change.md; after a review that recorded
+   blockers, every reviewer is also briefed with the previous blockers and the fix diff: a blocker
+   is raised only for a previous blocker not closed, a defect the fix diff causes, or a security,
+   data-loss or contract defect wherever it is; anything else is an improvement, so the panel can
+   still record zero blockers.
    - `sdlc-architect` (balanced): design integrity, coupling, contract drift.
    - `sdlc-security` (balanced): injection, authz, secrets, unsafe deps.
    - `sdlc-quality` (cheap): contract coverage gaps, edge cases, dead code, over-build
