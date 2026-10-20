@@ -643,3 +643,354 @@ test('row 24: update check never writes through a symlinked sdlc/.state', async 
   while (hits.length === 0 && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50));
   assert.equal(hits.length, 1, 'a real .state/ must still check');
 });
+
+// ---- change-artifacts rows 5-10 and 18: the artifact stamp and validate refuse names, paths and
+// links they must not follow. Each refusal runs a valid name on the same fixture as its control.
+
+function caProject(t) {
+  const root = makeTempProject(t);
+  assert.equal(runCli(root, ['init', '--tool', 'claude']).status, 0);
+  return root;
+}
+
+// Refused by the OS (no privilege, no developer mode) comes back as the error, not a throw.
+function caLink(target, link, type) {
+  try {
+    fs.symlinkSync(target, link, type);
+    return null;
+  } catch (err) {
+    return err;
+  }
+}
+
+// A file symlink goes by unlink; a directory link (or a Windows junction) only by rmdir.
+function caUnlink(link) {
+  try { fs.unlinkSync(link); } catch { fs.rmdirSync(link); }
+}
+
+// Every entry under dir, sorted; links are listed, never followed.
+function caTree(dir) {
+  const out = [];
+  const walk = (abs, rel) => {
+    for (const e of fs.readdirSync(abs, { withFileTypes: true })) {
+      const r = path.join(rel, e.name);
+      out.push(r);
+      if (e.isDirectory()) walk(path.join(abs, e.name), r);
+    }
+  };
+  walk(dir, '');
+  return out.sort();
+}
+
+const caWarns = (text) => text.split(/\r?\n/).filter((l) => l.startsWith('⚠'));
+
+function caOutside(t, root) {
+  const outside = fs.mkdtempSync(path.join(root, '..', 'outside-art-'));
+  t.after(() => fs.rmSync(outside, { recursive: true, force: true }));
+  return outside;
+}
+
+function caPlan(dir) {
+  fs.mkdirSync(path.join(dir, 'artifact'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'artifact', 'plan.html'), '<p>plan</p>\n');
+}
+
+test('change-artifacts row 5: a name that is not an artifact name is refused, named, and change.md stays byte-identical', (t) => {
+  const root = caProject(t);
+  const dir = writeChange(root, 'names', { body: STANDARD_BODY });
+  caPlan(dir);
+  const file = path.join(dir, 'change.md');
+  const before = fs.readFileSync(file);
+  const names = ['a/b.md', '..\\x.md', '../x.md', 'C:\\x.md', 'x.exe', 'Plan.HTML', 'plan.html.',
+    'plan.html ', 'plan.html:x', 'pl\u0430n.html', 'plan\uFF0Ehtml', ''];
+  for (const name of names) {
+    const label = JSON.stringify(name);
+    const res = runCli(root, ['artifact', 'names', name]);
+    assert.notEqual(res.status, 0, `${label} must be refused`);
+    assert.match(res.stderr, /not an artifact name/, `${label}: stderr must say it is not an artifact name`);
+    if (name) assert.ok(res.stderr.includes(name), `${label}: stderr must echo the name`);
+    assert.ok(fs.readFileSync(file).equals(before), `${label}: change.md must stay byte-identical`);
+  }
+  // Positive control on the same fixture.
+  assert.equal(runCli(root, ['artifact', 'names', 'plan.html']).status, 0);
+});
+
+test('change-artifacts row 6: an absent artifact or a directory is refused naming the file and its own reason; nothing is written', (t) => {
+  const root = caProject(t);
+  const dir = writeChange(root, 'nothing', { body: STANDARD_BODY });
+  caPlan(dir);
+  const sdlc = path.join(root, 'sdlc');
+  const refuse = (name, why) => {
+    const before = caTree(sdlc);
+    const res = runCli(root, ['artifact', 'nothing', name]);
+    assert.notEqual(res.status, 0, `${name} must be refused`);
+    assert.ok(res.stderr.includes(name), `${name}: stderr must name the file, got ${res.stderr}`);
+    assert.match(res.stderr, why, `${name}: stderr must say why`);
+    assert.deepEqual(caTree(sdlc), before, `${name}: nothing may be created or changed`);
+  };
+  refuse('x.md', /is missing/);
+  fs.mkdirSync(path.join(dir, 'artifact', 'x.md'));
+  refuse('x.md', /is not a regular file/);
+  assert.equal(runCli(root, ['artifact', 'nothing', 'plan.html']).status, 0, 'control: plan.html stamps');
+  // A change with no artifact/ folder at all: refused as missing, and the folder is not created.
+  writeChange(root, 'no-folder', { body: STANDARD_BODY });
+  const before = caTree(sdlc);
+  const res = runCli(root, ['artifact', 'no-folder', 'x.md']);
+  assert.notEqual(res.status, 0, 'no artifact/ folder must be refused');
+  assert.ok(res.stderr.includes('artifact/x.md'), `stderr must name the file, got ${res.stderr}`);
+  assert.match(res.stderr, /folder .* is missing/, 'stderr must say the artifact/ folder is missing');
+  assert.deepEqual(caTree(sdlc), before, 'no artifact/ folder may be created');
+});
+
+test('change-artifacts row 6: a symlink artifact/x.md to a file outside the project is refused and nothing is followed or written', (t) => {
+  const root = caProject(t);
+  const dir = writeChange(root, 'linked-file', { body: STANDARD_BODY });
+  caPlan(dir);
+  const outside = caOutside(t, root);
+  const secret = path.join(outside, 'x.md');
+  fs.writeFileSync(secret, 'OUTSIDE\n');
+  const link = path.join(dir, 'artifact', 'x.md');
+  const err = caLink(secret, link, 'file');
+  if (err) { t.skip(`cannot create a symlink here (${err.code})`); return; }
+  const changeBytes = fs.readFileSync(path.join(dir, 'change.md'));
+  const secretBytes = fs.readFileSync(secret);
+  const res = runCli(root, ['artifact', 'linked-file', 'x.md']);
+  assert.notEqual(res.status, 0, res.stdout + res.stderr);
+  assert.ok(res.stderr.includes('x.md'), `stderr must name x.md, got ${res.stderr}`);
+  assert.match(res.stderr, /is a symlink/, 'stderr must say artifact/x.md is a symlink');
+  assert.ok(fs.readFileSync(path.join(dir, 'change.md')).equals(changeBytes), 'change.md must be unchanged');
+  assert.ok(fs.readFileSync(secret).equals(secretBytes), 'the outside file must be byte-identical');
+  // Positive control: the same change with a regular x.md stamps.
+  caUnlink(link);
+  fs.writeFileSync(path.join(dir, 'artifact', 'x.md'), '# x\n');
+  assert.equal(runCli(root, ['artifact', 'linked-file', 'x.md']).status, 0, 'control: a regular x.md stamps');
+});
+
+// artifact/ itself a link to a directory outside the project. A Windows junction is the same
+// shape, so the junction case calls symlinkSync directly and never skips.
+function caDirLinkRefusal(t, type, { skipOnRefusal }) {
+  const root = caProject(t);
+  const dir = writeChange(root, 'linked-dir', { body: STANDARD_BODY });
+  const outside = caOutside(t, root);
+  fs.writeFileSync(path.join(outside, 'x.md'), 'OUTSIDE\n');
+  const link = path.join(dir, 'artifact');
+  const err = caLink(outside, link, type);
+  if (err) {
+    if (skipOnRefusal) { t.skip(`cannot create a ${type} here (${err.code})`); return; }
+    throw err;
+  }
+  const changeBytes = fs.readFileSync(path.join(dir, 'change.md'));
+  const outsideBytes = fs.readFileSync(path.join(outside, 'x.md'));
+  const res = runCli(root, ['artifact', 'linked-dir', 'x.md']);
+  assert.notEqual(res.status, 0, res.stdout + res.stderr);
+  assert.ok(res.stderr.includes('x.md'), `stderr must name x.md, got ${res.stderr}`);
+  assert.match(res.stderr, /is not a real directory/, 'stderr must say artifact/ is not a real directory');
+  assert.ok(fs.readFileSync(path.join(dir, 'change.md')).equals(changeBytes), 'change.md must be unchanged');
+  assert.ok(fs.readFileSync(path.join(outside, 'x.md')).equals(outsideBytes), 'the outside file must be byte-identical');
+  // Positive control: the same change with a real artifact/ directory stamps.
+  caUnlink(link);
+  fs.mkdirSync(link);
+  fs.writeFileSync(path.join(link, 'x.md'), '# x\n');
+  assert.equal(runCli(root, ['artifact', 'linked-dir', 'x.md']).status, 0, 'control: a real artifact/ stamps');
+}
+
+test('change-artifacts row 6: an artifact/ symlink to a directory outside the project is refused and nothing is written', (t) => {
+  caDirLinkRefusal(t, 'dir', { skipOnRefusal: true });
+});
+
+test('change-artifacts row 6: an artifact/ Windows junction to a directory outside the project is refused and nothing is written', (t) => {
+  caDirLinkRefusal(t, 'junction', { skipOnRefusal: false });
+});
+
+test('change-artifacts row 7: an archive, a traversal, an absent or an archived id is refused naming the id and creates nothing under sdlc/changes/', (t) => {
+  const root = caProject(t);
+  const dir = writeChange(root, 'open-one', { body: STANDARD_BODY });
+  caPlan(dir);
+  const archived = path.join(root, 'sdlc', 'changes', 'archive', '2026-01-01-old-one');
+  fs.mkdirSync(path.join(archived, 'artifact'), { recursive: true });
+  fs.writeFileSync(path.join(archived, 'change.md'), STANDARD_BODY);
+  fs.writeFileSync(path.join(archived, 'artifact', 'plan.html'), '<p>plan</p>\n');
+  // changes/archive/change.md exists, so only the id rule can refuse the id `archive`.
+  fs.writeFileSync(path.join(root, 'sdlc', 'changes', 'archive', 'change.md'), STANDARD_BODY);
+  const sdlc = path.join(root, 'sdlc');
+  const cases = [
+    ['archive', /not a change id/],
+    ['../x', /not a change id/],
+    ['absent-id', /not an open change/],
+    ['2026-01-01-old-one', /not an open change/],
+  ];
+  for (const [id, why] of cases) {
+    const before = caTree(sdlc);
+    const res = runCli(root, ['artifact', id, 'plan.html']);
+    assert.notEqual(res.status, 0, `${id} must be refused`);
+    assert.ok(res.stderr.includes(id), `${id}: stderr must name the id, got ${res.stderr}`);
+    assert.match(res.stderr, why, `${id}: stderr must say why`);
+    assert.deepEqual(caTree(sdlc), before, `${id}: nothing may be created under sdlc/changes/`);
+  }
+  assert.equal(runCli(root, ['artifact', 'open-one', 'plan.html']).status, 0, 'control: an open id stamps');
+});
+
+test('change-artifacts row 8: two ## Artifacts sections are refused as more than once, change.md byte-identical', (t) => {
+  const root = caProject(t);
+  const twice = `${STANDARD_BODY}## Artifacts\n- [a](artifact/plan.html)\n\n## Artifacts\n`;
+  const dir = writeChange(root, 'twice', { body: twice });
+  caPlan(dir);
+  const file = path.join(dir, 'change.md');
+  const before = fs.readFileSync(file);
+  const res = runCli(root, ['artifact', 'twice', 'plan.html']);
+  assert.notEqual(res.status, 0, res.stdout + res.stderr);
+  assert.ok(res.stderr.includes('## Artifacts'), `stderr must name ## Artifacts, got ${res.stderr}`);
+  assert.match(res.stderr, /more than once/, 'stderr must say it appears more than once');
+  assert.ok(fs.readFileSync(file).equals(before), 'change.md must be byte-identical');
+  // Positive control: the same change with the second section removed stamps.
+  const text = fs.readFileSync(file, 'utf8');
+  fs.writeFileSync(file, text.slice(0, text.lastIndexOf('## Artifacts')));
+  assert.equal(runCli(root, ['artifact', 'twice', 'plan.html']).status, 0, 'control: one section stamps');
+});
+
+test('change-artifacts row 9: a change.md that is a symlink out of the project is refused naming the change; the outside file is byte-identical', (t) => {
+  const root = caProject(t);
+  const dir = path.join(root, 'sdlc', 'changes', 'linked-md');
+  caPlan(dir);
+  const outside = caOutside(t, root);
+  const outsideFile = path.join(outside, 'change.md');
+  fs.writeFileSync(outsideFile, STANDARD_BODY);
+  const err = caLink(outsideFile, path.join(dir, 'change.md'), 'file');
+  if (err) { t.skip(`cannot create a symlink here (${err.code})`); return; }
+  const bytes = fs.readFileSync(outsideFile);
+  const res = runCli(root, ['artifact', 'linked-md', 'plan.html']);
+  assert.notEqual(res.status, 0, res.stdout + res.stderr);
+  assert.ok(res.stderr.includes('linked-md'), `stderr must name the change, got ${res.stderr}`);
+  assert.match(res.stderr, /does not really resolve/, 'stderr must say the change does not really resolve');
+  assert.ok(fs.readFileSync(outsideFile).equals(bytes), 'the outside file must be byte-identical');
+  // Positive control: the same change with a regular change.md stamps.
+  caUnlink(path.join(dir, 'change.md'));
+  writeChange(root, 'linked-md', { body: STANDARD_BODY });
+  assert.equal(runCli(root, ['artifact', 'linked-md', 'plan.html']).status, 0, 'control: a regular change.md stamps');
+});
+
+test('change-artifacts row 10: a read-only change.md is refused naming the change and the failed write, with no success line', (t) => {
+  const root = caProject(t);
+  const dir = writeChange(root, 'readonly', { body: STANDARD_BODY });
+  caPlan(dir);
+  const file = path.join(dir, 'change.md');
+  fs.chmodSync(file, 0o444);
+  // The temp project may already be gone when this runs (its own cleanup is registered first).
+  t.after(() => { try { fs.chmodSync(file, 0o644); } catch { /* already removed */ } });
+  const res = runCli(root, ['artifact', 'readonly', 'plan.html']);
+  assert.notEqual(res.status, 0, res.stdout + res.stderr);
+  assert.ok(res.stderr.includes('readonly'), `stderr must name the change, got ${res.stderr}`);
+  assert.match(res.stderr, /write/i, 'stderr must name the failed write');
+  assert.doesNotMatch(res.stdout, /artifact\/plan\.html/, 'stdout must carry no success line');
+  // Positive control: the same change, writable again, stamps.
+  fs.chmodSync(file, 0o644);
+  assert.equal(runCli(root, ['artifact', 'readonly', 'plan.html']).status, 0, 'control: a writable change.md stamps');
+});
+
+test('change-artifacts row 18: listed paths that escape or are not allowed each warn once and never fail validate, plain or --strict', (t) => {
+  const root = caProject(t);
+  const dir = writeChange(root, 'escapes', {
+    body: `${STANDARD_BODY}## Artifacts\n- ../x.md\n- /etc/x.md\n- C:\\x.md\n- artifact/sub/x.md\n`
+      + '- artifact/./x.md\n- artifact//x.md\n- artifact/x.exe\n- artifact/ok.md\n',
+  });
+  fs.mkdirSync(path.join(dir, 'artifact'));
+  fs.writeFileSync(path.join(dir, 'artifact', 'ok.md'), '# ok\n');
+  // Present on disk, so only the extension rule can make it warn — not its absence.
+  fs.writeFileSync(path.join(dir, 'artifact', 'x.exe'), 'MZ\n');
+  // `../x.md` from artifact/ resolves to sdlc/changes/x.md: a real file that must never be touched.
+  const real = path.join(root, 'sdlc', 'changes', 'x.md');
+  fs.writeFileSync(real, 'REAL FILE, NOT AN ARTIFACT\n');
+  const realBytes = fs.readFileSync(real);
+  for (const args of [['validate', 'escapes'], ['validate', 'escapes', '--strict']]) {
+    const label = args.join(' ');
+    const res = runCli(root, args);
+    assert.equal(res.status, 0, `${label} must exit 0: ${res.stdout}${res.stderr}`);
+    const warns = caWarns(res.stdout + res.stderr);
+    for (const p of ['../x.md', '/etc/x.md', 'C:\\x.md', 'artifact/sub/x.md', 'artifact/./x.md', 'artifact//x.md', 'artifact/x.exe']) {
+      const hits = warns.filter((l) => l.includes(p));
+      assert.equal(hits.length, 1, `${label}: ${p}: exactly one warn line naming it, got ${JSON.stringify(hits)}`);
+      assert.match(hits[0], /not an artifact path/, `${label}: ${p}: the warning must say it is not an artifact path`);
+    }
+    assert.equal(warns.filter((l) => l.includes('ok.md')).length, 0, `${label}: control: a regular, allowed listed file does not warn`);
+    assert.ok(fs.readFileSync(real).equals(realBytes), `${label}: sdlc/changes/x.md must stay byte-identical`);
+  }
+});
+
+test('change-artifacts row 18: a dangling symlink and a symlink to an outside file each warn once and are never opened', (t) => {
+  const root = caProject(t);
+  const dir = writeChange(root, 'links', {
+    body: `${STANDARD_BODY}## Artifacts\n- artifact/dangling.md\n- artifact/outside.md\n`,
+  });
+  fs.mkdirSync(path.join(dir, 'artifact'));
+  const outside = caOutside(t, root);
+  const secret = path.join(outside, 'secret.md');
+  fs.writeFileSync(secret, 'OUTSIDE\n');
+  const dangling = caLink(path.join(outside, 'nowhere.md'), path.join(dir, 'artifact', 'dangling.md'), 'file');
+  if (dangling) { t.skip(`cannot create a symlink here (${dangling.code})`); return; }
+  const toOutside = caLink(secret, path.join(dir, 'artifact', 'outside.md'), 'file');
+  if (toOutside) { t.skip(`cannot create a symlink here (${toOutside.code})`); return; }
+  const bytes = fs.readFileSync(secret);
+  const res = runCli(root, ['validate', 'links']);
+  assert.equal(res.status, 0, `validate must exit 0: ${res.stdout}${res.stderr}`);
+  const warns = caWarns(res.stdout + res.stderr);
+  for (const p of ['artifact/dangling.md', 'artifact/outside.md']) {
+    const hits = warns.filter((l) => l.includes(p));
+    assert.equal(hits.length, 1, `${p}: exactly one warn line naming it, got ${JSON.stringify(hits)}`);
+  }
+  assert.ok(fs.readFileSync(secret).equals(bytes), 'the outside file must be byte-identical');
+});
+
+test('change-artifacts row 27: a PRESENT artifact/con.html stamps nothing (POSIX); change.md byte-identical', (t) => {
+  if (process.platform === 'win32') {
+    t.skip('win32 cannot create a file named con.html');
+    return;
+  }
+  const root = caProject(t);
+  const dir = writeChange(root, 'device', { body: STANDARD_BODY });
+  caPlan(dir);
+  fs.writeFileSync(path.join(dir, 'artifact', 'con.html'), '<p>con</p>\n');
+  const file = path.join(dir, 'change.md');
+  const before = fs.readFileSync(file);
+  const res = runCli(root, ['artifact', 'device', 'con.html']);
+  assert.notEqual(res.status, 0, res.stdout + res.stderr);
+  assert.ok(fs.readFileSync(file).equals(before), 'change.md must be byte-identical');
+  // Positive control on the same change: plan.html stamps.
+  assert.equal(runCli(root, ['artifact', 'device', 'plan.html']).status, 0, 'control: plan.html stamps');
+});
+
+test('change-artifacts row 28: a path listed on two lines is refused naming it as listed more than once, change.md byte-identical', (t) => {
+  const root = caProject(t);
+  const dir = writeChange(root, 'twice-listed', { body: STANDARD_BODY });
+  caPlan(dir);
+  const file = path.join(dir, 'change.md');
+  assert.equal(runCli(root, ['artifact', 'twice-listed', 'plan.html']).status, 0, 'setup: the first stamp');
+  // One hand-placed link line joins the one stamped line for the same path.
+  fs.appendFileSync(file, '- [plan](artifact/plan.html)\n');
+  const before = fs.readFileSync(file);
+  const res = runCli(root, ['artifact', 'twice-listed', 'plan.html']);
+  assert.notEqual(res.status, 0, res.stdout + res.stderr);
+  assert.match(res.stderr, /artifact\/plan\.html.*listed more than once/, 'stderr must name artifact/plan.html and say listed more than once');
+  assert.ok(fs.readFileSync(file).equals(before), 'change.md must be byte-identical');
+  // Control: without the hand-placed line the same change stamps.
+  fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('- [plan](artifact/plan.html)\n', ''));
+  assert.equal(runCli(root, ['artifact', 'twice-listed', 'plan.html']).status, 0, 'control: one line for the path stamps');
+});
+
+test('change-artifacts row 30: a stamp that would not read back (an unclosed fence after Design and Delta) is refused each time, change.md byte-identical', (t) => {
+  const root = caProject(t);
+  const DESIGN_DELTA = '# Change: x\n\n## Design\n- decision: a\n\n## Delta: auth\n\n'
+    + '### ADDED Requirement: A\nThe system SHALL a.\n\n';
+  const dir = writeChange(root, 'unclosed', { body: `${DESIGN_DELTA}\`\`\`\nnever closed\n` });
+  caPlan(dir);
+  const file = path.join(dir, 'change.md');
+  const before = fs.readFileSync(file);
+  for (const run of [1, 2]) {
+    const res = runCli(root, ['artifact', 'unclosed', 'plan.html']);
+    assert.notEqual(res.status, 0, `run ${run} must be refused: ${res.stdout}${res.stderr}`);
+    assert.match(res.stderr, /would not read back/, `run ${run}: stderr must say the stamp would not read back`);
+    assert.ok(fs.readFileSync(file).equals(before), `run ${run}: change.md must be byte-identical`);
+  }
+  // Control: the same change with its fence closed stamps.
+  fs.appendFileSync(file, '```\n');
+  assert.equal(runCli(root, ['artifact', 'unclosed', 'plan.html']).status, 0, 'control: with the fence closed the stamp reads back');
+});

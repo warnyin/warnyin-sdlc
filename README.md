@@ -94,6 +94,7 @@ warnyin-sdlc changelog [--since X.Y.Z]  what a newer version changes — writes 
 warnyin-sdlc validate [id] [--strict]
 warnyin-sdlc status | observe [--json]
 warnyin-sdlc archive <id>           merge deltas into living specs + archive
+warnyin-sdlc artifact <id> <name>   stamp changes/<id>/artifact/<name> into change.md with its basis
 warnyin-sdlc skills [--json]        installed Claude skills/agents, for lens resolution
 warnyin-sdlc version | --version    print the installed framework version
 ```
@@ -130,7 +131,9 @@ publish step fails and nothing is released):
    whoever can push the tag can publish.
 
 Each release:
-1. Bump `version` in `package.json`, add the `CHANGELOG.md` entry, commit `chore(release): X.Y.Z`.
+1. Bump `version` in `package.json`, add the `CHANGELOG.md` entry (rename a `## Unreleased`
+   heading to `## X.Y.Z (date)` — `changelog` never shows an Unreleased section), commit
+   `chore(release): X.Y.Z`.
 2. `git tag vX.Y.Z && git push origin main vX.Y.Z`
 3. Watch the `release` run in GitHub Actions, then confirm with `npm view @warnyin/sdlc version`.
 

@@ -21,6 +21,9 @@ import {
   isSafeChangeId,
 } from '../lib/journal.mjs';
 import { resolveActive, clearPointersFor } from '../lib/active.mjs';
+import { resolveChangeFile } from '../lib/change-file.mjs';
+import { artifactNameError, artifactBasis, artifactFileState, hasBasisSections, readArtifacts, stampArtifacts } from '../lib/artifacts.mjs';
+import { writeFileContained, isRealPathInside } from '../lib/safe-path.mjs';
 import { analyze, shipImpact, renderShipImpact, escapeEntry } from '../lib/relations.mjs';
 import { scanInventory, renderInventory } from '../lib/skills.mjs';
 import { detectTools, toolName } from './detect.mjs';
@@ -875,6 +878,56 @@ export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
   return { archived: `${date}-${changeId}`, specs: merged.map((m) => m.capability), warnings: driftWarnings };
 }
 
+// ---------- artifact (stamp the Design basis an artifact was made from) ----------
+
+export function cmdArtifact(projectRoot, positionals) {
+  const [changeId, name] = positionals;
+  const sdlcRoot = path.join(projectRoot, 'sdlc');
+  requireSdlc(sdlcRoot);
+  if (positionals.length !== 2) throw new Error('usage: warnyin-sdlc artifact <change-id> <name>');
+  const { file, error } = resolveChangeFile(sdlcRoot, changeId, 'stamp');
+  if (error) throw new Error(error);
+  // A folder name from a cloned repo can carry control or bidi characters: this command's own
+  // messages echo it escaped (resolveChangeFile's refusals above are park's, unchanged).
+  const shown = escapeEntry(changeId);
+  const nameError = artifactNameError(name);
+  if (nameError) throw new Error(`cannot stamp "${shown}": ${nameError}`);
+
+  const refuse = (why) => new Error(`cannot stamp "${shown}": artifact/${name} ${why} — nothing was written`);
+  const dir = path.join(path.dirname(file), 'artifact');
+  const { state } = artifactFileState(path.dirname(file), name);
+  if (state === 'no-folder') throw new Error(`cannot stamp "${shown}": the artifact/ folder (holding artifact/${name}) is missing — nothing was written`);
+  if (state === 'bad-folder' || !isRealPathInside(sdlcRoot, dir)) {
+    throw new Error(`cannot stamp "${shown}": artifact/ (holding artifact/${name}) is not a real directory inside this project — nothing was written`);
+  }
+  if (state === 'missing' || state === 'unreadable') throw refuse('is missing');
+  if (state === 'symlink') throw refuse('is a symlink');
+  if (state !== 'ok') throw refuse('is not a regular file');
+
+  let before;
+  try { before = fs.readFileSync(file, 'utf8'); } catch { throw new Error(`cannot stamp "${shown}": change.md could not be read for artifact/${name} — nothing was written`); }
+  if (!hasBasisSections(before)) throw refuse('has nothing for a basis to depict (no ## Design and no ## Delta: section)');
+  const basis = artifactBasis(before);
+  const stamped = stampArtifacts(before, name, basis);
+  if (stamped.error) throw new Error(`cannot stamp "${shown}": artifact/${name} — ${stamped.error}`);
+  const proof = readArtifacts(stamped.text).filter((e) => e.path === `artifact/${name}`);
+  if (proof.length !== 1 || proof[0].basis !== basis) {
+    throw refuse('— the stamp would not read back (is ## Artifacts inside an unclosed code fence?)');
+  }
+  // Like park's commit(): the cause is named, never swallowed.
+  const failed = (why) => new Error(`cannot stamp "${shown}": the write of artifact/${name} to change.md ${why}`);
+  if (stamped.text !== before) {
+    let wrote;
+    try { wrote = writeFileContained(sdlcRoot, file, stamped.text); } catch (err) { throw failed(`failed (${escapeEntry(err.code ?? err.message)})`); }
+    if (!wrote) throw failed('was refused — change.md does not really resolve inside this project');
+  }
+  let entries;
+  try { entries = readArtifacts(fs.readFileSync(file, 'utf8')); } catch (err) { throw failed(`could not be re-read (${escapeEntry(err.code ?? err.message)})`); }
+  const mine = entries.filter((e) => e.path === `artifact/${name}`);
+  if (mine.length !== 1 || mine[0].basis !== basis) throw failed('did not hold on re-read');
+  console.log(`stamped: artifact/${name} · basis: ${basis} (${shown})`);
+}
+
 // ---------- shared ----------
 
 function requireSdlc(sdlcRoot) {
@@ -908,6 +961,7 @@ usage: warnyin-sdlc <command> [options]
   status [--json] [--all]           list active changes and their stage (--all includes parked)
   observe [--json]                  tokens/cost per change, residency, steering hits, drift flags
   archive <id>                      merge delta specs into living specs and archive the change
+  artifact <id> <name>              stamp artifact/<name> with the Design basis it was made from
   skills [--json]                   list installed Claude skills/agents (project + user) for lens resolution
   version | --version | -v          print the installed framework version
   help                              this text
@@ -928,6 +982,7 @@ export async function main(argv = process.argv.slice(2), projectRoot = process.c
     else if (cmd === 'status') cmdStatus(projectRoot, { json: args.json, all: args.all });
     else if (cmd === 'observe') cmdObserve(projectRoot, { json: args.json });
     else if (cmd === 'archive') cmdArchive(projectRoot, args._[1]);
+    else if (cmd === 'artifact') cmdArtifact(projectRoot, args._.slice(1));
     else if (cmd === 'skills') cmdSkills(projectRoot, { json: args.json });
     else { console.error(`unknown command: ${cmd}`); console.log(HELP); process.exitCode = 2; }
   } catch (err) {

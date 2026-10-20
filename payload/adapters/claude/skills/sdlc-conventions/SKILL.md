@@ -7,6 +7,7 @@ user-invocable: false
 
 Layout: `config.yaml` · `context/{constitution.md, steering/*.md}` · `harness.md`
 · `specs/<capability>/spec.md` · `changes/<id>/{change.md, contract/, runbook.md (deploy lens)}`
+· a change may list artifacts under `## Artifacts` in change.md, stamped with `warnyin-sdlc artifact <id> <name>` (file at `changes/<id>/artifact/<name>`, html|md|png|pdf); an artifact whose basis is stale or absent is not evidence, and fresh only means Design and Delta are unchanged since the stamp — change.md is the source of truth
 · telemetry: `.state/journal/<id>.ndjson` while open, sealed into the archived folder at ship
 · `changes/archive/<date>-<id>/` · `evals/<capability>/rubric.md` · `.state/` (machine)
 · `.state/sessions/<sid>.json` (this session's active-change pointer; `.state/active.json` is the project-wide fallback).

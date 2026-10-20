@@ -31,6 +31,8 @@ function validateSdlcWrite(rel) {
     issues = validateChange(path.join(sdlcRoot, 'changes', changeMatch[1]), {
       specsDir: path.join(sdlcRoot, 'specs'),
       sdlcRoot,
+      // Artifact warnings cost context on every write; `validate` reports them.
+      artifacts: false,
     });
   } else if (rel.startsWith('sdlc/context/') || rel === 'sdlc/harness.md') {
     issues = validateContext(sdlcRoot);

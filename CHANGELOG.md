@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- **Artifacts that say when they go stale** (#12): a change may keep pages such as a visual plan
+  under `changes/<id>/artifact/<name>` (`.html`, `.md`, `.png` or `.pdf`). The new
+  `warnyin-sdlc artifact <id> <name>` lists one under `## Artifacts` in change.md with a basis, a
+  hash of the Design and Delta sections. `validate` then warns when the Design or Delta has moved
+  on since, when a listed file is missing, or when a listed path is not a regular file directly
+  under `artifact/`. Those warnings never block, `--strict` included, and the write hook stays
+  silent about them. The command keeps the user's own text on a hand-written line and refuses
+  rather than guess: a Windows reserved name such as `con.html`, a symlink or junction, a path
+  listed twice, a change with no Design or Delta, or a result it could not read back.
+  Validate never opens an artifact; it only looks at what is on disk.
+
 ## 0.24.0 (2026-10-08)
 
 - **Runbooks for changes that are hard to deploy**: a new `deploy` lens is chosen when a change
