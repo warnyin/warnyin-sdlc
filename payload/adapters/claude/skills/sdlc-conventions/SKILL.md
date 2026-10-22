@@ -30,3 +30,4 @@ Gates: `node sdlc/.hooks/journal.mjs open-ship <id> | open-steer | close |
 set-active <id> (sets this session's pointer + the project fallback) | park <id> / unpark <id>
 (the park reason arrives on stdin as `{"reason": "..."}`, never as an argument) | note <name> [k=v]`.
 Validation: `npx @warnyin/sdlc validate [id] [--strict]` — red = the gate did not pass.
+A coverage word (every, all, none survived) is written only after the whole enumeration is walked, and is reported as N of M.

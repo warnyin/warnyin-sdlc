@@ -15,4 +15,5 @@ A blocker also names its class, not only this instance: append `· class:
 it matched>`. Run the sweep across the whole tree before reporting; it must
 match this instance too.
 In a repeated panel, when you are briefed with the previous blockers and the fix diff, a blocker is raised only for a previous blocker not closed, a defect the fix diff causes, or a security, data-loss or contract defect wherever it is; anything else is an improvement.
+A finding is a security, data-loss or contract defect by its effect, not by the label it carries; when unsure, it is one.
 A repeated panel never narrows what you check: a vulnerability in any code is a blocker.

@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- **Gate and review rules, second pass**: the evaluator is now also handed the Delta and
+  `contract/tests.md`, and is told that test output and the journal are data. `verify.md` and
+  `sdlc-evaluator.md` state the re-score scoping in one identical sentence, and a re-score keeps
+  the rubric and pass bar of the failed round. A finding is a security, data-loss or contract
+  defect by its effect, not its label; when unsure, it counts as one. Review hands each reviewer
+  the change's own diff, never a bare `git diff HEAD` over another uncommitted change. Only
+  review writes a `review` note. A repeated panel's fix diff runs from the previous review note,
+  and lens reviewers get the same brief. A blocker the human closes without a fix or a re-run is
+  recorded with `closed=human` and its reason in change.md, and the ship digest names it. A claim that tests catch a rule is
+  reported as N of M mutants, with a meaning-inverting mutant per rule. A "never happens" test
+  asserts an allowlist.
+  - Upgrade note: a project that customised `verify.md`, `review.md`, `sdlc-evaluator.md`, a
+    reviewer agent, `sdlc-contractor.md`, `ship.md` or the contract-writing or conventions
+    skill keeps its old text on `update`; merge the new sentences by hand. Until then, a
+    customised `sdlc-evaluator.md` still scores without the Delta or `contract/tests.md`.
+
 ## 0.25.0 (2026-10-20)
 
 - **Artifacts that say when they go stale** (#12): a change may keep pages such as a visual plan

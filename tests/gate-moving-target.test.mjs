@@ -11,12 +11,16 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { CAPS, countEffectiveLines } from '../lib/caps.mjs';
 import { PKG_ROOT } from './helpers.mjs';
+import { assertRule as pinRule } from './rule-pins.mjs';
 
 const read = (...rel) => fs.readFileSync(path.join(...rel), 'utf8');
 const payload = (...rel) => read(PKG_ROOT, 'payload', ...rel);
 const oneLine = (s) => s.replace(/\s+/g, ' ');
 
 // The rules, verbatim. One place to read what the payload promises; one place to change it.
+// gate-rules-second-pass rewrote the bundle, the evaluator input and the re-score into one shared
+// wording (its contract S1, S3, S4); those rows pin the new sentences.
+const RESCORE = 'A line that met the bar keeps its score unless the fix diff touched what it judged; a touched line now below the bar fails the round; a new finding on code the fix diff left untouched goes to the change for the digest and does not fail the round, unless it is a security, data-loss or contract defect, which fails the round wherever it is.';
 const RULES = Object.freeze({
   passBar: 'all non-advisory scores ≥ 4; an `(advisory)` line is outside the bar and its findings go to the change for the digest; only a minimalism line may be advisory, never a security, data or contract line',
   evaluatorAdvisory: 'A line marked `(advisory)` is scored and listed with its evidence like any other, but it can never turn the verdict to FAIL; its findings go to the digest.',
@@ -24,14 +28,14 @@ const RULES = Object.freeze({
   skillExample: 'A written pass bar (e.g. "all non-advisory ≥ 4")',
   skillOutsideBar: 'A rubric line marked `(advisory)` (over-build is seeded so) is scored but outside the pass bar.',
   skillMinimalismOnly: 'Only a minimalism line may be advisory, never a security, data or contract line.',
-  verifyBundle: 'with the rubric + the diff + this round\'s test output + the change\'s journal',
+  verifyBundle: 'It is handed the rubric + the Delta + `contract/tests.md` + the diff + this round\'s test output + the change\'s journal, and returns a score per rubric line.',
   verifyNoteAfter: 'This round\'s verify note is written after its verdict, so the evaluator does not wait for it.',
-  evaluatorInput: 'Input: `contract/evals.md` (the rubric), the diff, this round\'s test output and the change\'s journal; score only from those.',
+  evaluatorInput: 'Input: `contract/evals.md` (the rubric), the change\'s Delta, `contract/tests.md`, the diff, this round\'s test output and the change\'s journal; score only from those.',
   evaluatorNoteNotEvidence: 'The verify note for this round is written after your verdict, so a missing verify note is not evidence; no line is marked down for it.',
   verifyRescoreTrigger: 'The re-score after a failed fast gate also hands it the previous verdict and the fix diff',
   verifyFixDiffDefinition: 'the fix diff — everything edited since the failed round\'s verify note',
-  verifyRescore: 'a line that met the bar keeps its score unless the fix diff touched what it judged; a touched line now below the bar fails the round; a new finding on untouched code goes to the change for the digest and does not fail the round, unless it is a security, data-loss or contract defect, which fails the round wherever it is (a contract defect: a behavior a `contract/tests.md` row or a Delta scenario pins, now broken).',
-  evaluatorRescore: 'On a re-score after a failed fast gate you also get the previous verdict and the fix diff. A line that met the bar keeps its score unless the fix diff touched what it judged. A line the fix diff touched, now below the bar, fails the round. A new finding on code the fix diff left untouched is listed for the digest and does not fail the round, unless it is a security, data-loss or contract defect, which fails the round wherever it is.',
+  verifyRescore: RESCORE,
+  evaluatorRescore: `On a re-score after a failed fast gate you also get the previous verdict and the fix diff. ${RESCORE}`,
   reviewRepeatedPanel: 'after a review that recorded blockers, every reviewer is also briefed with the previous blockers and the fix diff: a blocker is raised only for a previous blocker not closed, a defect the fix diff causes, or a security, data-loss or contract defect wherever it is; anything else is an improvement, so the panel can still record zero blockers.',
   changelogAdvisory: 'the over-build rubric line is now `(advisory)`',
   changelogExistingEvals: 'A change\'s existing `contract/evals.md` keeps its old unmarked line until edited by hand.',
@@ -76,10 +80,9 @@ function body(text, what) {
   return nonEmpty(text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, ''), `${what} body after frontmatter`);
 }
 
-// The rule must appear verbatim (whitespace collapsed) inside the anchor.
+// Each rule through the shared pin (tests/rule-pins.mjs): a full sentence bounded, a clause verbatim.
 function assertRule(anchor, key, where) {
-  const text = oneLine(anchor);
-  assert.ok(text.includes(oneLine(RULES[key])), `${where} must state RULES.${key} verbatim:\n  "${RULES[key]}"`);
+  pinRule(anchor, RULES[key], `${where} (RULES.${key})`);
 }
 
 function assertAbsent(anchor, literal, where, why) {
@@ -203,6 +206,8 @@ test('row 12: the payload, playbook-budgets, verify-gates and review-blocker-cla
   ]) assertTestFilePasses(rel);
 });
 
+// review.md states where a repeated panel's fix diff runs from (gate-rules-second-pass S13), in words
+// that are not a redefinition of verify.md's: none of FORBIDDEN.fixDiffRedefinitions.
 test('row 13: "fix diff" is defined once, in verify.md, and nowhere defined again', () => {
   const definition = oneLine(RULES.verifyFixDiffDefinition);
   const holders = allPayloadMarkdown()
@@ -215,14 +220,10 @@ test('row 13: "fix diff" is defined once, in verify.md, and nowhere defined agai
   }
 });
 
-// The entry lives in the newest CHANGELOG section: `## Unreleased` until a release renames it to
-// `## X.Y.Z (date)` (README, release step 1). Pin the content, not the transient heading.
-test('row 14: the newest CHANGELOG section names the advisory over-build line and the evals.md that keep the old one', () => {
+// The entry shipped in 0.25.0; later changes add their own `## Unreleased` section above it.
+test('row 14: the 0.25.0 CHANGELOG section names the advisory over-build line and the evals.md that keep the old one', () => {
   const changelog = read(PKG_ROOT, 'CHANGELOG.md');
-  const firstHeading = changelog.split(/\r?\n/).find((l) => l.startsWith('## ')) ?? '';
-  assert.ok(firstHeading === '## Unreleased' || /^## \d+\.\d+\.\d+ \(\d{4}-\d{2}-\d{2}\)$/.test(firstHeading),
-    `the newest CHANGELOG heading must be ## Unreleased or ## X.Y.Z (date), got "${firstHeading}"`);
-  const newest = nonEmpty(section(changelog, firstHeading.slice(3)), `CHANGELOG.md ${firstHeading}`);
-  assertRule(newest, 'changelogAdvisory', `CHANGELOG.md ${firstHeading}`);
-  assertRule(newest, 'changelogExistingEvals', `CHANGELOG.md ${firstHeading}`);
+  const released = nonEmpty(section(changelog, '0.25.0 (2026-10-20)'), 'CHANGELOG.md ## 0.25.0 (2026-10-20)');
+  assertRule(released, 'changelogAdvisory', 'CHANGELOG.md ## 0.25.0');
+  assertRule(released, 'changelogExistingEvals', 'CHANGELOG.md ## 0.25.0');
 });

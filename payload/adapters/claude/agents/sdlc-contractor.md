@@ -16,5 +16,6 @@ next heading or step; never with an end anchor (a regex `$`) that in multiline m
 ends at the first line. Assert the row's literal tokens, order and polarity, not wide
 gap patterns between loose words that prose missing the row would also match.
 A row that pins a rule written in prose asserts it as one exact sentence, whitespace collapsed, inside a non-empty anchor, and pins known contradicting wording absent as literal text; it never uses a regex over the rule's meaning.
+A row that pins that something never happens asserts the allowlist of what may happen, not a denylist of what must not.
 Never write or modify implementation code, configs, or specs.
 Return: list of test files created + the failing run summary.

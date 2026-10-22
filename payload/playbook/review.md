@@ -9,13 +9,18 @@ signal, and a skip would send the change back and forth. That is decided from th
 from who invoked review or in which session. Before that point, with no signal, skip — a
 ceremonial review is garbage — and record it:
 `node sdlc/.hooks/journal.mjs note review blockers=0 skipped=no-signal`. It is a record only;
-verify re-checks the signals itself and never counts it as a review.
+verify re-checks the signals itself and never counts it as a review. Only this stage writes a
+`review` note, its skip note included; no other stage writes one.
 
-1. Fan out in parallel, all read-only, each given the diff + change.md; after a review that recorded
+1. Hand each reviewer the change's own diff, limited to the files the change touched, never a
+   bare `git diff HEAD` while another change is uncommitted in the same tree. Fan out in
+   parallel, all read-only, each given the diff + change.md; after a review that recorded
    blockers, every reviewer is also briefed with the previous blockers and the fix diff: a blocker
    is raised only for a previous blocker not closed, a defect the fix diff causes, or a security,
    data-loss or contract defect wherever it is; anything else is an improvement, so the panel can
-   still record zero blockers.
+   still record zero blockers. A repeated panel's fix diff runs from the previous review note:
+   everything edited since it. A finding is a security, data-loss or contract defect by its
+   effect, not by the label it carries; when unsure, it is one.
    - `sdlc-architect` (balanced): design integrity, coupling, contract drift.
    - `sdlc-security` (balanced): injection, authz, secrets, unsafe deps.
    - `sdlc-quality` (cheap): contract coverage gaps, edge cases, dead code, over-build
@@ -26,6 +31,7 @@ verify re-checks the signals itself and never counts it as a review.
    - Plus one reviewer per recorded lens, only for lenses whose stages include review:
      its review focus from `lenses.md`, per `lenses.md` § Using a recorded lens.
      Run it as a read-only subagent when possible; the four core reviewers still run.
+     A lens reviewer in a repeated panel gets the same brief and the same blocker rule.
 1c. Hand every reviewer the change's `[UNVERIFIED]` assumptions and out-of-scope claims
    and have them attack those first: a claim nobody ran is where the bug hides, and the
    panel is the first stage that reads the code rather than the Delta.
@@ -41,7 +47,10 @@ verify re-checks the signals itself and never counts it as a review.
    otherwise record one line in the change for the digest. Any file you edit here is a build:
    `node sdlc/.hooks/journal.mjs note build tasks=<n> source=review`, so verify's fast gate
    runs over it before the final gate.
-4. `node sdlc/.hooks/journal.mjs note review blockers=<n> mode=<panel|solo>`.
+4. `node sdlc/.hooks/journal.mjs note review blockers=<n> mode=<panel|solo>`. A blocker closed
+   without a code change or a panel re-run, by the human's call, is closed in change.md with
+   its reason, and the note carries `closed=human`:
+   `node sdlc/.hooks/journal.mjs note review blockers=0 mode=solo closed=human`.
    `mode=panel` only when every reviewer that ran — the four and each lens — was an
    independent agent; `mode=solo` when the
    panel cannot run — subagents unavailable or disallowed — and the main loop

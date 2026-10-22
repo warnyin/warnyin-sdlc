@@ -35,3 +35,13 @@ never a regex over the rule's meaning. `sdlc-contractor.md` (who writes the test
 #### Scenario: a row pins "a touched line below the bar fails the round"
 - WHEN the contractor writes the test
 - THEN it asserts that sentence verbatim in its anchor, so "does not fail the round" turns it red
+
+### Requirement: A never-happens guard is pinned by an allowlist
+The system SHALL have `sdlc-contractor.md` and `contract-writing/SKILL.md` each state, in one
+identical sentence, that a row pinning that something never happens asserts the allowlist of what
+may happen, not a denylist of what must not. The SKILL's anti-pattern SHALL name the evaluator's
+input instead of "diff + task log", as a full sentence.
+
+#### Scenario: "the validator never opens an artifact"
+- WHEN the row is written
+- THEN it asserts the only fs calls allowed, so an unlisted call turns it red

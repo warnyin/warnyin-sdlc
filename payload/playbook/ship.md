@@ -34,6 +34,8 @@ split) → run /sdlc:review first, and its pass returns to that final gate.
    When any verify or review note carries `mode=solo`, the digest SHALL say which
    outcomes were self-produced. A reader months from now cannot otherwise tell a
    panel's verdict from the author's own.
+   When a review note carries `closed=human`, the digest SHALL name each blocker the human
+   closed and the reason recorded in change.md.
    When a final-gate verify note carries `reused=yes`, the digest SHALL say the full suite
    ran once, in the fast gate, and was not repeated. When it carries `result=skipped`, the
    digest SHALL say the full suite never ran before ship, and who skipped it (tier or human).

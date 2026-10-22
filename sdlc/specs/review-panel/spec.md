@@ -67,3 +67,29 @@ The system SHALL have `sdlc-security.md` state that a repeated panel never narro
 #### Scenario: a late-found vulnerability in untouched code
 - WHEN the security reviewer in a repeated panel finds it
 - THEN it reports a blocker
+
+### Requirement: Reviewers get the change's own diff and record
+The system SHALL have `review.md` state five rules. Each reviewer is handed the change's own
+diff, never a bare `git diff HEAD` while another change is uncommitted. Only review writes a
+`review` note, its skip note included. A repeated panel's fix diff runs from the previous review note. A blocker
+closed without a code change or a re-run, by the human's call, is closed in change.md with
+its reason, and the note carries `closed=human`. A lens reviewer in a repeated panel gets the
+same brief and the same blocker rule.
+
+#### Scenario: two changes are uncommitted
+- WHEN review runs for one of them
+- THEN its panel sees only that change's files
+
+#### Scenario: the human closes a blocker by committing another change first
+- WHEN no code changes and no panel re-runs
+- THEN the note is `review blockers=0 mode=solo closed=human`, with the reason in change.md, and
+  `ship.md` has the digest name that blocker and its reason
+
+### Requirement: Over-build that breaks a pin is a contract defect
+The system SHALL have `sdlc-quality.md` state that a finding that is both over-build and a broken
+behavior a contract row or Delta scenario pins is reported as a contract defect, not as over-build,
+so "over-build findings are never blockers" still holds.
+
+#### Scenario: a speculative branch changes a pinned output
+- WHEN quality reviews it
+- THEN it is a blocker as a contract defect, not an over-build improvement

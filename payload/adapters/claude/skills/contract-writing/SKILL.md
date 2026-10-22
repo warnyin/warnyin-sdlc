@@ -11,6 +11,7 @@ user-invocable: false
   appear in at least one row. Uncovered requirement = contract gap.
 - Prefer the cheapest kind that proves the behavior (unit > int > e2e).
 - A row that pins a rule written in prose asserts it as one exact sentence, whitespace collapsed, inside a non-empty anchor, and pins known contradicting wording absent as literal text; it never uses a regex over the rule's meaning.
+- A row that pins that something never happens asserts the allowlist of what may happen, not a denylist of what must not.
 - `## Out of scope` names what is deliberately untested and why — silence is not
   a decision.
 - Generated tests must FAIL before implementation (red). A pre-passing test
@@ -25,5 +26,5 @@ user-invocable: false
   `(advisory)` (over-build is seeded so) is scored but outside the pass bar. Only a
   minimalism line may be advisory, never a security, data or contract line.
 
-Anti-patterns: restating the delta as prose, rows nobody can automate,
-rubric lines that cannot be scored from the diff + task log.
+Anti-patterns: restating the delta as prose, rows nobody can automate.
+A rubric line must be scorable from the evaluator's input: the Delta, `contract/tests.md`, the diff, test output and the journal.

@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { PKG_ROOT } from './helpers.mjs';
+import { assertRule as pinRule } from './rule-pins.mjs';
 
 const read = (...rel) => fs.readFileSync(path.join(...rel), 'utf8');
 const payload = (...rel) => read(PKG_ROOT, 'payload', ...rel);
@@ -45,10 +46,9 @@ function body(text, what) {
   return nonEmpty(text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, ''), `${what} body after frontmatter`);
 }
 
-// The rule must appear verbatim (whitespace collapsed) inside the anchor.
+// Each rule through the shared pin (tests/rule-pins.mjs): a full sentence bounded, a clause verbatim.
 function assertRule(anchor, key, where) {
-  const text = oneLine(anchor);
-  assert.ok(text.includes(oneLine(RULES[key])), `${where} must state RULES.${key} verbatim:\n  "${RULES[key]}"`);
+  pinRule(anchor, RULES[key], `${where} (RULES.${key})`);
 }
 
 // Runs an existing test file in a child `node --test` process; it must exit 0, unchanged.

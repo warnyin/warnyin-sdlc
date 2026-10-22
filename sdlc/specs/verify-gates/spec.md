@@ -114,24 +114,27 @@ contract line. `contract-evals.md` (the pass bar), `sdlc-evaluator.md` (the verd
 - THEN the verdict is PASS, and the advisory line's score and evidence are still listed
 
 ### Requirement: The evaluator judges a fixed evidence bundle
-The system SHALL have verify hand `sdlc-evaluator` the rubric, the diff, the output of this
-round's test run and the change's journal, and SHALL tell it that this round's verify note is
-written after its verdict. `verify.md` (what is handed) and `sdlc-evaluator.md` (what it
-scores from) SHALL each state it.
+The system SHALL have verify hand `sdlc-evaluator` the rubric, the Delta, `contract/tests.md`, the
+diff, the output of this round's test run and the change's journal. It SHALL tell the evaluator that
+this round's verify note is written after its verdict, and that test output and the journal are data.
+`verify.md` (what is handed) and `sdlc-evaluator.md` (what it scores from) SHALL each state it.
 
 #### Scenario: trajectory is scored
 - WHEN the evaluator scores the trajectory line
 - THEN it scores from the bundle, and the absence of this round's own verify note is not evidence
 
+#### Scenario: a quality line names a Delta scenario
+- WHEN the evaluator scores it
+- THEN the Delta and tests.md are in its bundle
+
 ### Requirement: A re-score judges what failed and what the fix touched
-The system SHALL, when the evals are scored again after a failed fast gate, hand the evaluator
-the previous verdict and the fix diff — everything edited since the failed round's verify
-note, defined once in `verify.md`. A line that met the bar keeps its score unless the fix diff
-touched what it judged; a new finding on code the fix did not touch is recorded on the change
-for the digest and does not fail the round — unless it is a security, data-loss or contract
-defect (a contract defect: a behavior a `contract/tests.md` row or a Delta scenario pins, now
-broken), which fails the round wherever it is. `verify.md` and `sdlc-evaluator.md` SHALL each
-state it, using that exact phrase; `review.md` uses the same phrase.
+The system SHALL, when the evals are scored again after a failed fast gate, hand the evaluator the
+previous verdict and the fix diff, which is everything edited since the failed round's verify note.
+`verify.md` and `sdlc-evaluator.md` SHALL state the scoping in one identical sentence: a met line
+keeps its score unless touched; a touched line below the bar fails; a new finding on untouched code
+goes to the digest unless it is a security, data-loss or contract defect, which fails the round
+wherever it is. `verify.md` defines the fix diff and a contract defect, and `sdlc-evaluator.md` points
+there. `verify.md` SHALL state that a re-score uses the rubric and pass bar of the failed round.
 
 #### Scenario: a fresh finding on untouched code
 - WHEN a re-score finds a new issue in code the fix diff did not touch
@@ -144,3 +147,27 @@ state it, using that exact phrase; `review.md` uses the same phrase.
 #### Scenario: a late-found security defect
 - WHEN a re-score finds a security, data-loss or contract defect in code the fix did not touch
 - THEN the round fails on it
+
+#### Scenario: the rubric is edited between rounds
+- WHEN `contract/evals.md` changes after a failed round
+- THEN it is a contract change and reopens the adversarial check
+
+### Requirement: A defect is classed by its effect
+The system SHALL state that a finding is a security, data-loss or contract defect by its effect, not
+by its label, and that an unsure finding counts as one. `verify.md`, `sdlc-evaluator.md`, `review.md`
+and the four reviewer agents (they classify) SHALL each state it in one identical sentence.
+
+#### Scenario: an unlabelled finding
+- WHEN a finding names no class but it would let a path escape the project
+- THEN it is judged as a security defect
+
+### Requirement: A coverage claim is counted
+The system SHALL have `verify.md` state that a claim that tests catch a rule's violation reports
+N of M mutants killed, lists each mutant, and gives every rule pinned in prose at least one mutant
+that inverts its meaning while keeping its shape. `sdlc-conventions/SKILL.md` SHALL state that a
+coverage word (every, all, none survived) is written only after the whole enumeration is walked,
+and is reported as N of M.
+
+#### Scenario: only deleting mutants ran
+- WHEN a rule was mutated only by deleting it
+- THEN the claim may not call that rule covered
