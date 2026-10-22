@@ -12,14 +12,22 @@ ceremonial review is garbage — and record it:
 verify re-checks the signals itself and never counts it as a review. Only this stage writes a
 `review` note, its skip note included; no other stage writes one.
 
-1. Hand each reviewer the change's own diff, limited to the files the change touched, never a
-   bare `git diff HEAD` while another change is uncommitted in the same tree. Fan out in
-   parallel, all read-only, each given the diff + change.md; after a review that recorded
+1. Hand each reviewer the change's own diff, never a bare `git diff HEAD` while another change
+   is uncommitted in the same tree. Take the change's diff from a snapshot of the tree: with a
+   scratch index at a path that does not exist yet, `GIT_INDEX_FILE=<tmp> git add -A` then
+   `git write-tree`, so untracked files are in it and the real index is untouched; the change's
+   diff is `git diff HEAD <tree>`. Commit every other open change first, so the snapshot holds
+   this change alone; every path it lists goes to the reviewers. A file that must never reach a
+   reviewer must be untracked and matched by `.gitignore` before the snapshot; a tracked file is
+   in the snapshot whatever `.gitignore` says. Fan out in parallel, all read-only, each given the diff + change.md; after a review that recorded
    blockers, every reviewer is also briefed with the previous blockers and the fix diff: a blocker
    is raised only for a previous blocker not closed, a defect the fix diff causes, or a security,
    data-loss or contract defect wherever it is; anything else is an improvement, so the panel can
    still record zero blockers. A repeated panel's fix diff runs from the previous review note:
-   everything edited since it. A finding is a security, data-loss or contract defect by its
+   everything edited since it. Every review note but the skip note carries that snapshot as
+   `base=<tree>`, and a repeated panel's fix diff comes from `git diff <base> <tree>`, with
+   `<tree>` taken the same way now; if git has pruned `<base>`, the repeated panel gets the
+   change's whole diff instead. A finding is a security, data-loss or contract defect by its
    effect, not by the label it carries; when unsure, it is one.
    - `sdlc-architect` (balanced): design integrity, coupling, contract drift.
    - `sdlc-security` (balanced): injection, authz, secrets, unsafe deps.
@@ -32,6 +40,8 @@ verify re-checks the signals itself and never counts it as a review. Only this s
      its review focus from `lenses.md`, per `lenses.md` § Using a recorded lens.
      Run it as a read-only subagent when possible; the four core reviewers still run.
      A lens reviewer in a repeated panel gets the same brief and the same blocker rule.
+     Each lens reviewer is handed this rule with its brief. A finding is a security, data-loss
+     or contract defect by its effect, not by the label it carries; when unsure, it is one.
 1c. Hand every reviewer the change's `[UNVERIFIED]` assumptions and out-of-scope claims
    and have them attack those first: a claim nobody ran is where the bug hides, and the
    panel is the first stage that reads the code rather than the Delta.
@@ -47,10 +57,11 @@ verify re-checks the signals itself and never counts it as a review. Only this s
    otherwise record one line in the change for the digest. Any file you edit here is a build:
    `node sdlc/.hooks/journal.mjs note build tasks=<n> source=review`, so verify's fast gate
    runs over it before the final gate.
-4. `node sdlc/.hooks/journal.mjs note review blockers=<n> mode=<panel|solo>`. A blocker closed
+4. `node sdlc/.hooks/journal.mjs note review blockers=<n> mode=<panel|solo> base=<tree>`. A blocker closed
    without a code change or a panel re-run, by the human's call, is closed in change.md with
    its reason, and the note carries `closed=human`:
-   `node sdlc/.hooks/journal.mjs note review blockers=0 mode=solo closed=human`.
+   `node sdlc/.hooks/journal.mjs note review blockers=0 mode=solo closed=human base=<tree>`. The human's
+   reason line in change.md starts with `closed=human:` and says why.
    `mode=panel` only when every reviewer that ran — the four and each lens — was an
    independent agent; `mode=solo` when the
    panel cannot run — subagents unavailable or disallowed — and the main loop

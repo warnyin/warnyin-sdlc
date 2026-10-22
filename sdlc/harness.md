@@ -8,7 +8,7 @@
 | node bin/cli.mjs | repo root or temp dirs | exercise the CLI under development |
 
 ## Sandbox & execution
-- test command: `npm test`
+- test command: `npm test`. Its own exit code decides a pass; a pipe reports the last stage's exit, not the suite's.
 - sandbox notes: black-box tests spawn the real CLI into `mkdtemp` dirs; never write outside them.
 - contract rows: every row of `contract/tests.md` runs before a fast gate opens; a row added
   later (e.g. from review) is written red first, then built.

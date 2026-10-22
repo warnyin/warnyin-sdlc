@@ -2,18 +2,10 @@
 // Each rule is pinned as an EXACT sentence (RULES below), compared after whitespace is collapsed,
 // inside the anchor that must carry it. No regex reads the meaning. Rows 3 and 8 pin where a
 // sentence appears across every payload .md: the list must equal the list the contract names.
-// Row 10 runs the guard test files that must stay green, as child processes.
+// The guard files row 10 used to re-run are run by the suite itself.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
-import { spawnSync } from 'node:child_process';
-import { PKG_ROOT } from './helpers.mjs';
-import { assertRule as pinRule } from './rule-pins.mjs';
-
-const read = (...rel) => fs.readFileSync(path.join(...rel), 'utf8');
-const payload = (...rel) => read(PKG_ROOT, 'payload', ...rel);
-const oneLine = (s) => s.replace(/\s+/g, ' ');
+import { assertRule as pinRule, body, nonEmpty, payload, payloadFilesWith, section } from './rule-pins.mjs';
 
 // The rules, verbatim. One place to read what the payload promises; one place to change it.
 const B_LEAD_IN = 'In a repeated panel, when you are briefed with the previous blockers and the fix diff, ';
@@ -25,64 +17,13 @@ const RULES = Object.freeze({
   C: 'A repeated panel never narrows what you check: a vulnerability in any code is a blocker.',
 });
 
-// A `## Heading` section runs to the next `## ` line or the end of the file.
-function section(text, heading) {
-  const lines = text.split(/\r?\n/);
-  const start = lines.findIndex((l) => l.startsWith(`## ${heading}`));
-  if (start === -1) return '';
-  const rel = lines.slice(start + 1).findIndex((l) => l.startsWith('## '));
-  return lines.slice(start, rel === -1 ? undefined : start + 1 + rel).join('\n');
-}
-
-// Every anchor is asserted non-empty before any rule is looked for in it.
-function nonEmpty(s, what) {
-  assert.ok(typeof s === 'string' && s.trim().length > 0, `anchor missing or empty: ${what}`);
-  return s;
-}
-
-// Body of an agent file: everything after its leading `---` frontmatter block.
-function body(text, what) {
-  assert.match(text, /^---\r?\n[\s\S]*?\r?\n---\r?\n/, `${what} must open with frontmatter`);
-  return nonEmpty(text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, ''), `${what} body after frontmatter`);
-}
-
 // Each rule through the shared pin (tests/rule-pins.mjs): a full sentence bounded, a clause verbatim.
 function assertRule(anchor, key, where) {
   pinRule(anchor, RULES[key], `${where} (RULES.${key})`);
 }
 
-// Runs an existing test file in a child `node --test` process; it must exit 0, unchanged.
-function assertTestFilePasses(rel) {
-  const env = { ...process.env };
-  delete env.NODE_TEST_CONTEXT;
-  const res = spawnSync(process.execPath, ['--test', path.join(PKG_ROOT, rel)], {
-    cwd: PKG_ROOT,
-    encoding: 'utf8',
-    env,
-    timeout: 240000,
-  });
-  assert.ifError(res.error);
-  assert.equal(res.status, 0, `${rel} must pass unchanged (exit ${res.status}):\n${`${res.stdout}${res.stderr}`.slice(-2000)}`);
-}
-
-// Every .md file under payload/, recursively.
-function allPayloadMarkdown(dir = path.join(PKG_ROOT, 'payload'), out = []) {
-  for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
-    const p = path.join(dir, ent.name);
-    if (ent.isDirectory()) allPayloadMarkdown(p, out);
-    else if (ent.name.endsWith('.md')) out.push(p);
-  }
-  return out;
-}
-
-// Payload-relative posix paths of every .md whose collapsed text includes the sentence, sorted.
-function filesWith(sentence) {
-  const want = oneLine(sentence);
-  return allPayloadMarkdown()
-    .filter((f) => oneLine(fs.readFileSync(f, 'utf8')).includes(want))
-    .map((f) => path.relative(PKG_ROOT, f).split(path.sep).join('/'))
-    .sort();
-}
+// Paths of every payload .md holding the sentence, as `payload/…`, sorted.
+const payloadFiles = (s) => payloadFilesWith(s).map((f) => `payload/${f}`);
 
 const contractor = () => body(payload('adapters', 'claude', 'agents', 'sdlc-contractor.md'), 'sdlc-contractor.md');
 const reviewer = (name) => body(payload('adapters', 'claude', 'agents', name), name);
@@ -100,7 +41,7 @@ test('row 2: contract-writing SKILL ## contract/tests.md states rule A verbatim 
 });
 
 test('row 3: rule A appears in exactly sdlc-contractor.md and contract-writing/SKILL.md', () => {
-  const holders = filesWith(RULES.A);
+  const holders = payloadFiles(RULES.A);
   const expected = [
     'payload/adapters/claude/agents/sdlc-contractor.md',
     'payload/adapters/claude/skills/contract-writing/SKILL.md',
@@ -125,7 +66,7 @@ test('row 7: sdlc-ops body states the repeated-panel blocker scope (B agent) ver
 });
 
 test('row 8: the B fragment appears in exactly review.md, sdlc-architect, sdlc-security, sdlc-quality and sdlc-ops', () => {
-  const holders = filesWith(RULES.B_FRAGMENT);
+  const holders = payloadFiles(RULES.B_FRAGMENT);
   const expected = [
     'payload/adapters/claude/agents/sdlc-architect.md',
     'payload/adapters/claude/agents/sdlc-ops.md',
@@ -140,13 +81,3 @@ test('row 9: sdlc-security body states the never-narrows rule (C) verbatim', () 
   assertRule(reviewer('sdlc-security.md'), 'C', 'sdlc-security.md body');
 });
 
-test('row 10: the guard test files named in the contract run unchanged and exit 0', () => {
-  for (const rel of [
-    'tests/contractor-assertion-rules.test.mjs',
-    'tests/review-blocker-class.test.mjs',
-    'tests/minimal-build.test.mjs',
-    'tests/payload.test.mjs',
-    'tests/playbook-budgets.test.mjs',
-    'tests/gate-moving-target.test.mjs',
-  ]) assertTestFilePasses(rel);
-});

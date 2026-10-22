@@ -9,7 +9,8 @@
      after the first verify fail).
    - **Flow** — lead time per shipped change and per-phase breakdown (created →
      contracted → built → verified → shipped timestamps from the journal);
-     AI-time vs wait-time; first-pass success trend.
+     AI-time vs wait-time; first-pass success trend; per change, `human-closed×N` (blockers a
+     human closed without a fix or re-run) and `corrected×N` (passes corrected after the fact).
    - **Residency** — always-loaded lines vs the 60 budget.
    - **Drift flags** — steering never hit by a pointer, rules never triggering a
      guard event, `compact` events (context overflow = a defect), specs touched

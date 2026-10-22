@@ -7,7 +7,7 @@
 | <tool> | <what it may touch> | <when to use> |
 
 ## Sandbox & execution
-- test command: `<cmd>`
+- test command: `<cmd>`. Its own exit code decides a pass; a pipe reports the last stage's exit, not the suite's.
 - fast test command: `<cmd>` (optional — a quick scoped subset for verify fix rounds; without it verify derives one)
 - sandbox notes: <where code runs, what it cannot reach>
 

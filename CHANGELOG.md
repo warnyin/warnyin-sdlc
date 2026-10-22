@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- **Close the gate-rules-second-pass digest**: `observe` now shows `human-closed×N` and
+  `corrected×N`, and flags an open change with fewer `closed=human:` reason lines in change.md
+  than human-closed blockers. A verify note with `rerun=yes` replaces the earlier pass of its gate
+  and round when a `correction` for them sits between, so a corrected pass is not counted twice; a
+  recorded fail is never replaced. Review says how to build the diffs: commit every other open
+  change, then take a scratch-index snapshot of the tree, written on every review note as
+  `base=<tree>`; every path in it goes to the reviewers, a file that must not has to be untracked
+  and matched by `.gitignore`, and a repeated panel's fix diff runs from that base. Lens reviewers get the effect rule.
+  Verify never writes a `review` note, corrects an early pass instead of deleting it, and counts
+  mutants only on a green baseline, in a copy of the tree. Build says to write file text with
+  the file tools, never a shell heredoc.
+  - Upgrade note: a project that customised `review.md`, `verify.md`, `build.md` or `observe.md`
+    keeps its old text on `update`; merge the new sentences by hand. `sdlc/harness.md` is seeded
+    once, so the test-command note reaches new projects only; add it to an existing one by hand.
+
 ## 0.26.0 (2026-10-22)
 
 - **Gate and review rules, second pass**: the evaluator is now also handed the Delta and

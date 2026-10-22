@@ -8,7 +8,8 @@ Pick the gate from the change's journal, in this order:
   with no `gate` (written before the gates split) counts as a fast pass with `scope=full`.
 - Review signals and no `review blockers=0` note → /sdlc:review; the status stays `building`.
   Evaluate the signals yourself, every time, from that list; a `skipped=no-signal` note is a
-  record, and it never counts as a review.
+  record, and it never counts as a review. Verify never writes a `review` note, the skip note
+  included.
 - Otherwise → final gate.
 
 1. **Fast gate** — every round; the full suite is not its job.
@@ -80,7 +81,13 @@ On failure (either gate):
 
 A claim that tests catch a rule's violation reports N of M mutants killed and lists each
 mutant, and every rule pinned in prose gets at least one mutant that inverts its meaning
-while keeping its shape.
+while keeping its shape. A mutation count stands only on a passing baseline: the unmutated
+tests run first, and a red baseline voids the count. Mutants are made in a copy of the tree,
+never in the working tree, so an interrupted run leaves nothing mutated.
+
+A pass journaled before its suite was green is corrected, never deleted:
+`node sdlc/.hooks/journal.mjs note correction gate=<fast|final> round=<n>`, then the re-run's
+verify note carries `rerun=yes`.
 
 `mode=panel` only when independent agents produced the judgment; `mode=solo` when
 the main loop judged its own work. Every verify note carries it, pass or fail —

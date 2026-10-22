@@ -60,3 +60,22 @@ that change.
 #### Scenario: a report covers a change that has not shipped
 - WHEN a report is produced for an open change
 - THEN the events recorded out of tree for that change are counted, not reported as absent
+
+### Requirement: observe reads closures, corrections and reruns
+The system SHALL have observe count, per change, the review notes carrying `closed=human`, and
+show them as `human-closed×N`. It SHALL count `correction` events and show them as `corrected×N`.
+A verify note carrying `rerun=yes` SHALL replace the earlier pass of its gate and round only when
+a `correction` for them sits between, and SHALL never replace a fail. An open change SHALL be
+flagged when it has fewer non-empty `closed=human:` lines in change.md than `closed=human` notes.
+
+#### Scenario: a pass journaled early, corrected, then re-run
+- WHEN round 3 has a pass, a `correction`, and a `rerun=yes` pass
+- THEN observe counts round 3 once and shows `corrected×1`
+
+#### Scenario: a rerun after a fail, or with no correction
+- WHEN round 3 failed, or no `correction` sits between the pass and the rerun
+- THEN both notes count, and a failed round keeps first-pass false
+
+#### Scenario: a human closes a blocker without writing why
+- WHEN the journal has `review … closed=human` and change.md has no `closed=human:` reason
+- THEN observe flags the change

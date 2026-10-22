@@ -171,3 +171,13 @@ and is reported as N of M.
 #### Scenario: only deleting mutants ran
 - WHEN a rule was mutated only by deleting it
 - THEN the claim may not call that rule covered
+
+### Requirement: Verify writes no review note, corrects a pass, and needs a green baseline
+The system SHALL have `verify.md` state four things. Verify never writes a `review` note. A
+pass journaled before its suite was green is corrected with a `correction` note, and the re-run's
+note carries `rerun=yes`. A mutation count stands only on a passing baseline. Mutants are made in
+a copy of the tree. `tests/mutation.mjs` does both for this repo.
+
+#### Scenario: the baseline is red
+- WHEN the unmutated tests fail before mutants run
+- THEN no "N of M killed" is reported

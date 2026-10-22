@@ -1,0 +1,52 @@
+baseline green  tests/digest-followups.test.mjs, tests/gate-moving-target.test.mjs, tests/anti-loop-rules.test.mjs
+killed    R1 deleted (payload/playbook/review.md)  [tests/digest-followups.test.mjs row 6]  playbook/review.md must state verbatim:
+killed    R1 meaning-inverted, shape kept (payload/playbook/review.md)  [tests/digest-followups.test.mjs row 6]  playbook/review.md must state verbatim:
+killed    R1b deleted (payload/playbook/review.md)  [tests/digest-followups.test.mjs row 6]  playbook/review.md must state verbatim:
+killed    R1b meaning-inverted, shape kept (payload/playbook/review.md)  [tests/digest-followups.test.mjs row 6]  playbook/review.md must state verbatim:
+killed    R1c deleted (payload/playbook/review.md)  [tests/digest-followups.test.mjs row 6]  playbook/review.md must state verbatim:
+killed    R1c meaning-inverted, shape kept (payload/playbook/review.md)  [tests/digest-followups.test.mjs row 6]  playbook/review.md must state verbatim:
+killed    R2 deleted (payload/playbook/review.md)  [tests/digest-followups.test.mjs row 6]  playbook/review.md must state verbatim:
+killed    R2 meaning-inverted, shape kept (payload/playbook/review.md)  [tests/digest-followups.test.mjs row 6]  playbook/review.md must state verbatim:
+killed    R3 deleted (payload/playbook/review.md)  [tests/digest-followups.test.mjs row 7]  playbook/review.md must state verbatim:
+killed    R3 meaning-inverted, shape kept (payload/playbook/review.md)  [tests/digest-followups.test.mjs row 7]  playbook/review.md must state verbatim:
+killed    R5 deleted (payload/playbook/review.md)  [tests/digest-followups.test.mjs row 7]  review.md step 4 writes the note with base=<tree>
+killed    R5 meaning-inverted, shape kept (payload/playbook/review.md)  [tests/digest-followups.test.mjs row 7]  review.md step 4 writes the note with base=<tree>
+killed    LENS_S8 deleted (payload/playbook/review.md)  [tests/digest-followups.test.mjs row 7]  review.md lens bullet must state verbatim:
+killed    LENS_S8 meaning-inverted, shape kept (payload/playbook/review.md)  [tests/digest-followups.test.mjs row 7]  review.md lens bullet must state verbatim:
+killed    V1 deleted (payload/playbook/verify.md)  [tests/digest-followups.test.mjs row 8]  playbook/verify.md must state verbatim:
+killed    V1 meaning-inverted, shape kept (payload/playbook/verify.md)  [tests/digest-followups.test.mjs row 8]  playbook/verify.md must state verbatim:
+killed    V2 deleted (payload/playbook/verify.md)  [tests/digest-followups.test.mjs row 8]  playbook/verify.md must state verbatim:
+killed    V2 meaning-inverted, shape kept (payload/playbook/verify.md)  [tests/digest-followups.test.mjs row 8]  playbook/verify.md must state verbatim:
+killed    V3 deleted (payload/playbook/verify.md)  [tests/digest-followups.test.mjs row 8]  playbook/verify.md must state verbatim:
+killed    V3 meaning-inverted, shape kept (payload/playbook/verify.md)  [tests/digest-followups.test.mjs row 8]  playbook/verify.md must state verbatim:
+killed    V4 deleted (payload/playbook/verify.md)  [tests/digest-followups.test.mjs row 8]  playbook/verify.md must state verbatim:
+killed    V4 meaning-inverted, shape kept (payload/playbook/verify.md)  [tests/digest-followups.test.mjs row 8]  playbook/verify.md must state verbatim:
+killed    B1 deleted (payload/playbook/build.md)  [tests/digest-followups.test.mjs row 9]  playbook/build.md must state verbatim:
+killed    B1 meaning-inverted, shape kept (payload/playbook/build.md)  [tests/digest-followups.test.mjs row 9]  playbook/build.md must state verbatim:
+killed    D1 deleted (docs/design.md)  [tests/digest-followups.test.mjs row 9]  docs/design.md must state verbatim:
+killed    D1 meaning-inverted, shape kept (docs/design.md)  [tests/digest-followups.test.mjs row 9]  docs/design.md must state verbatim:
+killed    H1 deleted (sdlc/harness.md)  [tests/digest-followups.test.mjs row 10]  `sdlc/harness.md ## Sandbox & execution must state verbatim:
+killed    H1 meaning-inverted, shape kept (sdlc/harness.md)  [tests/digest-followups.test.mjs row 10]  `sdlc/harness.md ## Sandbox & execution must state verbatim:
+killed    H1 deleted (payload/templates/harness.md)  [tests/digest-followups.test.mjs row 10]  `templates/harness.md ## Sandbox & execution must state verbatim:
+killed    H1 meaning-inverted, shape kept (payload/templates/harness.md)  [tests/digest-followups.test.mjs row 10]  `templates/harness.md ## Sandbox & execution must state verbatim:
+killed    OBS deleted (payload/playbook/observe.md)  [tests/digest-followups.test.mjs row 15]  playbook/observe.md must render human-closed×N
+killed    OBS meaning-inverted, shape kept (payload/playbook/observe.md)  [tests/digest-followups.test.mjs row 15]  playbook/observe.md must render human-closed×N
+killed    R4 lens rule moved out of the lens bullet (review.md)  [tests/digest-followups.test.mjs row 7]  review.md lens bullet must state verbatim:
+killed    closed=human command loses base=<tree> (review.md)  [tests/digest-followups.test.mjs row 7]  review.md command
+killed    observe: archived changes flagged too  [tests/digest-followups.test.mjs row 5]  an archived change is never flagged for a missing reason
+killed    gmt reviewRepeatedPanel prefixed "Never:"  [tests/gate-moving-target.test.mjs row 11]  review.md step 1 (RULES.reviewRepeatedPanel) carries
+killed    gmt verifyRescoreTrigger prefixed "Ignore this -"  [tests/gate-moving-target.test.mjs row 9, tests/gate-moving-target.test.mjs row 13]  `verify.md Evals bullet (RULES.verifyRescoreTrigger) carries
+killed    gmt passBar clause prefixed "not"  [tests/gate-moving-target.test.mjs row 2]  contract-evals.md ## Pass bar (RULES.passBar) carries
+killed    gmt changelogAdvisory clause prefixed "never"  [tests/gate-moving-target.test.mjs row 14]  CHANGELOG.md ## 0.25.0 (RULES.changelogAdvisory) carries
+killed    anti-loop A prefixed "Never -"  [tests/anti-loop-rules.test.mjs row 1]  `sdlc-contractor.md body (RULES.A) carries
+killed    observe: a rerun replaces a fail too  [tests/digest-followups.test.mjs row 4]  -
+killed    observe: no correction needed  [tests/digest-followups.test.mjs row 4]  -
+killed    observe: rerun ignored  [tests/digest-followups.test.mjs row 3, tests/digest-followups.test.mjs row 4]  -
+killed    observe: rerun value not folded  [tests/digest-followups.test.mjs row 3]  -
+killed    observe: closed value not folded  [tests/digest-followups.test.mjs row 1]  -
+killed    observe: an empty reason counts  [tests/digest-followups.test.mjs row 5]  an empty reason is no reason
+killed    observe: one reason covers every closure  [tests/digest-followups.test.mjs row 5]  two closures need two reason lines
+killed    observe: corrections not counted  [tests/digest-followups.test.mjs row 2, tests/digest-followups.test.mjs row 3]  -
+killed    observe: human-closed not shown  [tests/digest-followups.test.mjs row 1]  observe text shows human-closed×2
+
+49 of 49 mutants killed

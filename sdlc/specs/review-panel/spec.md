@@ -93,3 +93,14 @@ so "over-build findings are never blockers" still holds.
 #### Scenario: a speculative branch changes a pinned output
 - WHEN quality reviews it
 - THEN it is a blocker as a contract defect, not an over-build improvement
+
+### Requirement: Review names how the diffs are built
+The system SHALL have `review.md` state five things. The change's diff comes from a scratch-index
+snapshot taken after every other open change is committed; every path goes to the reviewers, and
+a file that must not has to be untracked and matched by `.gitignore`. Every review note but the skip note carries the snapshot
+as `base=<tree>`, and a repeated panel's fix diff runs from it, or is the whole diff once git
+pruned it. A human's closing reason starts `closed=human:`. Lens reviewers get the effect rule.
+
+#### Scenario: a new file was created after the last panel
+- WHEN the repeated panel's fix diff is built
+- THEN the untracked file appears in it, and the user's index is unchanged

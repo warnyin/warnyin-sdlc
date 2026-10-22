@@ -11,3 +11,9 @@ sdlc/.hooks/
 
 # never commit a registry token
 .npmrc
+
+# secrets stay untracked and out of every review snapshot (review.md: `git add -A` honours this)
+.env
+.env.*
+*.key
+*.pem

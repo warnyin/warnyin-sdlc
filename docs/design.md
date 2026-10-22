@@ -52,6 +52,10 @@ contract; if an artifact loses its reason, delete it.
   fails the build on drift. Payload authoring budgets (`CAPS.playbook`, `CAPS.commandStub`) have
   no template comment: tests read them from `CAPS`, and `playbook-budgets.test.mjs` fails on any
   test that pins a line budget as a number.
+- **Rules travel verbatim, terms by pointer**: a subagent is handed its agent file, not the
+  playbook. An agent file carries verbatim a rule it applies; a term it only reads is defined once, in the playbook, and the agent points there.
+  That is why the reviewers carry the repeated-panel and effect sentences word for word, while
+  `sdlc-evaluator.md` points to `verify.md` for "fix diff" and "contract defect".
 
 ## Known limitations (accepted for v1)
 

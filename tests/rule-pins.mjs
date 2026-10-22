@@ -76,12 +76,30 @@ export function assertSentence(anchor, sentence, where) {
     : `${where} must state verbatim: "${sentence}"`);
 }
 
-// A pinned rule: a full sentence is matched bounded (assertSentence); a clause or phrase that is
-// not a full sentence stays a plain verbatim substring.
+// A clause lives inside a sentence, so it may also start after a colon or semicolon; a letter or
+// word before it ("not <clause>") still breaks the pin. Its end is not checked.
+const CLAUSE_BEFORE = new Set([...SENTENCE_BEFORE, ';', ':']);
+
+function clauseStarts(text, i) {
+  let j = i - 1;
+  while (j >= 0 && /\s/.test(text[j])) j -= 1;
+  return j < 0 || CLAUSE_BEFORE.has(text[j]);
+}
+
+// A pinned rule: a full sentence is matched bounded on both sides (assertSentence); a clause that
+// is not a full sentence is matched verbatim and bounded at its start.
 export function assertRule(anchor, rule, where) {
   const want = oneLine(rule);
   if (FULL_SENTENCE.test(want)) return assertSentence(anchor, rule, where);
-  assert.ok(oneLine(nonEmpty(anchor, where)).includes(want), `${where} must state verbatim: "${rule}"`);
+  const text = collapse(nonEmpty(anchor, where));
+  let found = false;
+  for (let i = text.indexOf(want); i !== -1; i = text.indexOf(want, i + 1)) {
+    found = true;
+    if (clauseStarts(text, i)) return;
+  }
+  assert.fail(found
+    ? `${where} carries "${rule}" only after a word that can change its meaning; it must start a clause`
+    : `${where} must state verbatim: "${rule}"`);
 }
 
 // The literal must not appear in the anchor (old or contradicting wording).

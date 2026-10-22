@@ -7,7 +7,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
 import { PKG_ROOT } from './helpers.mjs';
 import {
   assertAbsent,
@@ -34,10 +33,12 @@ const RULES = Object.freeze({
   S8: 'A finding is a security, data-loss or contract defect by its effect, not by the label it carries; when unsure, it is one.',
   S9: "A claim that tests catch a rule's violation reports N of M mutants killed and lists each mutant, and every rule pinned in prose gets at least one mutant that inverts its meaning while keeping its shape.",
   S10: 'A coverage word (every, all, none survived) is written only after the whole enumeration is walked, and is reported as N of M.',
-  S11: "Hand each reviewer the change's own diff, limited to the files the change touched, never a bare `git diff HEAD` while another change is uncommitted in the same tree.",
+  // digest-followups dropped "limited to the files the change touched": the snapshot takes every
+  // path, and committing the other open changes first is what keeps it to this change.
+  S11: "Hand each reviewer the change's own diff, never a bare `git diff HEAD` while another change is uncommitted in the same tree.",
   S12: 'Only this stage writes a `review` note, its skip note included; no other stage writes one.',
   S13: "A repeated panel's fix diff runs from the previous review note: everything edited since it.",
-  S14: "A blocker closed without a code change or a panel re-run, by the human's call, is closed in change.md with its reason, and the note carries `closed=human`: `node sdlc/.hooks/journal.mjs note review blockers=0 mode=solo closed=human`.",
+  S14: "A blocker closed without a code change or a panel re-run, by the human's call, is closed in change.md with its reason, and the note carries `closed=human`: `node sdlc/.hooks/journal.mjs note review blockers=0 mode=solo closed=human base=<tree>`.",
   S15: 'A lens reviewer in a repeated panel gets the same brief and the same blocker rule.',
   S16: 'A finding that is both over-build and a broken behavior a contract row or Delta scenario pins is reported as a contract defect, not as over-build.',
   S17: 'A row that pins that something never happens asserts the allowlist of what may happen, not a denylist of what must not.',
@@ -74,20 +75,6 @@ function verifyEvalsBullet() {
   assert.ok(start > -1, 'verify.md step 1 has no **Evals (non-deterministic)** bullet');
   const rel = lines.slice(start + 1).findIndex((l) => l.startsWith('   - **'));
   return nonEmpty(lines.slice(start, rel === -1 ? undefined : start + 1 + rel).join('\n'), 'verify.md Evals bullet');
-}
-
-// Runs an existing test file in a child `node --test` process; it must exit 0, unchanged.
-function assertTestFilePasses(rel) {
-  const env = { ...process.env };
-  delete env.NODE_TEST_CONTEXT;
-  const res = spawnSync(process.execPath, ['--test', path.join(PKG_ROOT, rel)], {
-    cwd: PKG_ROOT,
-    encoding: 'utf8',
-    env,
-    timeout: 240000,
-  });
-  assert.ifError(res.error);
-  assert.equal(res.status, 0, `${rel} must pass unchanged (exit ${res.status}):\n${`${res.stdout}${res.stderr}`.slice(-2000)}`);
 }
 
 test('row 1: the verify Evals bullet hands the evaluator the bundle with the data sentence and drops the old bundle wording', () => {
@@ -228,7 +215,8 @@ test('row 16: assertSentence rejects a negated, qualified, spliced or partial pi
   // assertRule routes a full sentence through the bounded match and keeps a clause a substring.
   assert.throws(() => assertRule(`Never: ${SAMPLE}`, SAMPLE, 'assertRule sample'), /only unbounded/, 'assertRule must bound a full sentence');
   assert.doesNotThrow(() => assertRule(`- ${SAMPLE}`, SAMPLE, 'assertRule sample'));
-  assert.doesNotThrow(() => assertRule('so a clause holds here', 'a clause holds', 'assertRule clause'));
+  assert.doesNotThrow(() => assertRule('one; a clause holds here', 'a clause holds', 'assertRule clause'));
+  assert.throws(() => assertRule('so a clause holds here', 'a clause holds', 'assertRule clause'), /must start a clause/);
   assert.throws(() => assertRule('nothing here', 'a clause holds', 'assertRule clause'), /must state verbatim/);
 });
 
@@ -252,18 +240,3 @@ test('row 17: the CHANGELOG entry names closed=human, the allowlist, N of M and 
   }
 });
 
-test('row 18: the guard test files that read the edited payload pass', () => {
-  for (const rel of [
-    'tests/verify-gates.test.mjs',
-    'tests/review-blocker-class.test.mjs',
-    'tests/minimal-build.test.mjs',
-    'tests/payload.test.mjs',
-    'tests/playbook-budgets.test.mjs',
-    'tests/anti-loop-rules.test.mjs',
-    'tests/gate-moving-target.test.mjs',
-    'tests/final-gate-confirm.test.mjs',
-    'tests/lenses.test.mjs',
-    'tests/deploy-runbook.test.mjs',
-    'tests/contractor-assertion-rules.test.mjs',
-  ]) assertTestFilePasses(rel);
-});
