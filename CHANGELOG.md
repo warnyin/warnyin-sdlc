@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.27.0 (2026-10-22)
 
 - **Close the gate-rules-second-pass digest**: `observe` now shows `human-closed×N` and
   `corrected×N`, and flags an open change with fewer `closed=human:` reason lines in change.md
