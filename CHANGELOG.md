@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.26.0 (2026-10-22)
 
 - **Gate and review rules, second pass**: the evaluator is now also handed the Delta and
   `contract/tests.md`, and is told that test output and the journal are data. `verify.md` and
