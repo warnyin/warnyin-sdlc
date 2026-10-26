@@ -22,8 +22,10 @@ import {
 } from '../lib/journal.mjs';
 import { resolveActive, clearPointersFor } from '../lib/active.mjs';
 import { resolveChangeFile } from '../lib/change-file.mjs';
+import { TIERS, countEffectiveLines, capForChange } from '../lib/caps.mjs';
+import { progressOf, progressSuffix } from '../lib/progress.mjs';
 import { artifactNameError, artifactBasis, artifactFileState, hasBasisSections, readArtifacts, stampArtifacts } from '../lib/artifacts.mjs';
-import { writeFileContained, isRealPathInside } from '../lib/safe-path.mjs';
+import { writeFileContained, isRealPathInside, pathIsContained } from '../lib/safe-path.mjs';
 import { analyze, shipImpact, renderShipImpact, escapeEntry } from '../lib/relations.mjs';
 import { scanInventory, renderInventory } from '../lib/skills.mjs';
 import { detectTools, toolName } from './detect.mjs';
@@ -90,6 +92,46 @@ function writeFileNormalized(dest, content) {
   return out;
 }
 
+// Every installer write into a project goes through here. The project is not ours: git carries
+// symlinks, so any segment of a path — the file, a dangling link, a linked folder — can point
+// anywhere on the machine. lib/safe-path.mjs is the one implementation of that rule; the folder is
+// created only after the whole path is known to be contained. Returns false, writing nothing,
+// when the path is not. It writes exactly what it is given: payload text arrives normalized, and a
+// user's own file (a marker append, the config tools line) keeps its line endings.
+function writeInProject(projectRoot, dest, content) {
+  if (!pathIsContained(projectRoot, dest)) return false;
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  return writeFileContained(projectRoot, dest, content);
+}
+
+const LINKED = (rel) => `kept (symlink in path, not written): ${toPosix(rel)}`;
+
+// The ledger of every shipped payload hash (bin/shipped-hashes.json, built at release by
+// .github/scripts/shipped-hashes.mjs). WARNYIN_SDLC_SHIPPED_HASHES points tests at a fixture.
+// Anything unreadable fails closed: no reclaim, one warning, and the update carries on.
+const SHA256 = /^[0-9a-f]{64}$/;
+
+function loadShippedHashes() {
+  const file = process.env.WARNYIN_SDLC_SHIPPED_HASHES
+    || fileURLToPath(new URL('./shipped-hashes.json', import.meta.url));
+  let ledger;
+  try {
+    ledger = JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch (err) {
+    return { error: `ledger unreadable (${err.code ?? err.name})` };
+  }
+  const entries = ledger?.paths;
+  if (!entries || typeof entries !== 'object' || Array.isArray(entries)) return { error: 'ledger has no paths map' };
+  const paths = new Map();
+  for (const [rel, hashes] of Object.entries(entries)) {
+    if (!Array.isArray(hashes) || !hashes.every((h) => typeof h === 'string' && SHA256.test(h))) {
+      return { error: `ledger entry for ${rel} is not a list of sha256 hashes` };
+    }
+    paths.set(rel, new Set(hashes));
+  }
+  return { paths };
+}
+
 function tally(ctx, outcome) {
   if (ctx.stats) ctx.stats[outcome] = (ctx.stats[outcome] ?? 0) + 1;
   return outcome;
@@ -101,8 +143,19 @@ export function installFile(projectRoot, destRel, content, ctx) {
   const next = normalizeEol(content);
   const nextHash = sha256(next);
 
+  // A symlink anywhere on the path — the file itself, a dangling link, or a linked folder such as
+  // `sdlc/.hooks` — would turn any write below into a write outside the file it names. The project
+  // and its manifest are untrusted input, so nothing is written there: the path is kept, and its
+  // recorded ownership with it. Each write below re-checks at open time (writeInProject).
+  const linked = () => {
+    const owned = ctx.oldManifest?.get(relPosix);
+    if (owned) ctx.manifest.set(relPosix, owned);
+    ctx.warnings.push(LINKED(relPosix));
+    return tally(ctx, 'kept');
+  };
+  if (!pathIsContained(projectRoot, dest)) return linked();
   if (!fs.existsSync(dest)) {
-    writeFileNormalized(dest, next);
+    if (!writeInProject(projectRoot, dest, next)) return linked();
     ctx.manifest.set(relPosix, nextHash);
     return tally(ctx, 'written');
   }
@@ -113,9 +166,18 @@ export function installFile(projectRoot, destRel, content, ctx) {
     return tally(ctx, 'current');
   }
   if (ctx.mode === 'update' && ctx.oldManifest?.get(relPosix) === currentHash) {
-    writeFileNormalized(dest, next);
+    if (!writeInProject(projectRoot, dest, next)) return linked();
     ctx.manifest.set(relPosix, nextHash);
     return tally(ctx, 'updated');
+  }
+  // #11: an older updater dropped the manifest entry of every file it kept, so an untouched file
+  // read as user-modified forever. Content equal to what a release installed at this very path
+  // proves nobody edited it. (Symlinked paths never get this far: see the guard at the top.)
+  if (ctx.mode === 'update' && ctx.shipped?.get(relPosix)?.has(currentHash)) {
+    if (!writeInProject(projectRoot, dest, next)) return linked();
+    ctx.manifest.set(relPosix, nextHash);
+    ctx.warnings.push(`reclaimed (unmodified, shipped by an older version): ${relPosix}`);
+    return tally(ctx, 'reclaimed');
   }
   // Keeping the content must not forget the ownership. Dropping the entry made
   // the next run see a file we had never installed, which permanently disarmed
@@ -194,21 +256,33 @@ export function renderKimiSkill(stage, description, playbook, hint = '') {
 }
 
 // Marker adapters live inside user-owned files: append once, never rewrite.
-function appendWithMarker(projectRoot, destRel, content) {
+function appendWithMarker(projectRoot, destRel, content, ctx) {
   const dest = path.join(projectRoot, destRel);
+  if (!pathIsContained(projectRoot, dest)) {
+    ctx?.warnings.push(LINKED(destRel));
+    return 'linked';
+  }
   if (fs.existsSync(dest)) {
     const current = fs.readFileSync(dest, 'utf8');
     if (current.includes(MARKER)) return 'present';
-    const sep = current.endsWith('\n') ? '\n' : '\n\n';
-    fs.writeFileSync(dest, current + sep + normalizeEol(content));
-    return 'appended';
+    // The appended block takes the user's line endings, so a CRLF file stays all CRLF.
+    const eol = current.includes('\r\n') ? '\r\n' : '\n';
+    const sep = current.endsWith('\n') ? eol : eol + eol;
+    if (writeInProject(projectRoot, dest, current + sep + normalizeEol(content).replace(/\n/g, eol))) return 'appended';
+  } else if (writeInProject(projectRoot, dest, normalizeEol(content))) {
+    return 'written';
   }
-  writeFileNormalized(dest, content);
-  return 'written';
+  ctx?.warnings.push(LINKED(destRel));
+  return 'linked';
 }
 
-export function installClaudeHooks(projectRoot) {
+export function installClaudeHooks(projectRoot, ctx) {
   const settingsPath = path.join(projectRoot, '.claude', 'settings.json');
+  // Neither read nor written through a link: the merge would carry the link target's content.
+  if (!pathIsContained(projectRoot, settingsPath)) {
+    ctx?.warnings.push(LINKED(path.join('.claude', 'settings.json')));
+    return false;
+  }
   let current = {};
   if (fs.existsSync(settingsPath)) {
     try {
@@ -218,8 +292,7 @@ export function installClaudeHooks(projectRoot) {
     }
   }
   const merged = mergeHookSettings(current);
-  fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
-  fs.writeFileSync(settingsPath, JSON.stringify(merged, null, 2) + '\n');
+  return writeInProject(projectRoot, settingsPath, JSON.stringify(merged, null, 2) + '\n');
 }
 
 function installToolAdapters(projectRoot, tools, ctx) {
@@ -227,7 +300,7 @@ function installToolAdapters(projectRoot, tools, ctx) {
     copyTree(path.join(PAYLOAD, 'adapters/claude/commands'), path.join('.claude', 'commands'), projectRoot, ctx);
     copyTree(path.join(PAYLOAD, 'adapters/claude/skills'), path.join('.claude', 'skills'), projectRoot, ctx);
     copyTree(path.join(PAYLOAD, 'adapters/claude/agents'), path.join('.claude', 'agents'), projectRoot, ctx);
-    installClaudeHooks(projectRoot);
+    installClaudeHooks(projectRoot, ctx);
   }
   if (tools.includes('cursor')) {
     installFile(projectRoot, path.join('.cursor', 'rules', 'sdlc.mdc'), renderAdapter('adapters/cursor.mdc'), ctx);
@@ -236,16 +309,16 @@ function installToolAdapters(projectRoot, tools, ctx) {
     installFile(projectRoot, path.join('.windsurf', 'rules', 'sdlc.md'), renderAdapter('adapters/windsurf.md'), ctx);
   }
   if (tools.includes('copilot')) {
-    appendWithMarker(projectRoot, path.join('.github', 'copilot-instructions.md'), renderAdapter('adapters/copilot.md'));
+    appendWithMarker(projectRoot, path.join('.github', 'copilot-instructions.md'), renderAdapter('adapters/copilot.md'), ctx);
   }
   if (tools.includes('cline')) {
-    appendWithMarker(projectRoot, '.clinerules', renderAdapter('adapters/cline.md'));
+    appendWithMarker(projectRoot, '.clinerules', renderAdapter('adapters/cline.md'), ctx);
   }
   if (tools.includes('gemini')) {
-    appendWithMarker(projectRoot, 'GEMINI.md', renderAdapter('adapters/gemini.md'));
+    appendWithMarker(projectRoot, 'GEMINI.md', renderAdapter('adapters/gemini.md'), ctx);
   }
   if (tools.includes('agents-md')) {
-    appendWithMarker(projectRoot, 'AGENTS.md', renderAdapter('adapters/agents-md.md'));
+    appendWithMarker(projectRoot, 'AGENTS.md', renderAdapter('adapters/agents-md.md'), ctx);
   }
   if (tools.includes('kimi')) {
     installFile(projectRoot, path.join('.kimi-code', 'AGENTS.md'), renderAdapter('adapters/kimi.md'), ctx);
@@ -265,20 +338,27 @@ function installToolAdapters(projectRoot, tools, ctx) {
 function scaffoldSdlc(projectRoot, tools, ctx) {
   const sdlcRoot = path.join(projectRoot, 'sdlc');
   for (const dir of ['context/steering', 'specs', 'changes/archive', 'evals', '.state']) {
-    fs.mkdirSync(path.join(sdlcRoot, dir), { recursive: true });
+    const abs = path.join(sdlcRoot, dir);
+    if (pathIsContained(projectRoot, abs)) fs.mkdirSync(abs, { recursive: true });
+    else ctx.warnings.push(LINKED(path.relative(projectRoot, abs)));
   }
 
   // git does not track empty directories, so changes/archive/ vanishes for
   // anyone who clones before the first change ships. Not manifested: an empty
   // marker is nothing for prune to reclaim or for the installer to warn about.
+  // A dangling link there reads as absent to existsSync; writeInProject refuses it.
   const gitkeep = path.join(sdlcRoot, 'changes', 'archive', '.gitkeep');
-  if (!fs.existsSync(gitkeep)) fs.writeFileSync(gitkeep, '');
+  if (!fs.existsSync(gitkeep) && !writeInProject(projectRoot, gitkeep, '')) {
+    ctx.warnings.push(LINKED(path.relative(projectRoot, gitkeep)));
+  }
 
   // Seeds are user-owned from birth: created once, never manifested/overwritten.
   const seed = (rel, templateName, transform = (s) => s) => {
     const dest = path.join(sdlcRoot, rel);
     if (fs.existsSync(dest)) return;
-    writeFileNormalized(dest, transform(payloadText(`templates/${templateName}`)));
+    if (!writeInProject(projectRoot, dest, transform(payloadText(`templates/${templateName}`)))) {
+      ctx.warnings.push(LINKED(path.relative(projectRoot, dest)));
+    }
   };
   seed('config.yaml', 'config.yaml', (s) => s.replace('tools: []', `tools: [${tools.join(', ')}]`));
   seed('context/constitution.md', 'constitution.md');
@@ -299,14 +379,23 @@ function scaffoldSdlc(projectRoot, tools, ctx) {
 function recordPayloadVersion(projectRoot, ctx) {
   const rel = path.join('sdlc', '.hooks', 'version.json');
   const content = `${JSON.stringify({ version: pkgVersion() })}\n`;
-  writeFileNormalized(path.join(projectRoot, rel), content);
+  // Same rule as installFile: never write through a link on the path.
+  if (!writeInProject(projectRoot, path.join(projectRoot, rel), content)) {
+    const owned = ctx.oldManifest?.get(toPosix(rel));
+    if (owned) ctx.manifest.set(toPosix(rel), owned);
+    ctx.warnings.push(LINKED(rel));
+    return;
+  }
   ctx.manifest.set(toPosix(rel), sha256(content));
 }
 
-export function writeManifestFile(projectRoot, manifest) {
-  const statePath = path.join(projectRoot, 'sdlc', '.state');
-  fs.mkdirSync(statePath, { recursive: true });
-  fs.writeFileSync(path.join(statePath, 'manifest'), renderManifest(manifest));
+export function writeManifestFile(projectRoot, manifest, ctx) {
+  const rel = path.join('sdlc', '.state', 'manifest');
+  if (!writeInProject(projectRoot, path.join(projectRoot, rel), renderManifest(manifest))) {
+    ctx?.warnings.push(LINKED(rel));
+    return false;
+  }
+  return true;
 }
 
 export function readManifestFile(projectRoot) {
@@ -314,13 +403,18 @@ export function readManifestFile(projectRoot) {
   return fs.existsSync(p) ? parseManifest(fs.readFileSync(p, 'utf8')) : new Map();
 }
 
-export function ensureGitignore(projectRoot) {
+export function ensureGitignore(projectRoot, ctx) {
   const giPath = path.join(projectRoot, '.gitignore');
   const entry = 'sdlc/.state/';
+  if (!pathIsContained(projectRoot, giPath)) {
+    ctx?.warnings.push(LINKED('.gitignore'));
+    return;
+  }
   let current = fs.existsSync(giPath) ? fs.readFileSync(giPath, 'utf8') : '';
   if (current.split(/\r?\n/).some((l) => l.trim() === entry)) return;
-  if (current && !current.endsWith('\n')) current += '\n';
-  fs.writeFileSync(giPath, current + entry + '\n');
+  const eol = current.includes('\r\n') ? '\r\n' : '\n';
+  if (current && !current.endsWith('\n')) current += eol;
+  if (!writeInProject(projectRoot, giPath, current + entry + eol)) ctx?.warnings.push(LINKED('.gitignore'));
 }
 
 // ---------- init ----------
@@ -406,13 +500,14 @@ export async function cmdInit(projectRoot, args) {
   // already recorded with what this run installs, never removing an entry (init has no prune
   // capability, and this doesn't give it one — only `update --tool <list>` can shrink the set).
   let toolsAdded = [];
+  const warnings = [];
   if (configExisted) {
     const recorded = parseConfig(fs.readFileSync(configPath, 'utf8')).tools;
     const newlySelected = tools.filter((t) => !recorded.includes(t));
     // Only claim "recorded" in the summary when a write actually happened — a config
     // predating the `tools:` key makes persistToolsLine a no-op, and the message must not
     // say otherwise.
-    if (newlySelected.length && persistToolsLine(configPath, [...recorded, ...newlySelected])) {
+    if (newlySelected.length && persistToolsLine(configPath, [...recorded, ...newlySelected], { projectRoot, warnings })) {
       toolsAdded = newlySelected;
     }
   }
@@ -421,7 +516,7 @@ export async function cmdInit(projectRoot, args) {
     mode: 'install',
     manifest: new Map(),
     oldManifest: readManifestFile(projectRoot),
-    warnings: [],
+    warnings,
     stats: { written: 0, current: 0, updated: 0, kept: 0 },
   };
   scaffoldSdlc(projectRoot, tools, ctx);
@@ -435,8 +530,8 @@ export async function cmdInit(projectRoot, args) {
   // The merge happens HERE, not by seeding `ctx.manifest`: that Map is also what the install
   // summary counts, and it must keep describing only what this run installed. `cmdUpdate`
   // deliberately does NOT do this — its wholesale replace is what tells prune a tool is gone.
-  writeManifestFile(projectRoot, new Map([...ctx.oldManifest, ...ctx.manifest]));
-  ensureGitignore(projectRoot);
+  writeManifestFile(projectRoot, new Map([...ctx.oldManifest, ...ctx.manifest]), ctx);
+  ensureGitignore(projectRoot, ctx);
   for (const w of ctx.warnings) console.warn(`  ${style.yellow(symbols.warn)} ${w}`);
   printInitSummary(tools, ctx, style, symbols, { configExisted, toolsAdded });
   return { tools };
@@ -486,7 +581,13 @@ export function forceNeedsAPerson(args, env = process.env, stdin = process.stdin
 // replaced wholesale, so a hand-added comment after `tools: [...]` does not survive a rewrite.
 // Returns whether it actually wrote — callers that report "recorded X" to the user must not
 // claim it when this was a no-op (no `tools:` line to rewrite).
-export function persistToolsLine(configPath, tools) {
+export function persistToolsLine(configPath, tools, { projectRoot = path.dirname(path.dirname(configPath)), warnings } = {}) {
+  // config.yaml sits at <project>/sdlc/config.yaml; a link there is never read for rewriting,
+  // and the refusal is reported like every other one.
+  if (!pathIsContained(projectRoot, configPath)) {
+    warnings?.push(LINKED(path.relative(projectRoot, configPath)));
+    return false;
+  }
   const raw = fs.readFileSync(configPath, 'utf8');
   if (!/^tools:/m.test(raw)) return false;
   // A replacer FUNCTION, not a string: `recorded` (unioned in by cmdInit) is free text read
@@ -494,8 +595,7 @@ export function persistToolsLine(configPath, tools) {
   // CLI-sourced tool names are — a string replacement would let `$&`/`$'`/`` $` `` in a
   // hand-edited or corrupted config get interpreted as replacement patterns instead of literal
   // text, silently duplicating or mangling the surrounding file.
-  fs.writeFileSync(configPath, raw.replace(/^tools:.*$/m, () => `tools: [${tools.join(', ')}]`));
-  return true;
+  return writeInProject(projectRoot, configPath, raw.replace(/^tools:.*$/m, () => `tools: [${tools.join(', ')}]`));
 }
 
 export function cmdUpdate(projectRoot, args) {
@@ -516,22 +616,26 @@ export function cmdUpdate(projectRoot, args) {
 
   // Persist an explicit --tool override so declared and installed state never
   // diverge (otherwise pruning tool-specific files leaves config.yaml stale).
+  const warnings = [];
   if (args.toolProvided) {
-    persistToolsLine(path.join(sdlcRoot, 'config.yaml'), tools);
+    persistToolsLine(path.join(sdlcRoot, 'config.yaml'), tools, { projectRoot, warnings });
   }
 
   // Read before scaffolding: recordPayloadVersion overwrites version.json with our own.
   const wasAt = installedVersion(projectRoot);
 
   const oldManifest = readManifestFile(projectRoot);
-  const ctx = { mode: 'update', manifest: new Map(), oldManifest, warnings: [], stats: {} };
+  const ctx = { mode: 'update', manifest: new Map(), oldManifest, warnings, stats: {} };
+  const shipped = loadShippedHashes();
+  if (shipped.error) ctx.warnings.push(`reclaim skipped: ${shipped.error}`);
+  else ctx.shipped = shipped.paths;
   scaffoldSdlc(projectRoot, tools, ctx);
   installToolAdapters(projectRoot, tools, ctx);
   // `update` is how an existing project acquires hooks that journal under .state/, and
   // that whole design rests on the entry being there. Re-assert it: a project whose
   // .gitignore never had it, or lost it, would otherwise start reporting telemetry as
   // untracked noise — the same symptom in a subtler form.
-  ensureGitignore(projectRoot);
+  ensureGitignore(projectRoot, ctx);
 
   // Prune: old-manifest entries no longer in the payload, guarded six ways.
   const { stale, rejected, overCap } = computeStale(oldManifest, new Set(ctx.manifest.keys()));
@@ -563,14 +667,15 @@ export function cmdUpdate(projectRoot, args) {
     }
   }
 
-  writeManifestFile(projectRoot, ctx.manifest);
+  writeManifestFile(projectRoot, ctx.manifest, ctx);
   for (const w of ctx.warnings) console.warn(`  ${w}`);
   const written = (ctx.stats.written ?? 0) + (ctx.stats.updated ?? 0);
   const kept = ctx.stats.kept ?? 0;
+  const reclaimed = ctx.stats.reclaimed ?? 0;
   console.log(`updated for: ${tools.join(', ')} · payload files: ${ctx.manifest.size}`
-    + ` · written: ${written} · kept: ${kept} · pruned: ${pruned}`);
+    + ` · written: ${written}${reclaimed ? ` · ${reclaimed} reclaimed` : ''} · kept: ${kept} · pruned: ${pruned}`);
   reportVersionMove(wasAt);
-  return { pruned, written, kept, warnings: ctx.warnings };
+  return { pruned, written, kept, reclaimed, warnings: ctx.warnings };
 }
 
 // An update that moves the project backwards is still an update — it just must never look
@@ -625,6 +730,15 @@ export function readChanges(sdlcRoot) {
   });
 }
 
+// A missing or unreadable change.md has no figure: no tasks, no percent.
+function changeProgress(sdlcRoot, id) {
+  try {
+    return progressOf(fs.readFileSync(path.join(sdlcRoot, 'changes', id, 'change.md'), 'utf8'));
+  } catch {
+    return { done: 0, total: 0, percent: null };
+  }
+}
+
 export function cmdStatus(projectRoot, { json = false, all = false } = {}) {
   const sdlcRoot = path.join(projectRoot, 'sdlc');
   requireSdlc(sdlcRoot);
@@ -644,6 +758,8 @@ export function cmdStatus(projectRoot, { json = false, all = false } = {}) {
       spawnedFrom: node?.spawnedFrom ?? [],
       parked: node?.parked ?? null,
       waitedOnBy: node?.waitedOnBy ?? [],
+      // Appended after the fields JSON readers already had, so their order holds.
+      progress: changeProgress(sdlcRoot, c.id),
     };
   });
 
@@ -685,7 +801,7 @@ export function cmdStatus(projectRoot, { json = false, all = false } = {}) {
       // The reason is prose out of a user-writable file: escaped and capped like any other
       // untrusted value, so a listing cannot be repainted or reordered by what someone typed.
       const parked = c.parked ? `  ⏸ parked: ${escapeEntry(c.parked, 60)}` : '';
-      console.log(`${c.id}  [${c.tier}/${c.status}]  ${c.title}${waiting}${frees}${parked}${marker}`);
+      console.log(`${c.id}  [${c.tier}/${c.status}]  ${c.title}${progressSuffix(c.progress)}${waiting}${frees}${parked}${marker}`);
     }
     console.log(`${changes.length} active · ${archived} archived${parkedCount ? ` · ${parkedCount} parked` : ''}`);
   }
@@ -888,19 +1004,21 @@ export function cmdArtifact(projectRoot, positionals) {
   const { file, error } = resolveChangeFile(sdlcRoot, changeId, 'stamp');
   if (error) throw new Error(error);
   // A folder name from a cloned repo can carry control or bidi characters: this command's own
-  // messages echo it escaped (resolveChangeFile's refusals above are park's, unchanged).
+  // messages echo it escaped, as resolveChangeFile's refusals above do.
   const shown = escapeEntry(changeId);
   const nameError = artifactNameError(name);
   if (nameError) throw new Error(`cannot stamp "${shown}": ${nameError}`);
 
   const refuse = (why) => new Error(`cannot stamp "${shown}": artifact/${name} ${why} — nothing was written`);
   const dir = path.join(path.dirname(file), 'artifact');
-  const { state } = artifactFileState(path.dirname(file), name);
+  const { state, code } = artifactFileState(path.dirname(file), name);
   if (state === 'no-folder') throw new Error(`cannot stamp "${shown}": the artifact/ folder (holding artifact/${name}) is missing — nothing was written`);
+  // Validate's words for the same state: the file or its folder exists but lstat failed.
+  if (state === 'unreadable') throw refuse(`cannot be checked (${escapeEntry(code)})`);
   if (state === 'bad-folder' || !isRealPathInside(sdlcRoot, dir)) {
     throw new Error(`cannot stamp "${shown}": artifact/ (holding artifact/${name}) is not a real directory inside this project — nothing was written`);
   }
-  if (state === 'missing' || state === 'unreadable') throw refuse('is missing');
+  if (state === 'missing') throw refuse('is missing');
   if (state === 'symlink') throw refuse('is a symlink');
   if (state !== 'ok') throw refuse('is not a regular file');
 
@@ -910,6 +1028,14 @@ export function cmdArtifact(projectRoot, positionals) {
   const basis = artifactBasis(before);
   const stamped = stampArtifacts(before, name, basis);
   if (stamped.error) throw new Error(`cannot stamp "${shown}": artifact/${name} — ${stamped.error}`);
+  // Validate's cap rule (unknown tier → standard). Only a stamp that adds lines is refused: a
+  // re-stamp of a listed line keeps the stale hint usable on a file already over its cap.
+  const { data } = parseFrontmatter(before);
+  const cap = capForChange(TIERS.includes(data.tier) ? data.tier : 'standard');
+  const grown = countEffectiveLines(stamped.text);
+  if (grown > countEffectiveLines(before) && grown > cap) {
+    throw refuse(`would push change.md past its cap of ${cap} lines — trim change.md, then re-run`);
+  }
   const proof = readArtifacts(stamped.text).filter((e) => e.path === `artifact/${name}`);
   if (proof.length !== 1 || proof[0].basis !== basis) {
     throw refuse('— the stamp would not read back (is ## Artifacts inside an unclosed code fence?)');

@@ -17,7 +17,8 @@
   ],
   "scripts": {
     "test": "node --test",
-    "setup:dogfood": "node bin/cli.mjs init --tool claude && node bin/cli.mjs update"
+    "setup:dogfood": "node bin/cli.mjs init --tool claude && node bin/cli.mjs update",
+    "shipped-hashes": "node .github/scripts/shipped-hashes.mjs"
   },
   "engines": {
     "node": ">=20"

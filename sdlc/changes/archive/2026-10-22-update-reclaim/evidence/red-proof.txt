@@ -1,0 +1,93 @@
+
+== containment off (pathIsContained always true, plain write)
+  off  not ok 1 - update-reclaim row 18: a dangling symlink at a payload path is never written through
+  off  not ok 2 - update-reclaim row 19: a linked sdlc/.hooks folder is never written into, by init or update
+  off  not ok 3 - update-reclaim row 22: no installer write site follows a link out of the project
+  off  not ok 4 - update-reclaim row 20: a manifest hash naming a symlinked file's target never refreshes through it
+  off  # pass 0
+  off  # fail 4
+  off  # skipped 0
+  off  not ok 1 - row 13: a symlinked P is never reclaimed and its target is untouched
+  off  not ok 2 - row 13b: a P under a linked sdlc/.hooks folder is never reclaimed and the outside file is untouched
+  off  # pass 0
+  off  # fail 2
+  off  # skipped 0
+  on   ok 1 - update-reclaim row 18: a dangling symlink at a payload path is never written through
+  on   ok 2 - update-reclaim row 19: a linked sdlc/.hooks folder is never written into, by init or update
+  on   ok 3 - update-reclaim row 22: no installer write site follows a link out of the project
+  on   ok 4 - update-reclaim row 20: a manifest hash naming a symlinked file's target never refreshes through it
+  on   # pass 4
+  on   # fail 0
+  on   # skipped 0
+  on   ok 1 - row 13: a symlinked P is never reclaimed and its target is untouched
+  on   ok 2 - row 13b: a P under a linked sdlc/.hooks folder is never reclaimed and the outside file is untouched
+  on   # pass 2
+  on   # fail 0
+  on   # skipped 0
+  restored: true
+
+== refused path drops its recorded ownership (linked() no longer restores the manifest entry)
+  off  not ok 1 - update-reclaim row 20: a manifest hash naming a symlinked file's target never refreshes through it
+  off  # pass 0
+  off  # fail 1
+  off  # skipped 0
+  on   ok 1 - update-reclaim row 20: a manifest hash naming a symlinked file's target never refreshes through it
+  on   # pass 1
+  on   # fail 0
+  on   # skipped 0
+  restored: true
+
+== case folding off (exact realpath compare only)
+  off  not ok 1 - update-reclaim row 23: a file whose on-disk case differs from the payload path is not refused as a link
+  off  # pass 0
+  off  # fail 1
+  off  # skipped 0
+  on   ok 1 - update-reclaim row 23: a file whose on-disk case differs from the payload path is not refused as a link
+  on   # pass 1
+  on   # fail 0
+  on   # skipped 0
+  restored: true
+
+== case folding forgives a link (no lstat walk below the root)
+  off  not ok 1 - update-reclaim row 25: a link whose target differs only by case is still refused when folding
+  off  # pass 0
+  off  # fail 1
+  off  # skipped 0
+  on   ok 1 - update-reclaim row 25: a link whose target differs only by case is still refused when folding
+  on   # pass 1
+  on   # fail 0
+  on   # skipped 0
+  restored: true
+
+== whole-file EOL normalization back in writeInProject
+  off  not ok 1 - update-reclaim row 24: a CRLF user file keeps its CRLF after a marker append or a tools-line rewrite
+  off  # pass 0
+  off  # fail 1
+  off  # skipped 0
+  on   ok 1 - update-reclaim row 24: a CRLF user file keeps its CRLF after a marker append or a tools-line rewrite
+  on   # pass 1
+  on   # fail 0
+  on   # skipped 0
+  restored: true
+
+== appended marker block written LF into a CRLF file
+  off  not ok 1 - update-reclaim row 24: a CRLF user file keeps its CRLF after a marker append or a tools-line rewrite
+  off  # pass 0
+  off  # fail 1
+  off  # skipped 0
+  on   ok 1 - update-reclaim row 24: a CRLF user file keeps its CRLF after a marker append or a tools-line rewrite
+  on   # pass 1
+  on   # fail 0
+  on   # skipped 0
+  restored: true
+
+== .gitignore entry written LF into a CRLF file
+  off  not ok 1 - update-reclaim row 24: a CRLF user file keeps its CRLF after a marker append or a tools-line rewrite
+  off  # pass 0
+  off  # fail 1
+  off  # skipped 0
+  on   ok 1 - update-reclaim row 24: a CRLF user file keeps its CRLF after a marker append or a tools-line rewrite
+  on   # pass 1
+  on   # fail 0
+  on   # skipped 0
+  restored: true

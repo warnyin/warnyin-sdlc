@@ -84,3 +84,56 @@ is stale or absent is not evidence, that `change.md` is the source of truth, and
 #### Scenario: the conventions skill says so
 - WHEN the conventions skill is read
 - THEN it carries that rule and names the command
+
+### Requirement: Every refusal shows the change id escaped
+The system SHALL show a change id in every refusal and success line of `artifact` and `park`/`unpark`
+through `escapeEntry`, and `escapeEntry` SHALL escape every control (Cc: C0, DEL, C1) and format (Cf)
+character, so no character of a folder name reaches the terminal raw.
+
+#### Scenario: a folder name with C1 and bidi characters
+- WHEN `artifact`, `park` or `unpark` names such an id, whether or not the change exists
+- THEN its output shows `\u{9b}` and `\u{202e}`, and no raw Cc or Cf character
+
+### Requirement: The stale hint is safe to paste
+The system SHALL print the re-run command in a stale warning with the full change id only when it
+starts with `[A-Za-z0-9_]` and every other character is in `[A-Za-z0-9._-]`; otherwise the hint names
+`<change-id>` as a placeholder.
+
+#### Scenario: an id with shell metacharacters
+- WHEN a stamped artifact is stale and its change id is `a;b`, `a$b`, `a b` or `-x`
+- THEN the hint reads `warnyin-sdlc artifact <change-id> <name>` with the name filled in
+
+#### Scenario: a long plain id
+- WHEN the id is 85 plain characters
+- THEN the hint names it in full
+
+### Requirement: A stamp never pushes change.md over its cap
+The system SHALL refuse a stamp that adds lines and whose result would exceed the change's tier cap
+(validate's tier rule), naming the cap, and SHALL write nothing. A stamp that adds no line is allowed.
+
+#### Scenario: a change.md at its cap
+- WHEN a change.md already has its tier's cap of effective lines and a stamp would add a line or a
+  `## Artifacts` section, for a standard, vibe, unknown (`tier: constructor`) or CRLF change
+- THEN `artifact` exits non-zero naming `cap of <n> lines` and how to proceed, and change.md is
+  byte-identical; a stamp that lands exactly on the cap succeeds
+
+#### Scenario: a re-stamp that adds no line
+- WHEN the line is already listed and only its basis changes, at or over the cap
+- THEN the stamp succeeds
+
+### Requirement: A stamp names why it could not check the file
+The system SHALL refuse a stamp whose artifact file or `artifact/` folder exists but cannot be
+inspected with "cannot be checked (<code>)", as validate does, never "is missing" or "not a real
+directory".
+
+#### Scenario: an unreadable artifact path
+- WHEN lstat of `artifact/<name>` or of `artifact/` fails with a code other than ENOENT
+- THEN the refusal says `cannot be checked (<code>)` and nothing is written
+
+### Requirement: A basis is read in any case
+The system SHALL read a listed basis case-insensitively and lower-case it when read, the same way a
+stamp recognises one.
+
+#### Scenario: an upper- or mixed-case basis
+- WHEN the listed line carries the current basis in upper or mixed case
+- THEN validate reports nothing, and after a Delta edit it reports that artifact stale

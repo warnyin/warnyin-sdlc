@@ -8,7 +8,11 @@
 - Write tests + evals (`contract/`) BEFORE code. No implementation while status is `new`.
 - An assumption that removes work ("already covered", "unchanged", "harmless") is a claim
   about the code: run it and prove it, or record it `[UNVERIFIED]`.
-- Ambiguity: make the safest assumption and record it under `## Assumptions`; use
+- A required command argument the human did not type is a question, never a guess from what
+  the session was just doing; the only default is the `Active change:` pointer, and only for an
+  sdlc command's change id.
+- Ambiguity in the work (a missing command argument is asked, never assumed): make the safest
+  assumption and record it under `## Assumptions`; use
   `[NEEDS CLARIFICATION: q]` only for facts you cannot obtain — ask those in rounds ordered
   by dependency, each with a recommended answer and, for a few concrete choices, 2–4 options
   (through the tool's question picker when it has one); resolve all before contract.

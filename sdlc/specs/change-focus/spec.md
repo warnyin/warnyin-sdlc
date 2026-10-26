@@ -106,3 +106,15 @@ no artifact of its own — its result is the Why and the Assumptions `/sdlc:new`
 #### Scenario: a tool without slash commands
 - WHEN a project installs a tool whose stages are exposed as skills rather than commands
 - THEN grooming is exposed there too, by the same rendering as every other stage
+
+### Requirement: Grooming carries a project hard stop instead of firing it
+The system SHALL tell the agent that during grooming a project's edit-time hard stop (RBAC, auth,
+migrations…) is recorded as a constraint in the Assumptions handed to `/sdlc:new`, and fires when a
+stage that edits files outside `sdlc/` starts — never during grooming, which edits nothing. The
+sentence SHALL appear in `payload/playbook/groom.md` before its steps, and its hand-off step SHALL
+name a project hard stop among the Assumptions it carries.
+
+#### Scenario: the human names a hard-stop topic while grooming
+- WHEN an answer in a grooming round touches a topic the project's instructions halt on
+- THEN the hand-off to `/sdlc:new` carries "this change goes through <the project's workflow>"
+  as an assumption

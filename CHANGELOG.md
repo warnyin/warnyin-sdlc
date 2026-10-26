@@ -1,5 +1,58 @@
 # Changelog
 
+## Unreleased
+
+- **`status` shows how far along each change is** (#13): every line now ends its title with
+  ` · tasks 2/4 · 50%` (or ` · 10%` when there are no tasks), and `status --json` gives each change
+  `progress: { done, total, percent }` after its existing keys. The percent follows the stage — new
+  10, contracted 25, building 25→75 by ticked tasks (verify and review run at 75), verified 90,
+  shipped 100 — so it can fall when verify adds fix tasks. Tasks are the checkboxes under `## Tasks`
+  headings. `/sdlc:auto`, `/sdlc:build` and `/sdlc:next` state the same figure in every progress update.
+- **`artifact` and `park` never print a change id raw**: every refusal and success line of
+  `artifact`, `park` and `unpark` escapes the id, and escaping now covers C1 controls (an 8-bit CSI
+  repaints a terminal) as well as C0, DEL and bidi characters. A stale artifact's re-run hint names a
+  plain id in full — it was cut at 80 characters — and anything else as `<change-id>`, so a pasted
+  hint never runs shell syntax from a folder name. `artifact` refuses a stamp that would push
+  change.md past its tier's cap (re-stamping a listed line is always allowed), says `cannot be
+  checked (<code>)` when it cannot inspect the file or its folder, and a basis typed in upper or mixed
+  case is read — before, that artifact was never checked and went stale silently, so a project with
+  such a basis may see a stale warning for the first time (warning only). A stamp refused by the
+  cap exits non-zero; trim change.md and re-run. Long ids in `park`/`artifact` lines are shown
+  escaped and cut at 80 characters, like every other escaped value. Other places that print a
+  change id are not covered yet — `list`, `status`/`relations`, `ship`, `observe`, `validate`,
+  `set-active`, the ship gate and the session summary; a later release does them.
+- **a missing command argument is asked, never guessed** (#10): the SessionStart hook now opens
+  with one fixed line, and the rules card for other tools carries it too: a required argument the
+  human did not type is a question, never a guess from what the session was just doing — the only
+  default is the `Active change:` pointer, for an sdlc command's change id. The ambiguity rule in
+  the rules card and `new` says the same, so "make the safest assumption" no longer covers it.
+  The line comes first, so a full constitution never truncates it, and it counts toward the
+  60-line budget.
+- **grooming carries a project's hard stop instead of firing it** (#8): an edit-time halt (RBAC,
+  auth, migrations…) named while grooming goes into the Assumptions handed to `/sdlc:new` and fires
+  when a stage that edits files outside `sdlc/` starts — grooming edits nothing.
+- **update reclaims payload files it lost track of** (#11): updaters before 0.23 dropped the
+  manifest entry of every file they kept, so an untouched file read as `kept (user-modified)` on
+  every later `update` and stayed at its old version — `sdlc/.hooks/journal.mjs` among them, which
+  broke autopilot. `update` now checks such a file against `bin/shipped-hashes.json`, the hashes
+  of what every released version installed at each path. A file whose content (line endings
+  normalized) equals one of them is refreshed and reported as
+  `reclaimed (unmodified, shipped by an older version)`. A file that matches no release is still
+  yours and is kept. A missing or unreadable ledger only turns reclaim off, with a
+  `reclaim skipped:` warning. A file someone deliberately kept at an older shipped version is
+  refreshed too, since it is byte-for-byte a release's copy.
+- **`init` and `update` never write through a symlink**: every file they write — payload files,
+  `.claude/settings.json`, the marker adapters (`AGENTS.md`, `GEMINI.md`, `.clinerules`, copilot),
+  seeds, `sdlc/.state/manifest`, `.gitignore`, `config.yaml` and `version.json` — goes through the
+  same contained write that refuses a link anywhere on the path (the file, a dangling link, or a
+  linked folder). Such a path is reported `kept (symlink in path, not written)` and left alone.
+  Before, a cloned repo with, say, `.claude/settings.json` linked elsewhere had the link target
+  written. A project that links `.claude` or `sdlc/` on purpose now gets those warnings instead.
+  A file whose case differs from the payload's (`agents.md`) is not mistaken for a link, while a
+  link to a name that differs only by case is still refused. A CRLF user file that gets a block
+  appended (`AGENTS.md`, `.gitignore`) or its tools line rewritten stays CRLF, appended lines too.
+  `archive` still writes without this check; a later release covers it.
+
 ## 0.27.0 (2026-10-22)
 
 - **Close the gate-rules-second-pass digest**: `observe` now shows `human-closed×N` and

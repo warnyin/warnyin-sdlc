@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // SessionStart hook — THE static-context loader. Emits (hard cap 60 lines):
-//   constitution + every `inclusion: always` steering file + a one-line
-//   pointer to the active change. Everything else stays dynamic.
+//   the missing-argument rule + constitution + every `inclusion: always` steering file + a
+//   one-line pointer to the active change. Everything else stays dynamic.
 // Journals what was injected so /sdlc:observe can price residency honestly. When a newer
 // framework version is known, one notice line leads the output, outside the budget.
 
@@ -16,13 +16,17 @@ import { updateNotice } from './_update-notice.mjs';
 
 const { sdlcRoot, hooksDir } = resolveRoots(import.meta.url);
 
+const ARG_RULE = "A required command argument the human did not type is a question, never a guess from what the session was just doing; the only default is the `Active change:` pointer, and only for an sdlc command's change id.";
+
 async function main() {
   const input = await readStdinJson();
   if (!fs.existsSync(sdlcRoot)) return;
   const sessionId = pickSessionId(input?.session_id, process.env.CLAUDE_CODE_SESSION_ID);
 
   const injected = [];
-  const out = [];
+  // First, so truncation (which cuts the tail) never drops it: a project's own command reaches the
+  // agent with nothing else loaded, and a missing argument guessed from the session did real damage.
+  const out = [ARG_RULE];
 
   const constitutionPath = path.join(sdlcRoot, 'context', 'constitution.md');
   if (fs.existsSync(constitutionPath)) {
@@ -45,9 +49,7 @@ async function main() {
   if (active) out.push(`Active change: sdlc/changes/${active}/change.md — run /sdlc:next for status.`);
 
   const notice = updateNotice({ sdlcRoot, hooksDir });
-  if (!out.length && !notice) return;
-
-  let lines = out.length ? out.join('\n\n').split('\n') : [];
+  let lines = out.join('\n\n').split('\n');
   if (lines.length > CAPS.alwaysBudget) {
     lines = lines.slice(0, CAPS.alwaysBudget);
     lines.push(`[sdlc] static context truncated at ${CAPS.alwaysBudget} lines — run /sdlc:steer to distill (validate also flags this).`);

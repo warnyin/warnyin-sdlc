@@ -233,8 +233,10 @@ describe('update-notice', { concurrency: true }, () => {
     const res = await sessionStart(dir, await refusedBase());
     assert.match(res.stdout.split('\n')[0], NOTICE);
     assert.match(res.stdout, /truncated at 60 lines/);
-    // Outside the budget: the notice costs no constitution line (header + rules 0..58 = 60).
-    assert.match(res.stdout, /^- rule 58$/m);
+    // Outside the budget: the notice costs no constitution line (ask-dont-infer: the argument rule
+    // and its blank line come first, then header + rules 0..56 = 60).
+    assert.match(res.stdout, /^- rule 56$/m);
+    assert.doesNotMatch(res.stdout, /^- rule 57$/m);
   });
 
   it('row 6: a stale check runs in the background, once, and the next session is told', async (t) => {

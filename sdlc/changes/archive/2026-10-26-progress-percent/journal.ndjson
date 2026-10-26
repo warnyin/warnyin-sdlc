@@ -1,0 +1,8 @@
+{"ts":"2026-10-26T03:25:01.073Z","event":"session","session":"e536491a-01b0-4ae5-adc0-49a9e1ac3881","totals":{"input":11904,"output":7743544,"cacheRead":1448444972,"cacheWrite":65261803},"models":{"claude-opus-5-5":{"input":5692,"output":3535556,"cacheRead":1238421078,"cacheWrite":17934077},"claude-sonnet-5-5":{"input":1460,"output":403323,"cacheRead":47804146,"cacheWrite":12313492},"claude-haiku-5-5":{"input":4752,"output":3804665,"cacheRead":162219748,"cacheWrite":35014234},"<synthetic>":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0}},"costUsd":null}
+{"ts":"2026-10-26T03:28:33.733Z","event":"contract","tests":"12","attack":"1","must-fix":"7","session":"e536491a-01b0-4ae5-adc0-49a9e1ac3881"}
+{"ts":"2026-10-26T03:29:42.033Z","event":"build","tasks":"4","mode":"conductor","session":"e536491a-01b0-4ae5-adc0-49a9e1ac3881"}
+{"ts":"2026-10-26T03:30:59.163Z","event":"verify","result":"pass","round":"1","gate":"fast","scope":"full","mode":"solo","session":"e536491a-01b0-4ae5-adc0-49a9e1ac3881"}
+{"ts":"2026-10-26T03:30:59.216Z","event":"review","blockers":"0","skipped":"no-signal","session":"e536491a-01b0-4ae5-adc0-49a9e1ac3881"}
+{"ts":"2026-10-26T03:30:59.307Z","event":"verify","result":"pass","round":"1","gate":"final","reused":"yes","mode":"solo","session":"e536491a-01b0-4ae5-adc0-49a9e1ac3881"}
+{"ts":"2026-10-26T03:30:59.602Z","event":"gate","gate":"ship","action":"open","expires":"2026-10-26T04:00:59.600Z"}
+{"ts":"2026-10-26T03:30:59.690Z","event":"ship","change":"progress-percent","specs":["cli-surface","unattended-run"]}

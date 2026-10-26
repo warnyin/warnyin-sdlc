@@ -174,7 +174,8 @@ test('row 4: a hand-placed line for the path keeps its original text and gets th
     const id = `hand-${k}`;
     // A near-miss neighbour: the path match is exact, so this line is neither stamped nor counted.
     const NEIGHBOUR = '- artifact/plan.html.old';
-    const dir = writeChange(root, id, { body: `${BODY}## Artifacts\n${line}\n${NEIGHBOUR}\n` });
+    const NEIGHBOUR2 = '- artifact/plan.html-old';
+    const dir = writeChange(root, id, { body: `${BODY}## Artifacts\n${line}\n${NEIGHBOUR}\n${NEIGHBOUR2}\n` });
     writeArtifact(dir, 'plan.html');
     const file = changeFile(root, id);
     for (const step of ['stamp', 'design-edit']) {
@@ -183,7 +184,9 @@ test('row 4: a hand-placed line for the path keeps its original text and gets th
       assert.equal(res.status, 0, `${label} ${step}: ${res.stdout}${res.stderr}`);
       const text = readText(file);
       assert.ok(linesOf(text).includes(NEIGHBOUR), `${label} ${step}: the near-miss neighbour must stay untouched`);
-      const forPlan = linesOf(text).filter((l) => /artifact\/plan\.html(?![.\w])/.test(l));
+      assert.ok(linesOf(text).includes(NEIGHBOUR2), `${label} ${step}: the -old neighbour must stay untouched`);
+      // The path ends at whitespace, `)` or the end of the line — `plan.html-old` is not it.
+      const forPlan = linesOf(text).filter((l) => /artifact\/plan\.html(?=[\s)]|$)/.test(l));
       assert.equal(forPlan.length, 1, `${label} ${step}: exactly one line for that path, got ${JSON.stringify(forPlan)}`);
       assert.ok(forPlan[0].includes(keep), `${label} ${step}: the line must keep "${keep}", got ${forPlan[0]}`);
       assert.equal(forPlan[0].match(/basis:/gi)?.length, 1, `${label} ${step}: one basis token, got ${forPlan[0]}`);
@@ -441,6 +444,19 @@ test('row 25: each shared helper is defined once in its own module, the new modu
   assert.doesNotMatch(artifactsSrc, /\bfs\s*\[/, 'lib/artifacts.mjs must not reach fs through a computed member');
   const fsImports = [...artifactsSrc.matchAll(/import\s+([^;]+?)\s+from\s+['"](?:node:)?fs(?:\/promises)?['"]/g)].map((m) => m[1].trim());
   assert.deepEqual(fsImports, ['fs'], `lib/artifacts.mjs must import node:fs only as the default "fs", found ${JSON.stringify(fsImports)}`);
+  // Bare-token rule: every `fs` token is the import line or `fs.lstatSync` — an alias
+  // (`const g = fs`) or optional call (`fs?.readFileSync`) would slip past the member scan.
+  const strayFs = linesOf(artifactsSrc).flatMap((l, i) => {
+    if (/^import\s+fs\s+from\s+['"]node:fs['"];?\s*$/.test(l.trim())) return [];
+    return [...l.matchAll(/\bfs\b/g)].filter((m) => !l.slice(m.index).startsWith('fs.lstatSync')).map(() => `${i + 1}: ${l.trim()}`);
+  });
+  assert.deepEqual(strayFs, [], 'every fs token in lib/artifacts.mjs is the import or fs.lstatSync');
+  for (const mod of ['lib/artifacts.mjs', 'lib/fences.mjs', 'lib/change-file.mjs']) {
+    const src = readText(path.join(PKG_ROOT, mod)).split(/\r?\n/).filter((l) => !/^\s*\/\//.test(l)).join('\n');
+    for (const banned of [/\bimport\s*\(/, /createRequire/, /getBuiltinModule/, /process\s*(\?\.|\.|\[)\s*['"]?binding/]) {
+      assert.doesNotMatch(src, banned, `${mod} must not match ${banned} — a module reached that way escapes the import scan`);
+    }
+  }
 
   for (const mod of ['lib/artifacts.mjs', 'lib/fences.mjs', 'lib/change-file.mjs']) {
     const p = path.join(PKG_ROOT, mod);

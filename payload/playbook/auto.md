@@ -75,6 +75,8 @@ Rules:
   is needed in ≤5 lines, wait. When the human answers, resume from that step —
   never restart the pipeline. One that IS pre-approved: take the approved choice,
   journal it, and keep going without asking.
+- Every progress update — a stage change, a wave started or finished, a task ticked — states the
+  change's figure from `npx @warnyin/sdlc status`: `tasks <done>/<total> · <p>%`.
 - On completion report one line: shipped + digest path + total cost if known.
 
 Work units (build tasks, the verify test run) go to subagents at their tier — `routing.md`

@@ -5,6 +5,7 @@ The design decision is WHERE each lives: static (always loaded, expensive) vs
 dynamic (loaded on demand, cheap). That boundary is versioned code, reviewed in PRs.
 
 ## Static (injected every session by the SessionStart hook, hard cap 60 lines total)
+- One fixed line from the hook itself, first: the missing-argument rule.
 - `sdlc/context/constitution.md` (≤30) — hard rules + stack facts only.
 - `sdlc/context/steering/*.md` with `inclusion: always` — should be rare.
 - One pointer line to the active change.

@@ -82,3 +82,21 @@ documented environment override is set, so an agent cannot cross the blast cap o
 #### Scenario: automation that means it
 - WHEN that same run sets the documented override
 - THEN it proceeds, so a script that always intended to force still can
+
+### Requirement: Status gives each change one progress figure
+The system SHALL give every open change in `status` a progress figure computed from its status and
+its ticked tasks by the formula in this change's Assumptions, printed as ` · tasks <done>/<total> ·
+<p>%` after the title (` · <p>%` alone when there are no tasks, nothing when there is no figure), and
+in `status --json` as `progress: { done, total, percent }` (`percent: null` when there is no figure).
+
+#### Scenario: a change part way through its tasks
+- WHEN a standard change is `building` with 2 of 4 tasks ticked
+- THEN its status line shows `· tasks 2/4 · 50%` and its JSON `progress` is `{ done: 2, total: 4, percent: 50 }`
+
+#### Scenario: checkboxes outside the Tasks sections
+- WHEN Assumptions or a fenced block inside Tasks holds `- [x]` lines
+- THEN they are not counted
+
+#### Scenario: a change with no figure
+- WHEN a change folder has no change.md, or its status is not one of the five
+- THEN its status line carries no figure and its JSON `progress.percent` is `null`

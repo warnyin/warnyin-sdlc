@@ -132,8 +132,11 @@ publish step fails and nothing is released):
 
 Each release:
 1. Bump `version` in `package.json`, add the `CHANGELOG.md` entry (rename a `## Unreleased`
-   heading to `## X.Y.Z (date)` — `changelog` never shows an Unreleased section), commit
-   `chore(release): X.Y.Z`.
+   heading to `## X.Y.Z (date)` — `changelog` never shows an Unreleased section), run
+   `npm run shipped-hashes` (tags fetched, network for the npm-only versions, payload committed)
+   so `bin/shipped-hashes.json` lists the new version — `update` reclaims untouched files from
+   it; the run only adds to the ledger and can be repeated — and commit `chore(release): X.Y.Z`.
+   The release job runs `shipped-hashes.mjs --check` and stops if the ledger misses this version.
 2. `git tag vX.Y.Z && git push origin main vX.Y.Z`
 3. Watch the `release` run in GitHub Actions, then confirm with `npm view @warnyin/sdlc version`.
 

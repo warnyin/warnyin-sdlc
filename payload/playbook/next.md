@@ -31,6 +31,8 @@
 3. If nothing is active: suggest /sdlc:new — or /sdlc:groom first when the ask names a
    solution but no outcome — or /sdlc:observe if archived changes
    have unread digests.
-4. Answer in ≤5 lines. Create or modify nothing.
+4. Answer in ≤5 lines, the current change's figure among them. Create or modify nothing.
+   Every progress update — a stage change, a wave started or finished, a task ticked — states the
+   change's figure from `npx @warnyin/sdlc status`: `tasks <done>/<total> · <p>%`.
 5. When the remaining path is more than one stage, add one line: the same command
    with `--auto` confirms once and runs to ship.

@@ -100,3 +100,12 @@ silently decisive.
 #### Scenario: a candidate excluded because nothing matched
 - WHEN a candidate is dropped from scope on an empty search result
 - THEN the confirmation shows the pattern searched and that it returned nothing
+
+### Requirement: Every progress update states the figure
+The system SHALL tell the agent, in `payload/playbook/auto.md`, `payload/playbook/build.md` and
+`payload/playbook/next.md`, that every progress update — a stage change, a wave started or finished,
+a task ticked — states the change's figure from `status`.
+
+#### Scenario: an unattended run moves to the next wave
+- WHEN the orchestrator reports a wave finished
+- THEN the report carries `tasks d/t · p%` from `status`

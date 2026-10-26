@@ -134,3 +134,22 @@ assumption is written, where it is spent to drop a test, and where the panel pic
 #### Scenario: a tool with no hooks still gets the rule
 - WHEN a project installs a non-Claude tool whose only enforcement is the rules card
 - THEN the card carries the same verify-or-mark rule, within its 40-line budget
+
+### Requirement: A required argument the human did not type is asked, never inferred
+The system SHALL tell the agent, first in the context loaded at every session start, that a required
+command argument the human did not type is a question and never a guess from what the session was
+just doing, and that the only default is the `Active change:` pointer, for an sdlc command's change
+id. The sentence SHALL appear in the SessionStart output of `payload/hooks/inject-context.mjs`, in
+`payload/playbook/rules-card.md`, and be named in `payload/playbook/context.md`'s static list. The
+ambiguity rules in `rules-card.md` and `payload/playbook/new.md` step 5 SHALL state that a missing
+command argument is asked, never assumed.
+
+#### Scenario: a session starts in an installed project
+- WHEN the SessionStart hook runs, with or without an active change, a constitution, or room left
+  in the budget
+- THEN its first output line is the argument sentence, exactly once
+
+#### Scenario: a non-Claude tool's rules file
+- WHEN `init` installs any non-Claude adapter
+- THEN the embedded rules card contains the same sentence, and its ambiguity rule carves out a
+  missing command argument

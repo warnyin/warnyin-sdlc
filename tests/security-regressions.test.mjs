@@ -1,6 +1,7 @@
 // Regression coverage for the review findings: symlink-driven prune deletion,
 // symlink write-lock bypass, non-atomic archive, duplicate Delta blocks,
-// update --tool config drift, session-id path traversal, __proto__ keys.
+// update --tool config drift, session-id path traversal, __proto__ keys, and installFile writing
+// through a symlinked payload path.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -15,6 +16,7 @@ import {
 import { parseDelta, mergeDelta } from '../lib/delta.mjs';
 import { parseFrontmatter } from '../lib/frontmatter.mjs';
 import { resolveActive } from '../lib/active.mjs';
+import { isRealPathInside } from '../lib/safe-path.mjs';
 
 // A throwaway home so skills tests never read the real ~/.claude.
 function emptyHome(t) {
@@ -993,4 +995,174 @@ test('change-artifacts row 30: a stamp that would not read back (an unclosed fen
   // Control: the same change with its fence closed stamps.
   fs.appendFileSync(file, '```\n');
   assert.equal(runCli(root, ['artifact', 'unclosed', 'plan.html']).status, 0, 'control: with the fence closed the stamp reads back');
+});
+
+// update-reclaim review 1: installFile wrote through a symlink on its `written` and `updated`
+// branches. A link anywhere on a payload path is now kept and never written, on every branch.
+const HOOK = 'sdlc/.hooks/journal.mjs';
+const sha256 = (s) => crypto.createHash('sha256').update(s).digest('hex');
+
+function linkOrSkip(t, target, linkPath, type) {
+  try {
+    fs.symlinkSync(target, linkPath, type);
+    return true;
+  } catch (err) {
+    t.skip(`symlinks unavailable here (${err.code})`);
+    return false;
+  }
+}
+
+test('update-reclaim row 18: a dangling symlink at a payload path is never written through', (t) => {
+  const dir = makeTempProject(t);
+  assert.equal(runCli(dir, ['init', '--tool', 'claude']).status, 0);
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'wsdlc-dangling-'));
+  t.after(() => fs.rmSync(outside, { recursive: true, force: true }));
+  const target = path.join(outside, 'created-through-link.mjs');
+  fs.rmSync(path.join(dir, HOOK));
+  if (!linkOrSkip(t, target, path.join(dir, HOOK), 'file')) return;
+  const res = runCli(dir, ['update'], { env: { NO_UPDATE_NOTIFIER: '1' } });
+  assert.equal(res.status, 0, res.stderr);
+  assert.equal(fs.existsSync(target), false, 'nothing is created at the link target outside the project');
+  assert.ok(res.stderr.includes(`kept (symlink in path, not written): ${HOOK}`), res.stderr);
+});
+
+test('update-reclaim row 19: a linked sdlc/.hooks folder is never written into, by init or update', (t) => {
+  const dir = makeTempProject(t);
+  assert.equal(runCli(dir, ['init', '--tool', 'claude']).status, 0);
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'wsdlc-hooks-'));
+  t.after(() => fs.rmSync(outside, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(outside, 'journal.mjs'), 'outside content\n');
+  fs.rmSync(path.join(dir, 'sdlc/.hooks'), { recursive: true, force: true });
+  if (!linkOrSkip(t, outside, path.join(dir, 'sdlc/.hooks'), 'junction')) return;
+  for (const args of [['update'], ['init', '--tool', 'claude']]) {
+    const res = runCli(dir, args, { env: { NO_UPDATE_NOTIFIER: '1' } });
+    assert.equal(res.status, 0, `${args[0]}: ${res.stderr}`);
+    assert.deepEqual(fs.readdirSync(outside), ['journal.mjs'], `${args[0]}: nothing new lands in the linked folder`);
+    assert.equal(fs.readFileSync(path.join(outside, 'journal.mjs'), 'utf8'), 'outside content\n', `${args[0]}: the outside file is untouched`);
+  }
+});
+
+// update-reclaim review 2: every other installer write site, one case each. A link (file, dangling
+// or folder) at the site points outside the project; the command still exits 0, and nothing
+// outside changes.
+test('update-reclaim row 22: no installer write site follows a link out of the project', (t) => {
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'wsdlc-sites-'));
+  t.after(() => fs.rmSync(outside, { recursive: true, force: true }));
+  const env = { NO_UPDATE_NOTIFIER: '1' };
+  const cases = [
+    // [label, site, kind ('file' | 'dangling' | 'dir'), command]
+    ['claude settings.json', '.claude/settings.json', 'file', ['update']],
+    ['.gitignore', '.gitignore', 'file', ['update']],
+    ['AGENTS.md marker append', 'AGENTS.md', 'file', ['init', '--tool', 'agents-md']],
+    ['sdlc/.state manifest', 'sdlc/.state', 'dir', ['update']],
+    ['config.yaml tools line', 'sdlc/config.yaml', 'file', ['update', '--tool', 'claude,cursor']],
+    ['harness.md seed', 'sdlc/harness.md', 'dangling', ['update']],
+    ['archive .gitkeep', 'sdlc/changes/archive/.gitkeep', 'dangling', ['update']],
+    ['payload file on init', HOOK, 'dangling', ['init', '--tool', 'claude']],
+  ];
+  // A tools line, so the config.yaml rewrite has something to rewrite if it follows the link.
+  const outsideText = (label) => `tools: [claude]\n# outside ${label}\n`;
+  // Every case runs and every failure is reported, so one broken site cannot hide another.
+  const failures = [];
+  for (const [label, site, kind, command] of cases) {
+    const dir = makeTempProject(t);
+    assert.equal(runCli(dir, ['init', '--tool', 'claude'], { env }).status, 0, label);
+    const target = path.join(outside, label.replace(/[^a-z0-9]+/gi, '-'));
+    if (kind === 'file') fs.writeFileSync(target, outsideText(label));
+    if (kind === 'dir') { fs.mkdirSync(target); fs.writeFileSync(path.join(target, 'keep.txt'), 'outside\n'); }
+    fs.rmSync(path.join(dir, site), { recursive: true, force: true });
+    if (!linkOrSkip(t, target, path.join(dir, site), kind === 'dir' ? 'junction' : 'file')) return;
+    const res = runCli(dir, command, { env });
+    if (res.status !== 0) failures.push(`${label}: exit ${res.status} ${res.stderr.trim().split('\n').pop()}`);
+    // Every refusal is reported, naming the site (or a path under a linked folder).
+    if (!res.stderr.includes(`kept (symlink in path, not written): ${site}`)) failures.push(`${label}: no report naming ${site}`);
+    if (kind === 'file' && fs.readFileSync(target, 'utf8') !== outsideText(label)) failures.push(`${label}: the outside file changed`);
+    if (kind === 'dangling' && fs.existsSync(target)) failures.push(`${label}: a file was created at the link target`);
+    if (kind === 'dir' && fs.readdirSync(target).join() !== 'keep.txt') failures.push(`${label}: files landed in the outside folder`);
+  }
+  assert.deepEqual(failures, [], `write sites that followed a link:\n${failures.join('\n')}`);
+});
+
+// update-reclaim review 3: containment must not mistake a spelling for a link. On a case-folding
+// file system (Windows, macOS) a user's `agents.md` IS `AGENTS.md`; on a case-sensitive one they
+// are two files. Either way nothing is refused as a link.
+test('update-reclaim row 23: a file whose on-disk case differs from the payload path is not refused as a link', (t) => {
+  const dir = makeTempProject(t);
+  fs.writeFileSync(path.join(dir, 'agents.md'), '# our agents\n');
+  fs.mkdirSync(path.join(dir, '.Claude'));
+  const res = runCli(dir, ['init', '--tool', 'agents-md'], { env: { NO_UPDATE_NOTIFIER: '1' } });
+  assert.equal(res.status, 0, res.stderr);
+  assert.ok(!res.stderr.includes('symlink in path'), `nothing is refused as a link:\n${res.stderr}`);
+  const withMarker = fs.readdirSync(dir).filter((f) => f.toLowerCase() === 'agents.md')
+    .some((f) => fs.readFileSync(path.join(dir, f), 'utf8').includes('<!-- sdlc:start -->'));
+  assert.ok(withMarker, 'the agents-md adapter was written');
+  const claude = runCli(dir, ['init', '--tool', 'claude'], { env: { NO_UPDATE_NOTIFIER: '1' } });
+  assert.equal(claude.status, 0, claude.stderr);
+  assert.ok(!claude.stderr.includes('symlink in path'), `.Claude is not refused as a link:\n${claude.stderr}`);
+});
+
+// update-reclaim review 3: a contained write writes what it is given. A user-owned file that only
+// gets a block appended or one line rewritten keeps its own line endings.
+test('update-reclaim row 24: a CRLF user file keeps its CRLF after a marker append or a tools-line rewrite', (t) => {
+  const dir = makeTempProject(t);
+  fs.writeFileSync(path.join(dir, 'AGENTS.md'), '# ours\r\nline two\r\n');
+  fs.writeFileSync(path.join(dir, '.gitignore'), 'node_modules/\r\n');
+  assert.equal(runCli(dir, ['init', '--tool', 'agents-md'], { env: { NO_UPDATE_NOTIFIER: '1' } }).status, 0);
+  const agents = fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8');
+  assert.ok(agents.startsWith('# ours\r\nline two\r\n'), 'the user lines keep CRLF');
+  assert.ok(agents.includes('<!-- sdlc:start -->'), 'the marker block was appended');
+  assert.equal(agents.replace(/\r\n/g, '').includes('\n'), false, 'the appended block uses CRLF too');
+  const gitignore = fs.readFileSync(path.join(dir, '.gitignore'), 'utf8');
+  assert.equal(gitignore, 'node_modules/\r\nsdlc/.state/\r\n', 'the .gitignore entry takes the file\'s CRLF');
+
+  const config = path.join(dir, 'sdlc', 'config.yaml');
+  fs.writeFileSync(config, fs.readFileSync(config, 'utf8').replace(/\r?\n/g, '\r\n'));
+  const res = runCli(dir, ['update', '--tool', 'agents-md,cursor'], { env: { NO_UPDATE_NOTIFIER: '1' } });
+  assert.equal(res.status, 0, res.stderr);
+  const after = fs.readFileSync(config, 'utf8');
+  assert.match(after, /^tools: \[agents-md, cursor\]/m, 'the tools line was rewritten');
+  assert.equal(after.replace(/\r\n/g, '').includes('\n'), false, 'every other line kept its CRLF');
+});
+
+// update-reclaim review 4: case folding forgives a spelling, never a link. In a case-sensitive
+// directory `.hooks -> .HOOKS` and a sibling root `Proj` differ from the asked path only by case;
+// both are refused even with folding forced on, so the rule is pinned on Linux CI too. On Windows,
+// WSDLC_CASE_SENSITIVE_DIR names a folder with `fsutil file setCaseSensitiveInfo <dir> enable`.
+test('update-reclaim row 25: a link whose target differs only by case is still refused when folding', (t) => {
+  const base = fs.mkdtempSync(path.join(process.env.WSDLC_CASE_SENSITIVE_DIR || os.tmpdir(), 'wsdlc-case-'));
+  t.after(() => fs.rmSync(base, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(base, 'probe'), '');
+  if (fs.existsSync(path.join(base, 'PROBE'))) return t.skip('this file system folds case');
+  const root = path.join(base, 'proj');
+  fs.mkdirSync(path.join(root, 'sdlc', '.HOOKS'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'sdlc', '.HOOKS', 'x.mjs'), '');
+  fs.mkdirSync(path.join(base, 'Proj', '.claude'), { recursive: true });
+  if (!linkOrSkip(t, '.HOOKS', path.join(root, 'sdlc', '.hooks'), 'dir')) return;
+  if (!linkOrSkip(t, path.join(base, 'Proj', '.claude'), path.join(root, '.claude'), 'dir')) return;
+  const opts = { caseFolding: true };
+  assert.equal(isRealPathInside(root, path.join(root, 'sdlc', '.hooks'), opts), false, 'the link segment');
+  assert.equal(isRealPathInside(root, path.join(root, 'sdlc', '.hooks', 'x.mjs'), opts), false, 'a file below the link');
+  assert.equal(isRealPathInside(root, path.join(root, '.claude'), opts), false, 'a link into a case-variant sibling root');
+  assert.equal(isRealPathInside(root, path.join(root, 'sdlc', '.HOOKS', 'x.mjs'), opts), true, 'the real path is inside');
+});
+
+test('update-reclaim row 20: a manifest hash naming a symlinked file\'s target never refreshes through it', (t) => {
+  const dir = makeTempProject(t);
+  assert.equal(runCli(dir, ['init', '--tool', 'claude']).status, 0);
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'wsdlc-refresh-'));
+  t.after(() => fs.rmSync(outside, { recursive: true, force: true }));
+  const target = path.join(outside, 'victim.mjs');
+  fs.writeFileSync(target, 'victim content\n');
+  fs.rmSync(path.join(dir, HOOK));
+  if (!linkOrSkip(t, target, path.join(dir, HOOK), 'file')) return;
+  const manifestPath = path.join(dir, 'sdlc/.state/manifest');
+  const lines = fs.readFileSync(manifestPath, 'utf8').split(/\r?\n/)
+    .map((l) => (l.endsWith(`  ${HOOK}`) ? `${sha256('victim content\n')}  ${HOOK}` : l));
+  fs.writeFileSync(manifestPath, lines.join('\n'));
+  const res = runCli(dir, ['update'], { env: { NO_UPDATE_NOTIFIER: '1' } });
+  assert.equal(res.status, 0, res.stderr);
+  assert.equal(fs.readFileSync(target, 'utf8'), 'victim content\n', 'the outside file is not refreshed through the link');
+  // Review 4: the refused path keeps its recorded ownership; dropping it is how issue #11 froze files.
+  const after = fs.readFileSync(manifestPath, 'utf8').split(/\r?\n/).find((l) => l.endsWith(`  ${HOOK}`));
+  assert.equal(after, `${sha256('victim content\n')}  ${HOOK}`, 'the manifest still records the path with its old hash');
 });

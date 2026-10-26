@@ -3,6 +3,9 @@
 Run when the ask is one line, names a solution instead of an outcome, or you cannot yet say what
 done looks like. Skip it when the ask is already concrete — a ceremonial grooming is garbage.
 It writes no artifact of its own: its result is the Why and the Assumptions `/sdlc:new` opens with.
+A project's edit-time hard stop (RBAC, auth, migrations…) is a constraint to carry, not a halt:
+grooming edits nothing, so record it in the Assumptions handed to `/sdlc:new` ("this change goes
+through <the project's workflow>") and let it fire when a stage that edits files outside `sdlc/` starts.
 
 1. Grill the human about the PROBLEM. Their proposed solution is evidence of the problem, never
    the scope — do not let it set the questions. Ask, in rounds (`clarification-rounds` doctrine,
@@ -21,7 +24,7 @@ It writes no artifact of its own: its result is the Why and the Assumptions `/sd
    than the problem. "Not worth building" is a legitimate ending, and the cheapest of all.
 4. Confirm: restate the settled outcome, the shape picked, and what is explicitly out of scope.
    Wait for the human. A corrected answer reopens a round.
-5. Hand off: `/sdlc:new "<the settled title>"`, carrying the Why and the verified Assumptions —
+5. Hand off: `/sdlc:new "<the settled title>"`, carrying the Why and the verified Assumptions, a project hard stop among them —
    `new` triages the tier and writes the Delta; grooming does not pre-empt either.
 
 Next: /sdlc:new, or nothing at all. No change folder exists until `new` runs, so ending here

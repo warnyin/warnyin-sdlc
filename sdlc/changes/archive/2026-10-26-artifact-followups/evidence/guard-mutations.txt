@@ -1,0 +1,39 @@
+row 25: an fs alias
+  mutated:  # pass 0 · # fail 1
+  restored: # pass 1 · # fail 0 · bytes equal: true
+row 25: an optional fs call
+  mutated:  # pass 0 · # fail 1
+  restored: # pass 1 · # fail 0 · bytes equal: true
+row 25: a spaced dynamic import
+  mutated:  # pass 0 · # fail 1
+  restored: # pass 1 · # fail 0 · bytes equal: true
+row 25: process['binding']
+  mutated:  # pass 0 · # fail 1
+  restored: # pass 1 · # fail 0 · bytes equal: true
+row 4: a stamp that matches by prefix (touches plan.html-old)
+  mutated:  # pass 0 · # fail 1
+  restored: # pass 1 · # fail 0 · bytes equal: true
+review 1: escapeEntry drops Cf
+  mutated:  # pass 0 · # fail 1
+  restored: # pass 1 · # fail 0 · bytes equal: true
+review 1: park waiters printed raw
+  mutated:  # pass 4 · # fail 2
+  restored: # pass 6 · # fail 0 · bytes equal: true
+review 1: cmdArtifact refuse() echoes the raw id
+  mutated:  # pass 0 · # fail 1
+  restored: # pass 1 · # fail 0 · bytes equal: true
+review 1: cap boundary >= instead of >
+  mutated:  # pass 0 · # fail 1
+  restored: # pass 1 · # fail 0 · bytes equal: true
+review 1: hint lets a leading dash through
+  mutated:  # pass 0 · # fail 1
+  restored: # pass 1 · # fail 0 · bytes equal: true
+review 2: hint class widened with &
+  mutated:  # pass 0 · # fail 1
+  restored: # pass 1 · # fail 0 · bytes equal: true
+review 2: hint first char widened with .
+  mutated:  # pass 0 · # fail 1
+  restored: # pass 1 · # fail 0 · bytes equal: true
+review 3: hint class widened with ESC
+  mutated:  # pass 0 · # fail 1
+  restored: # pass 1 · # fail 0 · bytes equal: true

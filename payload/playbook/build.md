@@ -23,6 +23,8 @@ Rules for whoever implements:
 - Per-task self-check = that task's tests + lint only; the full test run belongs
   to /sdlc:verify (moved, not removed).
 - Tick `- [x]` in `## Tasks` as each task lands; note surprises in one line max.
+  Every progress update — a stage change, a wave started or finished, a task ticked — states the
+  change's figure from `npx @warnyin/sdlc status`: `tasks <done>/<total> · <p>%`.
 - A fix task carrying a sweep (from /sdlc:review) is not ticked until that sweep is re-run over
   the whole tree and finds no instance left; the sweep's command and its result go on the task's
   line.
