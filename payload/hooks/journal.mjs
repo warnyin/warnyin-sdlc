@@ -31,7 +31,7 @@ async function main() {
     if (!change) { console.error('usage: journal.mjs open-ship <change-id>'); process.exit(2); }
     const phase = writePhase(sdlcRoot, { phase: 'ship', change });
     appendJournal(sdlcRoot, change, { event: 'gate', gate: 'ship', action: 'open', expires: phase.expires });
-    console.log(`ship gate open for "${change}" until ${phase.expires}`);
+    console.log(`ship gate open for "${escapeEntry(change, Infinity)}" until ${phase.expires}`);
   } else if (cmd === 'open-steer') {
     const phase = writePhase(sdlcRoot, { phase: 'steer' });
     appendJournal(sdlcRoot, null, { event: 'gate', gate: 'steer', action: 'open', expires: phase.expires });
@@ -42,21 +42,23 @@ async function main() {
   } else if (cmd === 'set-active') {
     const change = rest[0];
     if (!change) { console.error('usage: journal.mjs set-active <change-id>'); process.exit(2); }
+    // A folder name is untrusted text on its way to the terminal and the model's context.
+    const shown = escapeEntry(change, Infinity);
     // A pointer the resolver would ignore must not be written and reported as done.
     if (!isOpenChange(sdlcRoot, change)) {
-      console.error(`usage: journal.mjs set-active <change-id> — "${change}" is not an open change under sdlc/changes/`);
+      console.error(`usage: journal.mjs set-active <change-id> — "${shown}" is not an open change under sdlc/changes/`);
       process.exit(2);
     }
     // A parked change is deliberately out of the way; pointing a session at it would undo that.
     const reason = analyze(sdlcRoot, { rank: false }).byId.get(change)?.parked;
     if (reason) {
-      console.error(`"${change}" is parked (${escapeEntry(reason, 60)}) — run \`journal.mjs unpark ${change}\` first`);
+      console.error(`"${shown}" is parked (${escapeEntry(reason, 60)}) — run \`journal.mjs unpark ${shown}\` first`);
       process.exit(2);
     }
     const written = writeActive(sdlcRoot, change, { sessionId: process.env.CLAUDE_CODE_SESSION_ID });
     // A refused write (a planted link under .state/) must be visible, not reported as done.
-    if (written.project) console.log(`active change: ${change}`);
-    else console.error(`[sdlc] active change "${change}" not recorded: sdlc/.state does not resolve inside this project`);
+    if (written.project) console.log(`active change: ${shown}`);
+    else console.error(`[sdlc] active change "${shown}" not recorded: sdlc/.state does not resolve inside this project`);
   } else if (cmd === 'park' || cmd === 'unpark') {
     // These are commands, not hooks: the fail-open catch around main() would turn a failed
     // write into a silent exit 0, which is precisely "reported as done without happening".

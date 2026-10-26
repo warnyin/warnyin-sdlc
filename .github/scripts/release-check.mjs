@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Release gate for .github/workflows/release.yml. Fails unless the pushed tag is a plain
-// vX.Y.Z naming package.json's version and npm is new enough for trusted publishing.
+// vX.Y.Z naming package.json's version, CHANGELOG.md opens with that version's section, and npm
+// is new enough for trusted publishing.
 // The tag comes from GITHUB_REF_NAME and the npm version from stdin, never from argv or a
 // `${{ }}` expression: ref names may carry `$(`, `;` or backticks. Lives outside
 // `scripts/` so it never ships in the npm tarball.
@@ -60,6 +61,19 @@ if (!tag.startsWith('v') || !parts(tag.slice(1))) {
 const version = readPackageVersion();
 if (typeof version !== 'string' || version !== tag.slice(1)) {
   fail(`tag ${tag} names ${tag.slice(1)} but package.json version is ${JSON.stringify(version)}`);
+}
+
+// `changelog` shows a version's entry from its `## X.Y.Z (date)` heading, and never an Unreleased
+// section: a tag cut before the rename would ship a package whose notes are missing.
+let changelog;
+try {
+  changelog = fs.readFileSync(path.join(process.cwd(), 'CHANGELOG.md'), 'utf8');
+} catch {
+  fail('cannot read CHANGELOG.md');
+}
+const firstSection = changelog.split(/\r?\n/).find((line) => line.startsWith('## ')) ?? '(none)';
+if (!/^## (\S+) \(\d{4}-\d{2}-\d{2}\)$/.test(firstSection) || firstSection.split(' ')[1] !== version) {
+  fail(`CHANGELOG.md's first section is ${JSON.stringify(firstSection)}; expected "## ${version} (YYYY-MM-DD)" — rename it before tagging`);
 }
 
 const npmVersion = (await readStdin()).trim();

@@ -15,6 +15,7 @@ import { parseFrontmatter } from './lib/frontmatter.mjs';
 import { matchGlob } from './lib/glob.mjs';
 import { validateChange, validateContext, formatIssues } from './lib/validate.mjs';
 import { isSafeSessionId, pickSessionId } from './lib/active.mjs';
+import { escapeEntry } from './lib/relations.mjs';
 
 const { sdlcRoot, projectRoot } = resolveRoots(import.meta.url);
 
@@ -67,7 +68,7 @@ function steeringPointer(rel, sessionId) {
   fs.writeFileSync(seenPath, JSON.stringify([...seen, ...hits]));
   respond(
     'Steering applies to this area — read before editing further: '
-    + hits.map((f) => `sdlc/context/steering/${f}`).join(', '),
+    + hits.map((f) => `sdlc/context/steering/${escapeEntry(f, Infinity)}`).join(', '),
   );
 }
 

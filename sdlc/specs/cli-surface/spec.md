@@ -100,3 +100,13 @@ in `status --json` as `progress: { done, total, percent }` (`percent: null` when
 #### Scenario: a change with no figure
 - WHEN a change folder has no change.md, or its status is not one of the five
 - THEN its status line carries no figure and its JSON `progress.percent` is `null`
+
+### Requirement: Change ids and change-file text are printed escaped
+The system SHALL print every change id, and every title, tier, status and requirement name read from
+a change file, through `escapeEntry` in `status`, `archive`, `validate`, `observe`, every CLI
+refusal, the hook `journal.mjs`, the session summary, the `Active change:` context line and the
+steering pointer; `--json` keeps its id and value fields unchanged.
+
+#### Scenario: a folder name with C1 and bidi characters
+- WHEN an open change's folder name holds U+009B and U+202E
+- THEN no line those commands print holds either character raw, and `status --json` still holds the raw id

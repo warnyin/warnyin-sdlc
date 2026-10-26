@@ -11,6 +11,7 @@ import { resolveRoots, readStdinJson, activeChange, appendJournal } from './_sha
 import { parseTranscriptUsage, mergeUsage, costUsd } from './lib/usage.mjs';
 import { parseConfig } from './lib/config.mjs';
 import { pickSessionId } from './lib/active.mjs';
+import { escapeEntry } from './lib/relations.mjs';
 
 const { sdlcRoot } = resolveRoots(import.meta.url);
 
@@ -63,7 +64,7 @@ async function main() {
   console.log(
     `[sdlc] session: ${fmt(t.input)} in / ${fmt(t.output)} out / ${fmt(t.cacheRead)} cache-read`
     + ` · cost ${usd == null ? 'n/a' : `$${usd}`}`
-    + (change ? ` · change ${change}` : ''),
+    + (change ? ` · change ${escapeEntry(change, Infinity)}` : ''),
   );
 }
 

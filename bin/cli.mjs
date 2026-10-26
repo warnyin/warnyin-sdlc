@@ -22,10 +22,10 @@ import {
 } from '../lib/journal.mjs';
 import { resolveActive, clearPointersFor } from '../lib/active.mjs';
 import { resolveChangeFile } from '../lib/change-file.mjs';
-import { TIERS, countEffectiveLines, capForChange } from '../lib/caps.mjs';
+import { countEffectiveLines, capForChange } from '../lib/caps.mjs';
 import { progressOf, progressSuffix } from '../lib/progress.mjs';
 import { artifactNameError, artifactBasis, artifactFileState, hasBasisSections, readArtifacts, stampArtifacts } from '../lib/artifacts.mjs';
-import { writeFileContained, isRealPathInside, pathIsContained } from '../lib/safe-path.mjs';
+import { writeFileContained, isRealPathInside, pathIsContained, hasEntry } from '../lib/safe-path.mjs';
 import { analyze, shipImpact, renderShipImpact, escapeEntry } from '../lib/relations.mjs';
 import { scanInventory, renderInventory } from '../lib/skills.mjs';
 import { detectTools, toolName } from './detect.mjs';
@@ -84,12 +84,23 @@ export function parseArgs(argv) {
 // install mode: missing → write · byte-equal → claim · different → user's, keep.
 // update mode:  additionally, disk == old manifest hash (ours, unmodified) → refresh.
 
-function writeFileNormalized(dest, content) {
+// archive's writes: text normalized to `\n`, and contained like every installer write. Its
+// preflight has already refused a path outside the project, so a refusal here is a race.
+function writeFileNormalized(projectRoot, dest, content) {
   const ext = path.extname(dest);
   const out = TEXT_EXT.has(ext) ? normalizeEol(content) : content;
-  fs.mkdirSync(path.dirname(dest), { recursive: true });
-  fs.writeFileSync(dest, out);
+  if (!writeInProject(projectRoot, dest, out)) throw new Error(outsideProject(projectRoot, dest, 'not written'));
   return out;
+}
+
+function outsideProject(projectRoot, p, outcome) {
+  return `${toPosix(path.relative(projectRoot, p))} has a symlink in its path (archive writes only through real folders, as init and update do) — ${outcome}`;
+}
+
+// What a command prints from a change folder or file: every line through escapeEntry, so a
+// folder name or a line of change.md cannot repaint the terminal or reorder what it says.
+function shownLines(text) {
+  return String(text).split('\n').map((line) => escapeEntry(line, Infinity)).join('\n');
 }
 
 // Every installer write into a project goes through here. The project is not ours: git carries
@@ -196,12 +207,37 @@ export function installFile(projectRoot, destRel, content, ctx) {
   return tally(ctx, 'kept');
 }
 
+// The order a tree's entries are written in. An update stopped part way (a killed process, a
+// full disk) leaves whatever was written so far, and a hook runs on the next tool call: so a
+// module goes in before every sibling that imports it, and a half-written update never has
+// code importing a module that is not there yet. Names decide ties; a cycle falls back to them.
+export function installOrder(srcDir) {
+  const names = fs.readdirSync(srcDir).sort();
+  const imports = new Map();
+  for (const name of names) {
+    if (!name.endsWith('.mjs')) continue;
+    const text = fs.readFileSync(path.join(srcDir, name), 'utf8');
+    imports.set(name, [...text.matchAll(/from\s+['"]\.\/([^'"/]+\.mjs)['"]/g)].map((m) => m[1]).filter((n) => names.includes(n)));
+  }
+  const order = [];
+  const visiting = new Set();
+  const visit = (name) => {
+    if (order.includes(name) || visiting.has(name)) return;
+    visiting.add(name);
+    for (const dep of imports.get(name) ?? []) visit(dep);
+    visiting.delete(name);
+    order.push(name);
+  };
+  for (const name of names) visit(name);
+  return order;
+}
+
 function copyTree(srcDir, destDirRel, projectRoot, ctx) {
   if (!fs.existsSync(srcDir)) return;
-  for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
-    const src = path.join(srcDir, entry.name);
-    const destRel = path.join(destDirRel, entry.name);
-    if (entry.isDirectory()) copyTree(src, destRel, projectRoot, ctx);
+  for (const name of installOrder(srcDir)) {
+    const src = path.join(srcDir, name);
+    const destRel = path.join(destDirRel, name);
+    if (fs.lstatSync(src).isDirectory()) copyTree(src, destRel, projectRoot, ctx);
     else installFile(projectRoot, destRel, fs.readFileSync(src, 'utf8'), ctx);
   }
 }
@@ -367,8 +403,9 @@ function scaffoldSdlc(projectRoot, tools, ctx) {
   // Payload-owned trees (manifested, refreshed by `update`).
   copyTree(path.join(PAYLOAD, 'playbook'), path.join('sdlc', '.playbook'), projectRoot, ctx);
   copyTree(path.join(PAYLOAD, 'templates'), path.join('sdlc', '.playbook', 'templates'), projectRoot, ctx);
-  copyTree(path.join(PAYLOAD, 'hooks'), path.join('sdlc', '.hooks'), projectRoot, ctx);
+  // lib/ first: the hooks import it, and a hook runs on the next tool call (see installOrder).
   copyTree(path.join(PKG_ROOT, 'lib'), path.join('sdlc', '.hooks', 'lib'), projectRoot, ctx);
+  copyTree(path.join(PAYLOAD, 'hooks'), path.join('sdlc', '.hooks'), projectRoot, ctx);
   recordPayloadVersion(projectRoot, ctx);
 }
 
@@ -801,7 +838,7 @@ export function cmdStatus(projectRoot, { json = false, all = false } = {}) {
       // The reason is prose out of a user-writable file: escaped and capped like any other
       // untrusted value, so a listing cannot be repainted or reordered by what someone typed.
       const parked = c.parked ? `  ⏸ parked: ${escapeEntry(c.parked, 60)}` : '';
-      console.log(`${c.id}  [${c.tier}/${c.status}]  ${c.title}${progressSuffix(c.progress)}${waiting}${frees}${parked}${marker}`);
+      console.log(`${shownLines(`${c.id}  [${c.tier}/${c.status}]  ${c.title}`)}${progressSuffix(c.progress)}${waiting}${frees}${parked}${marker}`);
     }
     console.log(`${changes.length} active · ${archived} archived${parkedCount ? ` · ${parkedCount} parked` : ''}`);
   }
@@ -848,8 +885,18 @@ export function cmdSkills(projectRoot, { json = false } = {}) {
 // ship event does not become the one write that dirties the tree.
 export function appendJournal(sdlcRoot, changeId, event) {
   const target = liveJournalPath(sdlcRoot, changeId);
-  if (!target) return;
+  if (!target || !pathIsContained(path.dirname(sdlcRoot), target)) return false;
   appendEvent(target, { ts: new Date().toISOString(), ...event });
+  return true;
+}
+
+// Every path archive reads out of the change folder into tracked files, writes, moves or
+// removes is checked BEFORE the first write — the installer's rule (lib/safe-path.mjs): each
+// existing segment, dangling links included, must really be inside the project.
+function refuseOutside(projectRoot, paths, outcome = 'nothing was merged') {
+  for (const p of paths) {
+    if (!pathIsContained(projectRoot, p)) throw new Error(outsideProject(projectRoot, p, outcome));
+  }
 }
 
 export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
@@ -871,6 +918,12 @@ export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
   // while reporting failure.
   const date = new Date().toISOString().slice(0, 10);
   const destDir = path.join(sdlcRoot, 'changes', 'archive', `${date}-${changeId}`);
+  const evalsSrc = path.join(changeDir, 'contract', 'evals.md');
+  const liveJournal = liveJournalPath(sdlcRoot, changeId);
+  refuseOutside(projectRoot, [
+    path.join(changeDir, 'change.md'), sealedJournalPath(changeDir), evalsSrc,
+    path.join(destDir, 'journal.ndjson'), liveJournal,
+  ]);
   // `init` scaffolds changes/archive/, but git does not track empty directories:
   // it is absent for anyone who cloned before the first change shipped. Prepare
   // it here, with the other destination checks, so a bad archive path fails
@@ -901,15 +954,20 @@ export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
   const impact = shipImpact(relations, changeId);
   // An unreadable neighbour makes the report incomplete, not the merge wrong. Saying so beats
   // refusing every ship in the project over a folder this change has nothing to do with.
-  for (const msg of relations.readErrors) console.error(`⚠ ${msg}`);
+  for (const msg of relations.readErrors) console.error(shownLines(`⚠ ${msg}`));
 
   const changeText = fs.readFileSync(path.join(changeDir, 'change.md'), 'utf8');
   const { deltas, errors: parseErrors } = parseDelta(changeText);
-  if (parseErrors.length) throw new Error(`delta parse errors: ${parseErrors.join('; ')}`);
+  if (parseErrors.length) throw new Error(`delta parse errors: ${parseErrors.join('; ')} — nothing was merged`);
 
   // Phase 1: compute every merge before writing anything (all-or-nothing).
   const merged = [];
   const driftWarnings = [];
+  const hasEvals = hasEntry(evalsSrc);
+  refuseOutside(projectRoot, deltas.flatMap((d) => [
+    path.join(sdlcRoot, 'specs', d.capability, 'spec.md'),
+    ...(hasEvals ? [path.join(sdlcRoot, 'evals', d.capability, 'rubric.md')] : []),
+  ]));
   for (const d of deltas) {
     const specPath = path.join(sdlcRoot, 'specs', d.capability, 'spec.md');
     const specText = fs.existsSync(specPath) ? fs.readFileSync(specPath, 'utf8') : null;
@@ -923,23 +981,22 @@ export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
   // scenario the spec still promised. That is allowed — but it is said out loud
   // here, while the change folder is still readable, not discovered in a diff
   // after the folder moved under changes/archive/.
-  for (const w of driftWarnings) console.error(`⚠ ${w}`);
+  for (const w of driftWarnings) console.error(shownLines(`⚠ ${w}`));
 
   // Phase 2: write specs, promote evals, stamp status, move to archive.
-  for (const m of merged) writeFileNormalized(m.specPath, m.content);
+  for (const m of merged) writeFileNormalized(projectRoot, m.specPath, m.content);
 
-  const evalsSrc = path.join(changeDir, 'contract', 'evals.md');
   if (fs.existsSync(evalsSrc)) {
     for (const m of merged) {
       const rubricDest = path.join(sdlcRoot, 'evals', m.capability, 'rubric.md');
-      if (!fs.existsSync(rubricDest)) {
-        writeFileNormalized(rubricDest, fs.readFileSync(evalsSrc, 'utf8'));
+      if (!hasEntry(rubricDest)) {
+        writeFileNormalized(projectRoot, rubricDest, fs.readFileSync(evalsSrc, 'utf8'));
       }
     }
   }
 
   const stamped = changeText.replace(/^status:\s*.*$/m, 'status: shipped');
-  writeFileNormalized(path.join(changeDir, 'change.md'), stamped);
+  writeFileNormalized(projectRoot, path.join(changeDir, 'change.md'), stamped);
   appendJournal(sdlcRoot, changeId, { event: 'ship', change: changeId, specs: merged.map((m) => m.capability) });
 
   // Telemetry stays out of the tree for the whole life of the change and becomes
@@ -954,6 +1011,11 @@ export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
   // failed rename has consumed nothing.
   const sealed = readChangeJournal(sdlcRoot, changeId);
 
+  // Checked again at the move itself: a link swapped in since the preflight would carry the
+  // whole change folder out of the project, and rename has no O_NOFOLLOW.
+  // The specs are merged and change.md is stamped by now, so this refusal says so instead.
+  refuseOutside(projectRoot, [destDir, path.join(changeDir, 'change.md')],
+    'the specs ARE merged and change.md is stamped shipped, but the change folder was not moved: remove the link, then move it under changes/archive/ by hand');
   fs.renameSync(changeDir, destDir);
 
   // Past the point of no return: specs are merged and the folder has moved. Nothing
@@ -963,23 +1025,24 @@ export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
     // Empty only if the id was never journalled at all — the ship event above normally
     // guarantees at least one entry. An empty file would be worse than none.
     if (sealed.length) {
-      writeFileNormalized(sealedJournalPath(destDir), serializeJournal(sealed));
+      writeFileNormalized(projectRoot, sealedJournalPath(destDir), serializeJournal(sealed));
     }
-    fs.rmSync(liveJournalPath(sdlcRoot, changeId), { force: true });
+    if (!pathIsContained(projectRoot, liveJournal)) throw new Error(outsideProject(projectRoot, liveJournal, 'not removed'));
+    fs.rmSync(liveJournal, { force: true });
   } catch (err) {
-    console.error(`⚠ shipped, but the journal was not fully sealed: ${err.message}`);
+    console.error(shownLines(`⚠ shipped, but the journal was not fully sealed: ${err.message}`));
   }
 
   // The pointers name a folder that has just moved. Release them so no session's focus or
   // telemetry keeps following a change that shipped. Never throws.
   clearPointersFor(sdlcRoot, changeId);
 
-  console.log(`shipped: ${changeId}`);
+  console.log(`shipped: ${escapeEntry(changeId, Infinity)}`);
   for (const m of merged) console.log(`  spec merged: specs/${m.capability}/spec.md`);
   if (driftWarnings.length) {
     console.log(`  ⚠ ${driftWarnings.length} scenario warning(s) above — re-read the spec diff before pushing`);
   }
-  console.log(`  archived: changes/archive/${date}-${changeId}/`);
+  console.log(`  archived: changes/archive/${date}-${escapeEntry(changeId, Infinity)}/`);
   // Counted before the merge, rendered now. Nothing here may fail the ship: it has happened.
   try {
     const lines = renderShipImpact(impact);
@@ -989,7 +1052,7 @@ export function cmdArchive(projectRoot, changeId, { strict = true } = {}) {
     }
     for (const line of lines) console.log(`  ${line}`);
   } catch (err) {
-    console.error(`⚠ shipped, but the waiting changes could not be reported: ${err.message}`);
+    console.error(shownLines(`⚠ shipped, but the waiting changes could not be reported: ${err.message}`));
   }
   return { archived: `${date}-${changeId}`, specs: merged.map((m) => m.capability), warnings: driftWarnings };
 }
@@ -1028,10 +1091,10 @@ export function cmdArtifact(projectRoot, positionals) {
   const basis = artifactBasis(before);
   const stamped = stampArtifacts(before, name, basis);
   if (stamped.error) throw new Error(`cannot stamp "${shown}": artifact/${name} — ${stamped.error}`);
-  // Validate's cap rule (unknown tier → standard). Only a stamp that adds lines is refused: a
-  // re-stamp of a listed line keeps the stale hint usable on a file already over its cap.
+  // Validate's cap rule (capForChange reads an unknown tier as standard). Only a stamp that adds
+  // lines is refused: a re-stamp of a listed line keeps the stale hint usable on a file already over its cap.
   const { data } = parseFrontmatter(before);
-  const cap = capForChange(TIERS.includes(data.tier) ? data.tier : 'standard');
+  const cap = capForChange(data.tier);
   const grown = countEffectiveLines(stamped.text);
   if (grown > countEffectiveLines(before) && grown > cap) {
     throw refuse(`would push change.md past its cap of ${cap} lines — trim change.md, then re-run`);
@@ -1112,7 +1175,8 @@ export async function main(argv = process.argv.slice(2), projectRoot = process.c
     else if (cmd === 'skills') cmdSkills(projectRoot, { json: args.json });
     else { console.error(`unknown command: ${cmd}`); console.log(HELP); process.exitCode = 2; }
   } catch (err) {
-    console.error(String(err.message ?? err));
+    // A refusal can quote a change id or a line of change.md; it is printed escaped.
+    console.error(shownLines(err.message ?? err));
     process.exitCode = 1;
   }
 }

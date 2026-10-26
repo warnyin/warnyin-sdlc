@@ -1,0 +1,36 @@
+baseline: green · mutants: 35 · killed: 32 of 35
+KILLED   archive preflight skips journal.ndjson and evals.md — tests/followups-finish.test.mjs row 5
+KILLED   archive preflight skips change.md — tests/followups-finish.test.mjs row 5
+KILLED   observe --json escapes its values — tests/followups-finish.test.mjs row 14
+KILLED   archive preflight skips the live journal — tests/followups-finish.test.mjs row 4
+KILLED   archive preflight skips the destination — tests/followups-finish.test.mjs row 2, tests/followups-finish.test.mjs row 2
+KILLED   archive preflight skips specs and rubrics — tests/followups-finish.test.mjs row 1, tests/followups-finish.test.mjs row 1, tests/followups-finish.test.mjs row 3, tests/followups-finish.test.mjs row 6
+KILLED   archive preflight skips rubrics only — tests/followups-finish.test.mjs row 3
+KILLED   a capability may be any text — tests/followups-finish.test.mjs row 1
+KILLED   appendJournal follows a link — tests/followups-finish.test.mjs row 4
+KILLED   installOrder ignores imports — tests/followups-finish.test.mjs row 7, tests/followups-finish.test.mjs row 8
+KILLED   installOrder keeps imports of missing files — tests/followups-finish.test.mjs row 7
+KILLED   hooks before lib — tests/followups-finish.test.mjs row 8
+KILLED   release-check ignores the version in the heading — tests/followups-finish.test.mjs row 9
+KILLED   formatIssues prints raw — tests/followups-finish.test.mjs row 12
+KILLED   status line prints raw — tests/followups-finish.test.mjs row 11
+KILLED   observe prints raw — tests/followups-finish.test.mjs row 14
+KILLED   observe steering listing raw — tests/followups-finish.test.mjs row 14
+SURVIVED (race only) the move re-check says nothing was merged — 
+KILLED   ship impact: waiting id raw — tests/followups-finish.test.mjs row 15
+KILLED   ship impact: parked id raw — tests/followups-finish.test.mjs row 15
+KILLED   ship impact: freed id raw — tests/followups-finish.test.mjs row 15
+KILLED   unreadable neighbour printed raw by archive — tests/followups-finish.test.mjs row 15
+KILLED   CLI refusals print raw — tests/followups-finish.test.mjs row 15
+KILLED   archive success line raw — tests/followups-finish.test.mjs row 15
+KILLED   journal hook set-active raw — tests/followups-finish.test.mjs row 16, tests/followups-finish.test.mjs row 16
+KILLED   pointer write follows a linked .state (row 16b OUT clause) — tests/followups-finish.test.mjs row 16
+KILLED   journal hook open-ship raw — tests/followups-finish.test.mjs row 16
+KILLED   session summary raw — tests/followups-finish.test.mjs row 17
+KILLED   Active change line raw — tests/followups-finish.test.mjs row 17
+KILLED   steering pointer raw — tests/followups-finish.test.mjs row 17
+KILLED   capForChange indexes CAPS with any tier — tests/followups-finish.test.mjs row 18
+KILLED   validate reads the raw tier for the cap — tests/followups-finish.test.mjs row 18
+KILLED   green guard row 13: relation entries take any text — tests/followups-finish.test.mjs row 13
+SURVIVED (race only) no recheck before the rename — 
+SURVIVED (race only) archive writes follow links — 

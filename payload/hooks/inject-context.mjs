@@ -12,6 +12,7 @@ import { resolveRoots, readStdinJson, activeChange, appendJournal } from './_sha
 import { parseFrontmatter } from './lib/frontmatter.mjs';
 import { CAPS } from './lib/caps.mjs';
 import { pickSessionId } from './lib/active.mjs';
+import { escapeEntry } from './lib/relations.mjs';
 import { updateNotice } from './_update-notice.mjs';
 
 const { sdlcRoot, hooksDir } = resolveRoots(import.meta.url);
@@ -46,7 +47,7 @@ async function main() {
   }
 
   const active = activeChange(sdlcRoot, sessionId);
-  if (active) out.push(`Active change: sdlc/changes/${active}/change.md — run /sdlc:next for status.`);
+  if (active) out.push(`Active change: sdlc/changes/${escapeEntry(active, Infinity)}/change.md — run /sdlc:next for status.`);
 
   const notice = updateNotice({ sdlcRoot, hooksDir });
   let lines = out.join('\n\n').split('\n');

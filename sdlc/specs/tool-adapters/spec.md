@@ -173,3 +173,11 @@ written): <path>` and keep a payload path's recorded ownership.
 #### Scenario: a linked sdlc/.hooks folder
 - WHEN `sdlc/.hooks` links to a folder outside the project
 - THEN `init` and `update` add or change nothing in that folder
+
+### Requirement: update writes a module before the code that imports it
+The system SHALL, in `init` and `update`, install `sdlc/.hooks/lib/` before `sdlc/.hooks/`, and
+inside each tree write every module before any sibling module that imports it.
+
+#### Scenario: a hook importing a new lib module
+- WHEN the payload adds a lib module that a hook and another lib module import
+- THEN the install order writes that module before both importers

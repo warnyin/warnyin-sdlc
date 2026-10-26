@@ -1,5 +1,30 @@
 # Changelog
 
+## Unreleased
+
+- **`archive` never reads or writes through a link**: before its first write, `archive` checks every
+  path it writes, moves or copies into a tracked file — each merged spec and promoted rubric, the
+  stamped change.md, `contract/evals.md`, the change's `journal.ndjson`, the archive folder and the
+  live journal — with the rule `init` and `update` already use: no symlink, dangling or not, in any
+  segment, even one that points back inside the project. Any hit refuses the whole ship, naming the
+  path, with nothing merged. A project that keeps `sdlc/specs` (or another sdlc folder) as a symlink
+  must replace it with a real folder before shipping.
+- **A `## Delta:` capability must be one plain name** — letters, digits, `.`, `_`, `-`, starting
+  with a letter or digit. `## Delta: ../../x` used to merge a spec anywhere in the project; `validate`
+  and `archive` now refuse it.
+- **`update` installs a module before the code that imports it**: `sdlc/.hooks/lib/` is written
+  before the hooks, and inside each folder a module before any sibling that imports it, so an update
+  stopped part way never leaves a hook importing a file that is not there yet.
+- **A release names its CHANGELOG section**: the release job stops unless CHANGELOG.md opens with
+  `## <version> (YYYY-MM-DD)` for the tagged version — a tag cut before renaming `## Unreleased` no
+  longer publishes.
+- **Change ids and change-file text are printed escaped everywhere**: `status` (id, title, tier,
+  status), every CLI refusal, `archive`'s report and ship impact, `validate` (every issue),
+  `observe` (flags and listing), the hook `journal.mjs` (ship gate, `set-active`), the session
+  summary, the `Active change:` line and the steering pointer. `--json` keeps ids and values raw;
+  `observe`'s flags are prose and are escaped there too. A change's line cap now comes from one
+  guarded helper: a `tier:` outside vibe/standard/deep reads the standard cap everywhere.
+
 ## 0.28.0 (2026-10-26)
 
 - **`status` shows how far along each change is** (#13): every line now ends its title with

@@ -136,7 +136,8 @@ Each release:
    `npm run shipped-hashes` (tags fetched, network for the npm-only versions, payload committed)
    so `bin/shipped-hashes.json` lists the new version — `update` reclaims untouched files from
    it; the run only adds to the ledger and can be repeated — and commit `chore(release): X.Y.Z`.
-   The release job runs `shipped-hashes.mjs --check` and stops if the ledger misses this version.
+   The release job runs `shipped-hashes.mjs --check` and stops if the ledger misses this version,
+   and `release-check.mjs` stops unless CHANGELOG.md's first section is `## X.Y.Z (YYYY-MM-DD)`.
 2. `git tag vX.Y.Z && git push origin main vX.Y.Z`
 3. Watch the `release` run in GitHub Actions, then confirm with `npm view @warnyin/sdlc version`.
 

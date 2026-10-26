@@ -45,3 +45,11 @@ token, so that no npm token is stored in the repository or its secrets.
 - WHEN the release workflow is read
 - THEN it references no npm token secret, and grants the identity-token permission only
   to the job that publishes
+
+### Requirement: A release names its CHANGELOG section
+The system SHALL fail a release before any publish step unless CHANGELOG.md's first `## ` heading is
+`## <version> (YYYY-MM-DD)` for package.json's version.
+
+#### Scenario: an unrenamed Unreleased heading
+- WHEN the tagged commit's CHANGELOG.md still starts with `## Unreleased`
+- THEN release-check exits non-zero naming `## Unreleased` and the version it expected

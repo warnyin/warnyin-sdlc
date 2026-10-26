@@ -22,6 +22,8 @@ function runCheck(t, { version = '1.2.3', pkgRaw, tag, npm = '11.5.1' } = {}) {
   const dir = makeTempProject(t);
   const raw = pkgRaw === undefined ? JSON.stringify({ name: '@warnyin/sdlc', version }) : pkgRaw;
   if (raw !== null) fs.writeFileSync(path.join(dir, 'package.json'), raw);
+  // A release names its CHANGELOG section (followups-finish row 9); these rows test the rest.
+  fs.writeFileSync(path.join(dir, 'CHANGELOG.md'), `# Changelog\n\n## ${version} (2026-01-01)\n`);
   const env = { ...process.env };
   if (tag === undefined) delete env.GITHUB_REF_NAME;
   else env.GITHUB_REF_NAME = tag;
@@ -99,6 +101,7 @@ test('row 11b: an npm version that arrives late on a pipe is still read', async 
   assert.ok(fs.existsSync(CHECK), 'release-check.mjs missing');
   const dir = makeTempProject(t);
   fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: '@warnyin/sdlc', version: '1.2.3' }));
+  fs.writeFileSync(path.join(dir, 'CHANGELOG.md'), '# Changelog\n\n## 1.2.3 (2026-01-01)\n');
   const child = spawn(process.execPath, [CHECK], { cwd: dir, env: { ...process.env, GITHUB_REF_NAME: 'v1.2.3' } });
   let stdout = '';
   let stderr = '';
