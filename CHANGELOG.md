@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.29.0 (2026-10-26)
 
 - **`archive` never reads or writes through a link**: before its first write, `archive` checks every
   path it writes, moves or copies into a tracked file — each merged spec and promoted rubric, the
