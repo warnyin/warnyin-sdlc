@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.28.0 (2026-10-26)
 
 - **`status` shows how far along each change is** (#13): every line now ends its title with
   ` · tasks 2/4 · 50%` (or ` · 10%` when there are no tasks), and `status --json` gives each change
