@@ -89,7 +89,9 @@ export function parseArgs(argv) {
 function writeFileNormalized(projectRoot, dest, content) {
   const ext = path.extname(dest);
   const out = TEXT_EXT.has(ext) ? normalizeEol(content) : content;
-  if (!writeInProject(projectRoot, dest, out)) throw new Error(outsideProject(projectRoot, dest, 'not written'));
+  const why = writeInProject(projectRoot, dest, out);
+  if (why === 'symlink in path') throw new Error(outsideProject(projectRoot, dest, 'not written'));
+  if (why) throw new Error(`${toPosix(path.relative(projectRoot, dest))} is ${why} — not written`);
   return out;
 }
 
@@ -106,16 +108,24 @@ function shownLines(text) {
 // Every installer write into a project goes through here. The project is not ours: git carries
 // symlinks, so any segment of a path — the file, a dangling link, a linked folder — can point
 // anywhere on the machine. lib/safe-path.mjs is the one implementation of that rule; the folder is
-// created only after the whole path is known to be contained. Returns false, writing nothing,
-// when the path is not. It writes exactly what it is given: payload text arrives normalized, and a
-// user's own file (a marker append, the config tools line) keeps its line endings.
+// created only after the whole path is known to be contained. It writes exactly what it is given:
+// payload text arrives normalized, and a user's own file (a marker append, the config tools line)
+// keeps its line endings. Returns null when written, else why not — a link on the path, or a file
+// or folder the person made read-only — so the caller keeps the path, says so, and the run (and
+// the manifest written at its end) still completes.
 function writeInProject(projectRoot, dest, content) {
-  if (!pathIsContained(projectRoot, dest)) return false;
-  fs.mkdirSync(path.dirname(dest), { recursive: true });
-  return writeFileContained(projectRoot, dest, content);
+  if (!pathIsContained(projectRoot, dest)) return 'symlink in path';
+  try {
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    return writeFileContained(projectRoot, dest, content) ? null : 'symlink in path';
+  } catch (err) {
+    if (err.code === 'EACCES' || err.code === 'EPERM') return 'not writable';
+    throw err;
+  }
 }
 
-const LINKED = (rel) => `kept (symlink in path, not written): ${toPosix(rel)}`;
+const KEPT = (why, rel) => `kept (${why}, not written): ${toPosix(rel)}`;
+const LINKED = (rel) => KEPT('symlink in path', rel);
 
 // The ledger of every shipped payload hash (bin/shipped-hashes.json, built at release by
 // .github/scripts/shipped-hashes.mjs). WARNYIN_SDLC_SHIPPED_HASHES points tests at a fixture.
@@ -158,15 +168,22 @@ export function installFile(projectRoot, destRel, content, ctx) {
   // `sdlc/.hooks` — would turn any write below into a write outside the file it names. The project
   // and its manifest are untrusted input, so nothing is written there: the path is kept, and its
   // recorded ownership with it. Each write below re-checks at open time (writeInProject).
-  const linked = () => {
+  const linked = (warning = LINKED(relPosix)) => {
     const owned = ctx.oldManifest?.get(relPosix);
     if (owned) ctx.manifest.set(relPosix, owned);
-    ctx.warnings.push(LINKED(relPosix));
+    ctx.warnings.push(warning);
     return tally(ctx, 'kept');
+  };
+  // A file (or folder) the person made read-only is kept like a linked one: one warning, its
+  // recorded ownership kept, and the rest of the run — the manifest above all — still completes.
+  const put = () => {
+    const why = writeInProject(projectRoot, dest, next);
+    return why ? KEPT(why, relPosix) : null;
   };
   if (!pathIsContained(projectRoot, dest)) return linked();
   if (!fs.existsSync(dest)) {
-    if (!writeInProject(projectRoot, dest, next)) return linked();
+    const refused = put();
+    if (refused) return linked(refused);
     ctx.manifest.set(relPosix, nextHash);
     return tally(ctx, 'written');
   }
@@ -177,7 +194,8 @@ export function installFile(projectRoot, destRel, content, ctx) {
     return tally(ctx, 'current');
   }
   if (ctx.mode === 'update' && ctx.oldManifest?.get(relPosix) === currentHash) {
-    if (!writeInProject(projectRoot, dest, next)) return linked();
+    const refused = put();
+    if (refused) return linked(refused);
     ctx.manifest.set(relPosix, nextHash);
     return tally(ctx, 'updated');
   }
@@ -185,7 +203,8 @@ export function installFile(projectRoot, destRel, content, ctx) {
   // read as user-modified forever. Content equal to what a release installed at this very path
   // proves nobody edited it. (Symlinked paths never get this far: see the guard at the top.)
   if (ctx.mode === 'update' && ctx.shipped?.get(relPosix)?.has(currentHash)) {
-    if (!writeInProject(projectRoot, dest, next)) return linked();
+    const refused = put();
+    if (refused) return linked(refused);
     ctx.manifest.set(relPosix, nextHash);
     ctx.warnings.push(`reclaimed (unmodified, shipped by an older version): ${relPosix}`);
     return tally(ctx, 'reclaimed');
@@ -306,11 +325,14 @@ function appendWithMarker(projectRoot, destRel, content, ctx) {
     // The appended block takes the user's line endings, so a CRLF file stays all CRLF.
     const eol = current.includes('\r\n') ? '\r\n' : '\n';
     const sep = current.endsWith('\n') ? eol : eol + eol;
-    if (writeInProject(projectRoot, dest, current + sep + normalizeEol(content).replace(/\n/g, eol))) return 'appended';
-  } else if (writeInProject(projectRoot, dest, normalizeEol(content))) {
-    return 'written';
+    const why = writeInProject(projectRoot, dest, current + sep + normalizeEol(content).replace(/\n/g, eol));
+    if (!why) return 'appended';
+    ctx?.warnings.push(KEPT(why, destRel));
+    return 'linked';
   }
-  ctx?.warnings.push(LINKED(destRel));
+  const why = writeInProject(projectRoot, dest, normalizeEol(content));
+  if (!why) return 'written';
+  ctx?.warnings.push(KEPT(why, destRel));
   return 'linked';
 }
 
@@ -330,7 +352,9 @@ export function installClaudeHooks(projectRoot, ctx) {
     }
   }
   const merged = mergeHookSettings(current);
-  return writeInProject(projectRoot, settingsPath, JSON.stringify(merged, null, 2) + '\n');
+  const why = writeInProject(projectRoot, settingsPath, JSON.stringify(merged, null, 2) + '\n');
+  if (why) ctx?.warnings.push(KEPT(why, path.join('.claude', 'settings.json')));
+  return !why;
 }
 
 function installToolAdapters(projectRoot, tools, ctx) {
@@ -377,8 +401,16 @@ function scaffoldSdlc(projectRoot, tools, ctx) {
   const sdlcRoot = path.join(projectRoot, 'sdlc');
   for (const dir of ['context/steering', 'specs', 'changes/archive', 'evals', '.state']) {
     const abs = path.join(sdlcRoot, dir);
-    if (pathIsContained(projectRoot, abs)) fs.mkdirSync(abs, { recursive: true });
-    else ctx.warnings.push(LINKED(path.relative(projectRoot, abs)));
+    if (!pathIsContained(projectRoot, abs)) {
+      ctx.warnings.push(LINKED(path.relative(projectRoot, abs)));
+      continue;
+    }
+    try {
+      fs.mkdirSync(abs, { recursive: true });
+    } catch (err) {
+      if (err.code !== 'EACCES' && err.code !== 'EPERM') throw err;
+      ctx.warnings.push(KEPT('not writable', path.relative(projectRoot, abs)));
+    }
   }
 
   // git does not track empty directories, so changes/archive/ vanishes for
@@ -386,17 +418,17 @@ function scaffoldSdlc(projectRoot, tools, ctx) {
   // marker is nothing for prune to reclaim or for the installer to warn about.
   // A dangling link there reads as absent to existsSync; writeInProject refuses it.
   const gitkeep = path.join(sdlcRoot, 'changes', 'archive', '.gitkeep');
-  if (!fs.existsSync(gitkeep) && !writeInProject(projectRoot, gitkeep, '')) {
-    ctx.warnings.push(LINKED(path.relative(projectRoot, gitkeep)));
+  if (!fs.existsSync(gitkeep)) {
+    const why = writeInProject(projectRoot, gitkeep, '');
+    if (why) ctx.warnings.push(KEPT(why, path.relative(projectRoot, gitkeep)));
   }
 
   // Seeds are user-owned from birth: created once, never manifested/overwritten.
   const seed = (rel, templateName, transform = (s) => s) => {
     const dest = path.join(sdlcRoot, rel);
     if (fs.existsSync(dest)) return;
-    if (!writeInProject(projectRoot, dest, transform(payloadText(`templates/${templateName}`)))) {
-      ctx.warnings.push(LINKED(path.relative(projectRoot, dest)));
-    }
+    const why = writeInProject(projectRoot, dest, transform(payloadText(`templates/${templateName}`)));
+    if (why) ctx.warnings.push(KEPT(why, path.relative(projectRoot, dest)));
   };
   seed('config.yaml', 'config.yaml', (s) => s.replace('tools: []', `tools: [${tools.join(', ')}]`));
   seed('context/constitution.md', 'constitution.md');
@@ -419,10 +451,11 @@ function recordPayloadVersion(projectRoot, ctx) {
   const rel = path.join('sdlc', '.hooks', 'version.json');
   const content = `${JSON.stringify({ version: pkgVersion() })}\n`;
   // Same rule as installFile: never write through a link on the path.
-  if (!writeInProject(projectRoot, path.join(projectRoot, rel), content)) {
+  const why = writeInProject(projectRoot, path.join(projectRoot, rel), content);
+  if (why) {
     const owned = ctx.oldManifest?.get(toPosix(rel));
     if (owned) ctx.manifest.set(toPosix(rel), owned);
-    ctx.warnings.push(LINKED(rel));
+    ctx.warnings.push(KEPT(why, rel));
     return;
   }
   ctx.manifest.set(toPosix(rel), sha256(content));
@@ -430,8 +463,11 @@ function recordPayloadVersion(projectRoot, ctx) {
 
 export function writeManifestFile(projectRoot, manifest, ctx) {
   const rel = path.join('sdlc', '.state', 'manifest');
-  if (!writeInProject(projectRoot, path.join(projectRoot, rel), renderManifest(manifest))) {
-    ctx?.warnings.push(LINKED(rel));
+  const why = writeInProject(projectRoot, path.join(projectRoot, rel), renderManifest(manifest));
+  if (why) {
+    // The ownership record could not be saved: the next update will see this run's files as
+    // unrecorded. Said plainly, not as one more "kept" line.
+    ctx?.warnings.push(`manifest NOT saved (${why}): ${toPosix(rel)} — fix it and re-run update`);
     return false;
   }
   return true;
@@ -453,7 +489,8 @@ export function ensureGitignore(projectRoot, ctx) {
   if (current.split(/\r?\n/).some((l) => l.trim() === entry)) return;
   const eol = current.includes('\r\n') ? '\r\n' : '\n';
   if (current && !current.endsWith('\n')) current += eol;
-  if (!writeInProject(projectRoot, giPath, current + entry + eol)) ctx?.warnings.push(LINKED('.gitignore'));
+  const why = writeInProject(projectRoot, giPath, current + entry + eol);
+  if (why) ctx?.warnings.push(KEPT(why, '.gitignore'));
 }
 
 // ---------- init ----------
@@ -634,7 +671,9 @@ export function persistToolsLine(configPath, tools, { projectRoot = path.dirname
   // CLI-sourced tool names are — a string replacement would let `$&`/`$'`/`` $` `` in a
   // hand-edited or corrupted config get interpreted as replacement patterns instead of literal
   // text, silently duplicating or mangling the surrounding file.
-  return writeInProject(projectRoot, configPath, raw.replace(/^tools:.*$/m, () => `tools: [${tools.join(', ')}]`));
+  const why = writeInProject(projectRoot, configPath, raw.replace(/^tools:.*$/m, () => `tools: [${tools.join(', ')}]`));
+  if (why) warnings?.push(KEPT(why, path.relative(projectRoot, configPath)));
+  return !why;
 }
 
 export function cmdUpdate(projectRoot, args) {
@@ -696,7 +735,15 @@ export function cmdUpdate(projectRoot, args) {
       if (diskHash !== hash) { ctx.warnings.push(`prune kept (modified): ${relPath}`); continue; }
       const realAbs = fs.realpathSync.native(abs);
       if (!containedIn(realRoot, realAbs)) { ctx.warnings.push(`prune rejected: ${relPath} (escapes project)`); continue; }
-      fs.rmSync(abs);
+      try {
+        fs.rmSync(abs);
+      } catch (err) {
+        if (err.code !== 'EACCES' && err.code !== 'EPERM') throw err;
+        // Still ours and still on disk: keep its record so a later run can prune it.
+        ctx.manifest.set(relPath, hash);
+        ctx.warnings.push(`prune kept (not writable): ${relPath}`);
+        continue;
+      }
       pruned++;
       let dir = path.dirname(abs);
       while (containedIn(realRoot, dir)) {

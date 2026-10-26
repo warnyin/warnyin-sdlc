@@ -10,7 +10,15 @@
   The rename makes a new file: its mode is kept, but its owner, ACLs and hard links are not — a
   `sudo update` leaves the refreshed files root-owned. A process killed between the temp's creation
   and the rename can leave a `.<name>.<pid>.<random>.tmp` beside the file; it is never listed in the
-  manifest or pruned, so delete it by hand.
+  manifest or pruned, so delete it by hand. A file the process may not write is still refused before
+  any temp is made (a rename would otherwise replace a read-only file on Linux and macOS), and a
+  writable file in a folder that refuses new files is written in place as before.
+- **`init` and `update` finish when a file is read-only**: a payload file, version.json,
+  settings.json, a marker file, `.gitignore`, config.yaml or a stale file prune would remove that
+  the process may not write is kept with one line — `kept (not writable, not written): <path>` or
+  `prune kept (not writable): <path>` — its ownership record kept, and the run goes on to write the
+  manifest. Before, the first such file aborted the run with a raw `EACCES` and left the manifest
+  unwritten. A read-only manifest is reported as `manifest NOT saved`.
 - **Install order reads every import form**: a side-effect `import './x.mjs'` and a literal
   `import('./x.mjs')` order the install like `from './x.mjs'` does.
 - **The Delta template placeholder is named**: a change still holding `## Delta: <capability>`

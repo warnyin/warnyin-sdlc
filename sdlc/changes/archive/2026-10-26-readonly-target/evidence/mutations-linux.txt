@@ -1,0 +1,10 @@
+baseline: green · mutants: 9 · killed: 9 of 9 · platform: linux
+KILLED   no write-permission check before the temp — tests/readonly-target.test.mjs row 1, tests/readonly-target.test.mjs row 6, tests/readonly-target.test.mjs row 7
+KILLED   a locked folder no longer falls back in place — tests/readonly-target.test.mjs row 5
+KILLED   a permission error from an installer write aborts update — tests/readonly-target.test.mjs row 6, tests/readonly-target.test.mjs row 7
+KILLED   installFile ignores a refused write — tests/readonly-target.test.mjs row 6
+KILLED   prune lets a permission error abort update — tests/readonly-target.test.mjs row 8
+KILLED   prune drops the record of a file it could not remove — tests/readonly-target.test.mjs row 7
+KILLED   a manifest that was not saved is reported as a plain kept line — tests/readonly-target.test.mjs row 7
+KILLED   a scaffold folder that cannot be made aborts update — tests/readonly-target.test.mjs row 8
+KILLED   .gitignore refusal not reported — tests/readonly-target.test.mjs row 7

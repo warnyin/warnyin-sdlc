@@ -198,3 +198,31 @@ The system SHALL order a tree's install by sibling imports written `from './x.mj
 #### Scenario: a side-effect import
 - WHEN `a.mjs` holds only `import './b.mjs';`
 - THEN `b.mjs` installs before `a.mjs`
+
+### Requirement: A read-only file is never replaced
+The system SHALL refuse a contained write to an existing file the process may not write, with the
+platform's permission error and before any temporary file is created, leaving the file and its
+folder unchanged.
+
+#### Scenario: a change.md made read-only
+- WHEN change.md is 0444 and `artifact` stamps it
+- THEN the stamp fails naming the change and the failed write, and change.md is byte-identical
+
+### Requirement: A file in a locked folder is still written
+The system SHALL, when no temporary file can be created beside a writable existing file because the
+folder refuses it, write that file in place as before.
+
+#### Scenario: a 0555 folder
+- WHEN a writable file sits in a folder the process may not write
+- THEN the write succeeds and leaves no other entry in the folder
+
+### Requirement: update keeps a file it may not write
+The system SHALL, in `init` and `update`, keep every file it may not write or remove — payload files,
+version.json, settings.json, marker files, seeds, `.gitignore`, config.yaml, a stale file prune would
+remove — reporting `kept (not writable, not written): <path>` (`prune kept (not writable): <path>`),
+keep its recorded ownership, and finish the run; a manifest it may not write is reported as
+`manifest NOT saved (not writable)` and the run still exits 0.
+
+#### Scenario: a read-only playbook file
+- WHEN an owned, older playbook file is read-only and `update` would refresh it
+- THEN update exits 0, leaves that file as it was, refreshes the others and writes the manifest
