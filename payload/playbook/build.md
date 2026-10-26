@@ -4,10 +4,12 @@ Precondition: status ≥ contracted (vibe tier is exempt from contracts).
 Set `status: building`.
 
 Mode by size:
-- **Conductor** (≤2 tasks, attended runs only): implement in this session, task by task.
+- **Conductor** (attended runs only): implement in this session, task by task. It takes any change of one or two tasks, and more only as the next sentence allows.
+  In an attended run it may also take more tasks when they edit the same file, where builders
+  would collide, or are each a short prose or config edit; journal `mode=conductor reason=<why>`.
 - **Unattended** (`--auto`, auto, autopilot): every task goes to its own `sdlc-builder` at its
   tier, whatever the count — `routing.md` § Unattended delegation, which `auto.md` defers to.
-- **Orchestrator** (>2 tasks): fan out one `sdlc-builder` subagent per task in a
+- **Orchestrator** (>2 tasks, unless conductor applies as above): fan out one `sdlc-builder` subagent per task in a
   `[P]` wave; serialize between dependent waves. Each builder receives ONLY:
   its task line, `contract/tests.md`, the touched capability's spec, and steering
   matching its file area — never the whole change history.

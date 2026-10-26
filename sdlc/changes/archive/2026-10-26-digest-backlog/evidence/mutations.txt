@@ -1,0 +1,22 @@
+baseline: green · mutants: 21 · killed: 21 of 21 · platform: win32
+KILLED   contract.md: sample instead of sweep — tests/digest-backlog.test.mjs row 1
+KILLED   contract.md: no row per input class — tests/digest-backlog.test.mjs row 2
+KILLED   review.md: deferral may filter — tests/digest-backlog.test.mjs row 3
+KILLED   build.md: conductor exception gone — tests/digest-backlog.test.mjs row 4
+KILLED   build.md: conductor capped at 2 again — tests/digest-backlog.test.mjs row 4
+KILLED   build.md: conductor capped by a synonym — tests/digest-backlog.test.mjs row 4
+KILLED   build.md: a second, bare cap beside the base count — tests/digest-backlog.test.mjs row 4
+KILLED   sdlc-builder: claims more than two tasks — tests/digest-backlog.test.mjs row 4
+KILLED   a dangling link reads as absent — tests/digest-backlog.test.mjs row 8
+KILLED   the write skips its containment check — tests/digest-backlog.test.mjs row 8
+KILLED   the mode is forged — tests/digest-backlog.test.mjs row 6
+KILLED   sdlc-builder: old description — tests/digest-backlog.test.mjs row 4
+KILLED   write in place instead of renaming — tests/digest-backlog.test.mjs row 7
+KILLED   a refused rename never falls back — tests/digest-backlog.test.mjs row 7
+KILLED   the fallback skips the containment re-check — tests/digest-backlog.test.mjs row 7
+KILLED   the temp is removed even when not ours — tests/digest-backlog.test.mjs row 7b
+KILLED   the temp is never removed — tests/digest-backlog.test.mjs row 5, tests/digest-backlog.test.mjs row 7, tests/digest-backlog.test.mjs row 7b
+KILLED   the mode is not copied — tests/digest-backlog.test.mjs row 6, tests/digest-backlog.test.mjs row 7b
+KILLED   installOrder reads only `from` — tests/digest-backlog.test.mjs row 10
+KILLED   the placeholder gets the generic message — tests/digest-backlog.test.mjs row 11, tests/digest-backlog.test.mjs row 11b
+KILLED   only the literal <capability> is the placeholder — tests/digest-backlog.test.mjs row 11b

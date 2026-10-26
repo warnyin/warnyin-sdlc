@@ -1,6 +1,6 @@
 ---
 name: sdlc-builder
-description: Implementation worker for /sdlc:build orchestrator waves — implements exactly one task against the contract. Used when a change has >2 parallelizable tasks.
+description: Implementation worker for /sdlc:build orchestrator waves — implements exactly one task against the contract. Used for orchestrator waves and for every task of an unattended build.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
 ---

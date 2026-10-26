@@ -45,3 +45,12 @@ input instead of "diff + task log", as a full sentence.
 #### Scenario: "the validator never opens an artifact"
 - WHEN the row is written
 - THEN it asserts the only fs calls allowed, so an unlisted call turns it red
+
+### Requirement: A contract row covers every member and every input class
+`payload/playbook/contract.md` step 1 SHALL require that a row pinning a character class, a range
+or a closed set sweeps every member, never a sample, and that a formula or status mapping in a
+Delta gets one row per input class, the fallback class and the rounding rule included.
+
+#### Scenario: a mapping with a fallback
+- WHEN a Delta maps statuses to a figure with a fallback for unknown statuses
+- THEN contract.md tells the author to write a row for each status and one for the fallback

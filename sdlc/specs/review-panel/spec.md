@@ -104,3 +104,12 @@ pruned it. A human's closing reason starts `closed=human:`. Lens reviewers get t
 #### Scenario: a new file was created after the last panel
 - WHEN the repeated panel's fix diff is built
 - THEN the untracked file appears in it, and the user's index is unchanged
+
+### Requirement: A deferred class lists every hit
+`payload/playbook/review.md` step 3 SHALL require that a defect class deferred to a later change is
+recorded with its sweep's hits unfiltered — no name or variable filter — and that an instance found
+later is recorded as a miss of that deferral.
+
+#### Scenario: a deferral found incomplete
+- WHEN a later review finds an instance the deferral did not list
+- THEN it is recorded as a miss, not as new work

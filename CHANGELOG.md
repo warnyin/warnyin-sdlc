@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+- **A contained write never leaves half a file**: every file `init`, `update`, `archive`,
+  `artifact` and `park` writes now goes to a temporary file beside it and is renamed into place,
+  keeping an existing file's mode. A write that fails part way leaves the previous content whole
+  and no temporary file. Where Windows refuses the rename because another process holds the file
+  open, the write falls back to the in-place write it always did, after re-checking containment.
+  The rename makes a new file: its mode is kept, but its owner, ACLs and hard links are not — a
+  `sudo update` leaves the refreshed files root-owned. A process killed between the temp's creation
+  and the rename can leave a `.<name>.<pid>.<random>.tmp` beside the file; it is never listed in the
+  manifest or pruned, so delete it by hand.
+- **Install order reads every import form**: a side-effect `import './x.mjs'` and a literal
+  `import('./x.mjs')` order the install like `from './x.mjs'` does.
+- **The Delta template placeholder is named**: a change still holding `## Delta: <capability>`
+  is told it is the template placeholder to replace with the capability's name.
+- **Playbook rules from shipped digests** (chosen by the maintainer): `contract.md` — a row pinning
+  a character class, range or closed set sweeps every member, and a formula or status mapping gets
+  one row per input class, fallback and rounding included; `review.md` — a deferred defect class
+  lists its sweep's hits unfiltered, and a later find counts as a miss of that deferral;
+  `build.md` — an attended build may run more than two tasks in-session when they edit the same file
+  or are short prose or config edits, journaled `mode=conductor reason=<why>`.
+
 ## 0.29.0 (2026-10-26)
 
 - **`archive` never reads or writes through a link**: before its first write, `archive` checks every

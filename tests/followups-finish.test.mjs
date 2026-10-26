@@ -268,6 +268,9 @@ test('row 8: init writes lib before the hooks, each module after its imports; an
   const realWrite = fs.writeFileSync;
   t.mock.method(fs, 'openSync', function (p, ...rest) { record(p); return realOpen.call(this, p, ...rest); });
   t.mock.method(fs, 'writeFileSync', function (p, ...rest) { record(p); return realWrite.call(this, p, ...rest); });
+  // A contained write lands by renaming a temp file onto the path (digest-backlog).
+  const realRename = fs.renameSync;
+  t.mock.method(fs, 'renameSync', function (from, to) { record(to); return realRename.call(this, from, to); });
   t.mock.method(console, 'log', () => {});
   await cli.main(['init', '--tool', 'claude'], root);
   t.mock.restoreAll();

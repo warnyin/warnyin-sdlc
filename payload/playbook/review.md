@@ -52,7 +52,9 @@ verify re-checks the signals itself and never counts it as a review. Only this s
    by the main loop before its fix task is written. Blockers sharing a class merge into one.
 3. Blockers → one fix task per defect class, not per instance, carrying its sweep and hits; the
    task is done only when the sweep, re-run over the whole tree, finds no instance left — its
-   command and result written on the task. Route each back to /sdlc:build (counts toward the
+   command and result written on the task. A class deferred to a later change is recorded with its
+   sweep's hits unfiltered — no name or variable filter — and an instance found later is recorded as
+   a miss of that deferral. Route each back to /sdlc:build (counts toward the
    same 3-round budget as verify). Improvements: apply if ≤5 min each,
    otherwise record one line in the change for the digest. Any file you edit here is a build:
    `node sdlc/.hooks/journal.mjs note build tasks=<n> source=review`, so verify's fast gate

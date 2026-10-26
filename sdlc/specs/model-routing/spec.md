@@ -61,3 +61,12 @@ The system SHALL ship every review-panel agent on a cheap or balanced model by d
 #### Scenario: a fresh install
 - WHEN the Claude adapter is installed
 - THEN no `sdlc-*` agent declares `model: opus`
+
+### Requirement: Conductor mode for tasks that would collide
+`payload/playbook/build.md` SHALL allow conductor mode in an attended run for more than two tasks
+when they edit the same file or are each a short prose or config edit, journaled
+`mode=conductor reason=<why>`; unattended runs still delegate every task.
+
+#### Scenario: four tasks in one file
+- WHEN an attended build has four tasks that all edit `bin/cli.mjs`
+- THEN build.md lets the session build them itself, with the reason in the journal

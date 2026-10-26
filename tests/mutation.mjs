@@ -27,7 +27,7 @@ function runTarget(cwd, target) {
   const env = { ...process.env };
   delete env.NODE_TEST_CONTEXT;
   const res = spawnSync(process.execPath, ['--test', '--test-reporter=tap', target], { cwd, encoding: 'utf8', env });
-  const rows = [...(res.stdout ?? '').matchAll(/^not ok \d+ - (row \d+)/gm)].map((m) => `${target} ${m[1]}`);
+  const rows = [...(res.stdout ?? '').matchAll(/^not ok \d+ - (row \d+[a-z]?)/gm)].map((m) => `${target} ${m[1]}`);
   const why = ((res.stdout ?? '').match(/^\s+error: [|>-]?\s*\n?\s*['"]?([^\n'"]{1,110})/m) ?? [])[1] ?? '';
   return { status: res.status, rows, why: why.trim() };
 }

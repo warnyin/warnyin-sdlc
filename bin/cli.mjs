@@ -217,7 +217,9 @@ export function installOrder(srcDir) {
   for (const name of names) {
     if (!name.endsWith('.mjs')) continue;
     const text = fs.readFileSync(path.join(srcDir, name), 'utf8');
-    imports.set(name, [...text.matchAll(/from\s+['"]\.\/([^'"/]+\.mjs)['"]/g)].map((m) => m[1]).filter((n) => names.includes(n)));
+    // `from './x.mjs'` (import and re-export), side-effect `import './x.mjs'`, `import('./x.mjs')`.
+    const forms = /(?:\bfrom|\bimport)\s*\(?\s*['"]\.\/([^'"/]+\.mjs)['"]/g;
+    imports.set(name, [...text.matchAll(forms)].map((m) => m[1]).filter((n) => names.includes(n)));
   }
   const order = [];
   const visiting = new Set();

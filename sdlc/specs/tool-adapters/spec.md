@@ -181,3 +181,20 @@ inside each tree write every module before any sibling module that imports it.
 #### Scenario: a hook importing a new lib module
 - WHEN the payload adds a lib module that a hook and another lib module import
 - THEN the install order writes that module before both importers
+
+### Requirement: A contained write never leaves half a file
+The system SHALL write every contained file (init, update, archive, artifact stamp, park) to a
+temporary file beside it and rename it into place, keeping an existing file's mode, so a write that
+fails part way leaves the previous content whole and no temporary file behind.
+
+#### Scenario: a write that fails part way
+- WHEN writing the new content throws after the first bytes
+- THEN the file still holds its previous content and its folder holds no temporary file
+
+### Requirement: Install order reads every import form
+The system SHALL order a tree's install by sibling imports written `from './x.mjs'`,
+`import './x.mjs'` or `import('./x.mjs')`.
+
+#### Scenario: a side-effect import
+- WHEN `a.mjs` holds only `import './b.mjs';`
+- THEN `b.mjs` installs before `a.mjs`

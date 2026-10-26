@@ -50,3 +50,11 @@ refuse any other before reading or writing a spec for it.
 #### Scenario: a capability that climbs out of specs/
 - WHEN a change declares `## Delta: ../../x`
 - THEN validate reports it is not a capability name and archive writes nothing anywhere
+
+### Requirement: The template placeholder is named as such
+The system SHALL report a `## Delta: <…>` capability as the template placeholder to replace with
+the capability's name, in `validate` and `archive`, and still refuse it.
+
+#### Scenario: an unedited template
+- WHEN a change still has `## Delta: <capability>`
+- THEN validate says it is the template placeholder and names what to put there
