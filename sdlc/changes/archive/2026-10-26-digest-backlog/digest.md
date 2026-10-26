@@ -8,5 +8,6 @@
 - Self-produced (`mode=solo`): both verify notes; no evaluator run. Ship approved by the human (deep tier).
 - Built in-session (`mode=conductor`, 4 tasks, journaled reason) — now allowed by the D1 rule this change ships.
 - User-visible limits (CHANGELOG): the rename does not carry owner, ACLs or hard links; a kill mid-write can leave a `.tmp` beside the file. Ops improvements not built: warn on the in-place fallback, gitignore/validate-warn leftover temps, fchown the owner.
+- Follow-up: `specs/tool-adapters/spec.md` is 158 lines after this merge, over its 150 soft cap (validate warns) — split the capability (installer writes vs adapters).
 - Release: lib/ and payload changed → `npm run shipped-hashes` after the commit.
 - Learner proposals awaiting the human (not applied): (1) contract.md step 1: the attack probes every cleanup of a written path — a cleanup removes only what this call created, never a file found at the same name (evidence: the temp-name collision); (2) harness.md Autonomy policy: give "token budget exceeded" a number or drop it — no budget figure exists, so the trigger cannot fire.
