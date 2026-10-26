@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.30.0 (2026-10-26)
 
 - **A contained write never leaves half a file**: every file `init`, `update`, `archive`,
   `artifact` and `park` writes now goes to a temporary file beside it and is renamed into place,
