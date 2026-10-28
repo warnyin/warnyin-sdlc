@@ -29,6 +29,7 @@ import { writeFileContained, isRealPathInside, pathIsContained, hasEntry } from 
 import { analyze, shipImpact, renderShipImpact, escapeEntry } from '../lib/relations.mjs';
 import { scanInventory, renderInventory } from '../lib/skills.mjs';
 import { detectTools, toolName } from './detect.mjs';
+import { overlapConfig, overlapReport } from './git-refs.mjs';
 import { colorEnabled, createStyle, symbolsFor, summarizeInstall, startHints } from './ui.mjs';
 import { multiSelect } from './multiselect.mjs';
 import { sliceChangelog } from './changelog.mjs';
@@ -1166,6 +1167,42 @@ export function cmdArtifact(projectRoot, positionals) {
   console.log(`stamped: artifact/${name} · basis: ${basis} (${shown})`);
 }
 
+// ---------- overlap (what other env branches hold that this change names) ----------
+
+export function cmdOverlap(projectRoot, changeId, { json = false } = {}) {
+  const sdlcRoot = path.join(projectRoot, 'sdlc');
+  requireSdlc(sdlcRoot);
+  if (!changeId) throw new Error('usage: warnyin-sdlc overlap <change-id> [--json]');
+  const shown = escapeEntry(changeId, Infinity);
+  if (!isSafeChangeId(changeId) || changeId.toLowerCase() === 'archive') {
+    throw new Error(`"${shown}" is not a valid change id — one path segment, no separators`);
+  }
+  if (!fs.existsSync(path.join(sdlcRoot, 'changes', changeId, 'change.md'))) throw new Error(`change "${shown}" not found`);
+  const { state, refs } = overlapConfig(projectRoot);
+  if (state !== 'list') {
+    if (json) console.log(JSON.stringify({ refs: [] }));
+    else console.log(`overlapBranches is not ${state === 'unset' ? 'set' : 'a list'} in sdlc/config.yaml — nothing to compare`);
+    return;
+  }
+  const report = overlapReport(projectRoot, refs, [changeId]).map((r) => {
+    const found = r.results.get(changeId);
+    return { ref: r.ref, age: r.age, skipped: r.skipped, ignored: found?.ignored ?? 0, hits: found?.hits ?? [] };
+  });
+  if (json) { console.log(JSON.stringify({ refs: report })); return; }
+  const show = (s) => escapeEntry(s, Infinity);
+  for (const r of report) {
+    if (r.skipped) { console.log(`${show(r.ref)}: skipped (${r.skipped})`); continue; }
+    console.log(`${show(r.ref)} (${show(r.age)})`);
+    if (r.hits.length === 0) console.log('  no overlap');
+    for (const h of r.hits) {
+      const who = h.kind === 'spec' ? h.kind : `${h.kind} ${show(h.id)}`;
+      const names = h.requirements.map(show).join(', ');
+      console.log(`  ${who} · ${show(h.capability)}${names ? `: ${names}` : ''}`);
+    }
+    if (r.ignored) console.log(`  ${r.ignored} ignored`);
+  }
+}
+
 // ---------- shared ----------
 
 function requireSdlc(sdlcRoot) {
@@ -1200,6 +1237,7 @@ usage: warnyin-sdlc <command> [options]
   observe [--json]                  tokens/cost per change, residency, steering hits, drift flags
   archive <id>                      merge delta specs into living specs and archive the change
   artifact <id> <name>              stamp artifact/<name> with the Design basis it was made from
+  overlap <id> [--json]             what the overlapBranches refs hold that this change's Delta names
   skills [--json]                   list installed Claude skills/agents (project + user) for lens resolution
   version | --version | -v          print the installed framework version
   help                              this text
@@ -1221,6 +1259,7 @@ export async function main(argv = process.argv.slice(2), projectRoot = process.c
     else if (cmd === 'observe') cmdObserve(projectRoot, { json: args.json });
     else if (cmd === 'archive') cmdArchive(projectRoot, args._[1]);
     else if (cmd === 'artifact') cmdArtifact(projectRoot, args._.slice(1));
+    else if (cmd === 'overlap') cmdOverlap(projectRoot, args._[1], { json: args.json });
     else if (cmd === 'skills') cmdSkills(projectRoot, { json: args.json });
     else { console.error(`unknown command: ${cmd}`); console.log(HELP); process.exitCode = 2; }
   } catch (err) {

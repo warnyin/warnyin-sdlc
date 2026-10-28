@@ -8,5 +8,7 @@ tools: []            # filled by `warnyin-sdlc init`
 # and, if so, tells the agent to mention `npx @warnyin/sdlc update`. It never updates by
 # itself. Uncomment to switch it off (CI or NO_UPDATE_NOTIFIER in the env also do).
 # updateCheck: false
+# Other env branches whose specs and changes a new change is compared with (local refs only, never fetched).
+# overlapBranches: [origin/develop, origin/uat]
 # Optional per-artifact cap overrides (see lib/caps.mjs for defaults).
 # caps: {}

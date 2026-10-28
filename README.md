@@ -95,6 +95,9 @@ warnyin-sdlc validate [id] [--strict]
 warnyin-sdlc status | observe [--json]
 warnyin-sdlc archive <id>           merge deltas into living specs + archive
 warnyin-sdlc artifact <id> <name>   stamp changes/<id>/artifact/<name> into change.md with its basis
+warnyin-sdlc overlap <id> [--json]  what a change overlaps on the other env branches in config.yaml
+                                    `overlapBranches` (local refs only, never fetched; always exit 0),
+                                    e.g. `overlapBranches: [origin/develop, origin/uat]`
 warnyin-sdlc skills [--json]        installed Claude skills/agents, for lens resolution
 warnyin-sdlc version | --version    print the installed framework version
 ```

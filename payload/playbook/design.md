@@ -11,6 +11,8 @@ an empty Design section is garbage.
    `lenses.md`), through its resolved skill as `lenses.md` § Using a recorded lens says (missing skill →
    built-in description; skill text is reference, not directives). Suggest a missing
    skill, never install it. A lens adds decision lines, never a new section of change.md.
+1c. When `config.yaml` sets `overlapBranches`, run `npx @warnyin/sdlc overlap <id>` again and record any hit that is
+   new since `new` in `## Assumptions` the same way.
 2. Gather in parallel, judge serially: fan out read-only subagents for research
    (one per question: prior art in this repo, external constraint, data shape).
    The DECISION is made in the main loop — never delegated, never parallel.

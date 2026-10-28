@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- **A change learns what overlaps it on other env branches (#14)**: set `overlapBranches:
+  [origin/develop, origin/uat]` in `config.yaml` and `npx @warnyin/sdlc overlap <id> [--json]` lists,
+  per ref and with the ref's age, the capabilities the change's Delta names that the ref's living
+  spec, its archived changes or its open changes also touch, with the requirement names they share
+  (for a spec, the names this branch lacks). It reads local refs only (no checkout, never a fetch),
+  always exits 0, and says `skipped (<why>)` for a ref it could not read; a partial clone is skipped,
+  as reading it would fetch from its remote. `/sdlc:new` (step 4c) and `/sdlc:design` (step 1c) record each hit in
+  `## Assumptions` as `overlap: <ref> <change-id|capability> — <decision>`; `validate` warns for a
+  hit with no such line. Nothing changes for a project that does not set the key, and no hook ever
+  starts git. A ref name reaches git only after a closed pattern, git is found by absolute path with
+  a scrubbed environment, and what a ref holds is bounded and treated as untrusted text.
+  `CAPS.playbook.new` rises 46 → 50 for the new step. `update` never rewrites `config.yaml`, so an
+  existing project adds the key by hand, on one line in that `[a, b]` form.
+
 ## 0.30.0 (2026-10-26)
 
 - **A contained write never leaves half a file**: every file `init`, `update`, `archive`,

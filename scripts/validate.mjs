@@ -8,8 +8,39 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { validateAll, formatIssues } from '../lib/validate.mjs';
+import { listOpenChangeIds } from '../lib/relations.mjs';
+import { hasOverlapDecision } from '../lib/overlap.mjs';
+import { overlapConfig, overlapReport } from '../bin/git-refs.mjs';
 
 export * from '../lib/validate.mjs';
+
+// Overlap with other env branches is checked here only, never in lib/validate.mjs: the hooks call
+// validateChange on every write, and a hook must never start git. Each ref is read once for all
+// open changes; an undecided hit is a warning, never an error.
+function overlapIssues(projectRoot, sdlcRoot, changeId) {
+  const config = overlapConfig(projectRoot);
+  if (config.state !== 'list') return [];
+  const ids = listOpenChangeIds(sdlcRoot).filter((id) => !changeId || id === changeId);
+  if (ids.length === 0) return [];
+  const issues = [];
+  for (const { ref, skipped, results } of overlapReport(projectRoot, config.refs, ids)) {
+    if (skipped) { issues.push({ level: 'warn', where: 'overlap', msg: `${ref} skipped (${skipped}) — not compared` }); continue; }
+    for (const [id, { hits, ignored }] of results) {
+      if (ignored) issues.push({ level: 'warn', where: id, msg: `${ref} ${ignored} ignored (oversize, unreadable or cut) — an overlap may be missed` });
+      const text = readChange(sdlcRoot, id);
+      for (const hit of hits) {
+        if (hasOverlapDecision(text, ref, hit)) continue;
+        const name = hit.kind === 'spec' ? hit.capability : hit.id;
+        issues.push({ level: 'warn', where: id, msg: `${ref} ${hit.kind} ${name} (${hit.capability}): no overlap decision — add "overlap: ${ref} ${name} — <decision>" to ## Assumptions` });
+      }
+    }
+  }
+  return issues;
+}
+
+function readChange(sdlcRoot, id) {
+  try { return fs.readFileSync(path.join(sdlcRoot, 'changes', id, 'change.md'), 'utf8'); } catch { return ''; }
+}
 
 function main() {
   const args = process.argv.slice(2);
@@ -25,7 +56,7 @@ function main() {
     process.exit(2);
   }
 
-  const issues = validateAll(sdlcRoot, { strict, changeId });
+  const issues = [...validateAll(sdlcRoot, { strict, changeId }), ...overlapIssues(projectRoot, sdlcRoot, changeId)];
   if (issues.length) console.log(formatIssues(issues));
   const errors = issues.filter((i) => i.level === 'error').length;
   const warns = issues.length - errors;
