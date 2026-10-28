@@ -10,7 +10,8 @@
 - The agent SHALL record every assumption in the change's `## Assumptions` before acting on it,
   and SHALL prove by running it any assumption that removes work ("already covered",
   "unchanged", "harmless") — or record it `[UNVERIFIED]`. An assumption about what existing
-  code, a rule or a parser does SHALL be checked by reading or running it before the contract.
+  code, a rule, a parser or an external tool (git, npm, the shell) does SHALL be checked by
+  reading or running it before the contract.
 - The agent SHALL NOT report a defect class fixed, or a pattern unified, on the instances a
   report named — the class SHALL first be enumerated by a command over the whole tree, and that
   command and what it returned SHALL appear in what the human reads. The command SHALL match
