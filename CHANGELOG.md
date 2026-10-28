@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.31.0 (2026-10-28)
 
 - **A change learns what overlaps it on other env branches (#14)**: set `overlapBranches:
   [origin/develop, origin/uat]` in `config.yaml` and `npx @warnyin/sdlc overlap <id> [--json]` lists,
