@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- **The update notice speaks for the checkout, and a branch behind its base is sent to the base
+  (#15)**: the SessionStart line now says `this checkout has X` — X is the checked-out branch's
+  committed `sdlc/.hooks/version.json`, which a stale branch can lag — and offers the choice only
+  through `sdlc/.playbook/update.md`. Before offering it (with or without a notice), step 3 now
+  compares this checkout with the default branch (`origin/HEAD`) using local refs only, never a
+  fetch: when the default branch already carries a newer version, the agent offers no update and
+  recommends syncing with it instead, since an update there would duplicate and conflict with the
+  base's own update commit. Any git failure, a detached HEAD or a version that is not a plain
+  `X.Y.Z` falls back to offering the choice as before. The hook still starts no git.
+
 ## 0.31.0 (2026-10-28)
 
 - **A change learns what overlaps it on other env branches (#14)**: set `overlapBranches:

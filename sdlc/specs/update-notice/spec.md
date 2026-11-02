@@ -10,13 +10,19 @@ with nothing applied until a person picks it.
 ### Requirement: A newer published version is announced at session start
 The system SHALL add one line to the session's injected context when the latest
 published version is newer than the installed one. The line names both versions and the
-command to update, and directs the agent to the doctrine that offers the decision rather
-than take it: the line itself changes nothing.
+command to update, names the installed version as the one this checkout has rather than the
+project's, and directs the agent to the doctrine that offers the decision — unless the default
+branch already carries a newer version — rather than take it: the line itself changes nothing.
 
 #### Scenario: newer version published
 - WHEN a session starts in a project installed at `0.9.0` and the last check found `0.10.0`
 - THEN the injected context carries one line naming `0.9.0`, `0.10.0` and
   `npx @warnyin/sdlc@latest update`, and no framework file or manifest entry changes
+
+#### Scenario: the installed version is the checkout's
+- WHEN the notice line is injected
+- THEN it says `this checkout has <installed>` and never `this project has`, and points at
+  `sdlc/.playbook/update.md` without ordering an unconditional offer
 
 #### Scenario: already current
 - WHEN the last check found a version equal to or older than the installed one
@@ -101,3 +107,20 @@ update raised. No other option writes to the project.
 - WHEN the update reports that stale files exceeded the blast cap and were not pruned
 - THEN the report says so and leaves re-running with `--force` as a decision for the person,
   and it is never taken in the same breath
+
+### Requirement: A branch behind its base is sent to the base, not offered the update
+The system SHALL, in `payload/playbook/update.md`, have the agent compare this checkout's
+`sdlc/.hooks/version.json` with the default branch's before offering the choice — in step 3, so a
+manual `/sdlc:update` meets it too — reading versions only as plain `X.Y.Z`, and SHALL NOT
+offer the update when the default branch already carries a newer version.
+
+#### Scenario: base branch already updated
+- WHEN the notice appears on a branch other than the default branch and the default branch's
+  `sdlc/.hooks/version.json` is newer than this checkout's
+- THEN the choice is not offered; the person is told the default branch carries that version
+  and syncing with it is recommended before any update
+
+#### Scenario: the comparison cannot be made
+- WHEN a git command fails, a name is empty (detached HEAD), a version is not a plain `X.Y.Z`,
+  this checkout is the default branch, or the default branch is not newer
+- THEN the choice is offered exactly as before, and no `git fetch` is run

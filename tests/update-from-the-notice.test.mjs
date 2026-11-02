@@ -607,4 +607,37 @@ ${refused.stderr}`, /WARNYIN_SDLC_FORCE/,
       'the ledger row does not record that the line now opens a decision');
     assert.match(design, /changelog/i, 'the ledger says nothing about the changelog output');
   });
+
+  // ---------- The notice names the checkout, not the project ----------
+
+  it('row 39: the notice names the installed version as this checkout has it (notice-stale-branch row 1)', (t) => {
+    const dir = seed(project(t), { installed: '0.9.0', latest: '0.10.0' });
+    const res = runSessionStart(dir);
+    assert.equal(res.status, 0, res.stderr);
+
+    const line = firstLine(res);
+    assert.ok(line.includes('(this checkout has 0.9.0)'), `the first line does not name the checkout's version: ${line}`);
+    assert.ok(line.includes('follow `sdlc/.playbook/update.md`'), `the line does not defer to the playbook: ${line}`);
+    assert.ok(line.includes('unless the default branch already carries a newer version'),
+      `the line still orders an unconditional offer: ${line}`);
+    assert.ok(!res.stdout.includes('this project has'),
+      'the notice still says "this project has" somewhere in stdout');
+  });
+
+  it('row 40: no shipped source or doc says "this project has" (notice-stale-branch row 2)', () => {
+    const files = [];
+    const walk = (dir) => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const p = path.join(dir, e.name);
+        if (e.isDirectory()) walk(p);
+        else files.push(p);
+      }
+    };
+    for (const d of ['lib', 'payload', 'bin', 'docs']) walk(path.join(PKG_ROOT, d));
+    files.push(path.join(PKG_ROOT, 'README.md'));
+    assert.ok(files.length > 50, `the sweep found only ${files.length} files`);
+    const hits = files.filter((f) => fs.readFileSync(f, 'utf8').includes('this project has'));
+    assert.deepEqual(hits.map((f) => path.relative(PKG_ROOT, f)), [],
+      'a shipped file still words the installed version as the project\'s');
+  });
 });

@@ -27,8 +27,25 @@ session, so it can only leave the line, not raise the question.
    the choice as a change whose state you could not read, and recommend deferring just
    as you would for one past `new`. Never block the choice on it either way.
 
-3. **Offer the choice**, at least these three options, apply first and marked
-   recommended:
+3. **Offer the choice** — but first check the base branch.
+   Before offering, check whether this branch is behind its base: a branch behind its base
+   is not an outdated project. The version this checkout has is read from its own
+   `sdlc/.hooks/version.json`, and the default branch may already carry a newer one.
+   Name the default branch with `git symbolic-ref --short refs/remotes/origin/HEAD` and
+   this one with `git branch --show-current`; an empty name, as on a detached HEAD, counts
+   as a failed command. If the two names are equal once the `origin/` prefix is dropped,
+   this checkout is the default branch: offer the choice as below. Otherwise read
+   `git show <default ref>:sdlc/.hooks/version.json`, with the ref exactly as the first
+   command printed it. Compare the two `version` values as plain `X.Y.Z` numbers, part by
+   part; a value that is not a plain `X.Y.Z` counts as a failed command. If the default
+   branch's version is newer than this checkout's, do not offer the choice: tell the person
+   that the default branch, as of the last fetch, already carries that version, and
+   recommend syncing this branch with it before any update — an update here would
+   duplicate that branch's update commit and conflict with it. That note is said once per
+   session, like the choice it replaces. If any of these commands fails, or the default
+   branch is not newer, offer the choice as below. Run no `git fetch`: the comparison uses
+   only what is already local.
+   Then offer at least these three options, apply first and marked recommended:
    - **apply now** (recommended) — run the update immediately.
    - **see what changes** — show what the new version brings, install nothing.
    - **not now** — leave the project as it is, keep working.

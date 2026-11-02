@@ -1,0 +1,11 @@
+# Digest — notice-stale-branch (issue #15)
+- Shipped: the SessionStart notice says `this checkout has X` and defers the offer to `sdlc/.playbook/update.md`; step 3 now compares this checkout's `sdlc/.hooks/version.json` with the default branch's (local refs, no fetch) and withholds the update, recommending a sync, when the base is newer. The hook still starts no git.
+- Spec merged: `update-notice` — MODIFIED "A newer published version is announced at session start" (+1 scenario), ADDED "A branch behind its base is sent to the base, not offered the update".
+- Assumptions: hook stays git-free; "newer" is plain `X.Y.Z`, anything else fails to the offer; corrected in build — `git remote add` + fetch records `origin/HEAD` on git ≥ 2.48 (fixture pins `followRemoteHEAD=never`).
+- Contract: 8 rows, red first; one adversarial round (15 findings) moved the check from step 1 to step 3 and added rows 6–8.
+- Verify: 1 round. Fast gate 109/109 (sdlc-runner) + evals all ≥ 4 (sdlc-evaluator, panel). Final gate `npm test` exit 0 on Windows (891 pass, 5 skipped) and Linux/WSL git 2.43 (896/896). Review skipped: no signal.
+- Escalation (not pre-approved, `preauth=no`): the first final gate was red from a pre-existing break — e9bc425 reworded the harness sentence `digest-followups` row 10 pins. The human chose to keep both sentences; fixed in separate commit 9007fc9 before the passing final gate. The escalation note was journaled after that decision, which is why it sits just before the ship gate.
+- Cost: 458 in / 310.9k out tokens · lead 2.2 h.
+- Learner proposals awaiting the human (always-loaded, not applied): (1) constitution — a reworded harness/constitution sentence that a test pins SHALL update the pin in the same commit; (2) constitution — external-tool assumptions are checked on the version/config the fixture uses, `git --version` recorded; (3) harness Autonomy policy — a pre-existing red suite is an escalation (already how this run behaved; low value).
+- Follow-ups: step 1 of update.md could say the choice is subject to step 3's check; no stated fallback when the checkout's own `version.json` is missing; `bin/shipped-hashes.json` needs `npm run shipped-hashes` before the next tag.
+- Freed / waiting: none.
