@@ -31,6 +31,7 @@ const RULES = Object.freeze({
   B1: String.raw`Write file text with the file tools, never a shell heredoc: the shell drops ` + '`' + String.raw`\s` + '`, `' + String.raw`\t` + '` and `' + String.raw`\u0001` + '`, so scan each written file for control characters.',
   D1: 'An agent file carries verbatim a rule it applies; a term it only reads is defined once, in the playbook, and the agent points there.',
   H1: "Its own exit code decides a pass; a pipe reports the last stage's exit, not the suite's.",
+  H2: 'That holds on every platform run (Windows, and the WSL/Linux copy, which runs `node --test`), and grepped output is not a pass signal.',
   S8: 'A finding is a security, data-loss or contract defect by its effect, not by the label it carries; when unsure, it is one.',
 });
 
@@ -259,6 +260,8 @@ test('row 10: harness Sandbox & execution states H1, and the file stays within i
   const harness = fs.readFileSync(path.join(PKG_ROOT, 'sdlc', 'harness.md'), 'utf8');
   const sandbox = nonEmpty(section(harness, 'Sandbox & execution'), 'sdlc/harness.md ## Sandbox & execution');
   assertSentence(sandbox, RULES.H1, 'sdlc/harness.md ## Sandbox & execution');
+  // This project's own harness also pins the platform clause (constitution, e9bc425); the seed does not carry it.
+  assertSentence(sandbox, RULES.H2, 'sdlc/harness.md ## Sandbox & execution');
   assert.ok(countEffectiveLines(harness) <= CAPS.harness,
     `sdlc/harness.md is ${countEffectiveLines(harness)} effective lines, cap ${CAPS.harness}`);
   // The seed every new project gets carries the same note on its test command.
