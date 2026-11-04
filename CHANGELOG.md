@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.31.1 (2026-11-04)
 
 - **The update notice speaks for the checkout, and a branch behind its base is sent to the base
   (#15)**: the SessionStart line now says `this checkout has X` — X is the checked-out branch's
