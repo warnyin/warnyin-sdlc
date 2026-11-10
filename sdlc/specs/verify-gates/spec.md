@@ -9,7 +9,11 @@
 The system SHALL, in every verify round, run only the tests covering the change's contract
 rows and touched areas, exercise the change live when it has a runnable surface (a CLI, server
 or UI a person can run), and score the evals and lens bars. It SHALL NOT run the full test
-command as a fast-gate requirement, and SHALL record whether the run was the full suite.
+command as a fast-gate requirement, and SHALL record whether the run was the full suite. It SHALL
+take the first rung that can run: the harness's fast test command, the tests related to the touched
+files, the tests of the touched packages, and the full test command only when none of those can be
+named, the diff is cross-cutting, or the human asks. A fast-gate note from a full run, pass or fail,
+SHALL record why, as one value of a closed set: `no-subset`, `cross-cutting` or `human`.
 
 #### Scenario: the project names a fast test command
 - WHEN the harness names a fast test command and a verify round runs
@@ -17,8 +21,20 @@ command as a fast-gate requirement, and SHALL record whether the run was the ful
 
 #### Scenario: the project names none
 - WHEN the harness has no fast test command
-- THEN the round runs the tests covering the contract rows and the touched paths, or the full
-  test command when no such subset can be named
+- THEN the round runs the tests related to the touched files and the contract rows, or failing that
+  the tests of the touched packages
+
+#### Scenario: nothing narrower can be named
+- WHEN no rung narrower than the full test command can be named
+- THEN the full test command runs and the note records `scope=full` with a `reason=` from the set
+
+#### Scenario: the diff is cross-cutting
+- WHEN the diff edits a root config, a lockfile or a test helper every package loads
+- THEN the full test command may run, and the note records `reason=cross-cutting`
+
+#### Scenario: a scoped run misses a contract row
+- WHEN a scoped command passes without running the test of a contract row
+- THEN that row's test is run directly, and the row does not count as covered until it passes
 
 ### Requirement: The full suite runs once, after review
 The system SHALL run the full test command only after the fast gate has passed and, when
@@ -181,3 +197,54 @@ a copy of the tree. `tests/mutation.mjs` does both for this repo.
 #### Scenario: the baseline is red
 - WHEN the unmutated tests fail before mutants run
 - THEN no "N of M killed" is reported
+
+### Requirement: A harness test command may name what to scope to
+The system SHALL let the harness name a test command at each of three levels: the full `test
+command`, a `fast test command` that may carry `{changed}`, and a `single test command` that may
+carry `{files}`. A placeholder SHALL be expanded before the command is run or handed to a
+subagent, except that `{files}` handed to the contractor is expanded by it over the files it
+writes. Each expanded path SHALL be within `[A-Za-z0-9._/-]` and not start with `-`, to keep a file
+name from acting as shell syntax or a runner flag; `{changed}` SHALL mean the files this
+change edited that still exist, since a deleted path breaks a runner. `/sdlc:init` SHALL fill the
+commands the project has. A command left as the seed's `<cmd>`
+SHALL count as not named. A placeholder with nothing to expand into, or with a path outside that
+set, SHALL make that rung unusable, never a run with the placeholder removed or a path left out,
+since many runners read no arguments as "everything".
+
+#### Scenario: a new project gets all three lines
+- WHEN `init` seeds `sdlc/harness.md`
+- THEN it has a test command, a fast test command and a single test command line
+
+#### Scenario: a project only has the old harness lines
+- WHEN the harness has no `single test command` line, or leaves it as `<cmd>`
+- THEN the stage narrows the run with the test runner's own file filter, not the full test command
+
+#### Scenario: the change has no files to expand
+- WHEN `{changed}` would expand to nothing
+- THEN the fast test command does not run and the next rung is taken
+
+#### Scenario: a touched file has an unsafe name
+- WHEN a path handed to a runner holds a space, a shell character or a leading `-`
+- THEN that rung is unusable and the next rung is taken
+
+### Requirement: A self-check and a red check run only their own tests
+The system SHALL run a build task's self-check, and the contract stage's red check, through the
+`single test command` or the test runner's own file filter on the test files concerned. A self-check
+SHALL NOT run the full test command. A red check SHALL NOT run it either, unless the runner has no
+file filter, and then the contract note SHALL record `scope=full reason=no-subset`.
+
+#### Scenario: a builder checks its task
+- WHEN a task's tests are ready to run in `/sdlc:build`
+- THEN only those test files run, plus lint
+
+#### Scenario: a builder has no file filter
+- WHEN the task has no test files, or the runner has no file filter
+- THEN the task runs lint only and leaves its tests to `/sdlc:verify`
+
+#### Scenario: the contract checks its tests are red
+- WHEN `/sdlc:contract` has generated the failing tests
+- THEN only the generated test files run
+
+#### Scenario: the contractor wrote no test file
+- WHEN `/sdlc:contract` gets no generated test file back
+- THEN it stops and reports that, running nothing

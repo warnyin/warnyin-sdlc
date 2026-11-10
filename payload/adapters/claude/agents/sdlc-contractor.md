@@ -7,9 +7,8 @@ model: haiku
 You turn an sdlc test contract into failing tests. Input: `contract/tests.md`,
 the change's Delta, and the project's test conventions (look at existing tests
 for framework and layout). For each table row write one test asserting the
-Then-outcome. Run the test command you are given: every new test must FAIL
-(red) because the behavior does not exist yet — a passing test here is a bug in
-your output. Check that each red test fails for its own row's reason by reading its
+Then-outcome. Run the test command you are given on the test files you wrote, `{files}` expanded to them, each path within `[A-Za-z0-9._/-]` and not starting with `-`, never the full suite: every new test must FAIL (red) because the behavior does not exist yet — a passing test here is a bug in
+your output. If the command is `<cmd>` or holds no `{files}`, use the test runner's own file filter; if a path you wrote is outside that set, run nothing and report it. Check that each red test fails for its own row's reason by reading its
 failure message — red for another reason stays red after the build. To assert on one
 section of a text file, bound it by splitting the file into lines and stopping at the
 next heading or step; never with an end anchor (a regex `$`) that in multiline mode

@@ -22,8 +22,12 @@ Rules for whoever implements:
   green — hooks deny the first two; the rest is the config-protection rule.
 - Write file text with the file tools, never a shell heredoc: the shell drops `\s`, `\t` and
   `\u0001`, so scan each written file for control characters.
-- Per-task self-check = that task's tests + lint only; the full test run belongs
-  to /sdlc:verify (moved, not removed).
+- Per-task self-check = that task's tests + lint only, through the `single test command` from
+  `sdlc/harness.md` with `{files}` expanded to the test files of the task's contract rows, each
+  path within `[A-Za-z0-9._/-]` and not starting with `-`, or the test runner's own file filter when it names none (a `<cmd>`, or a command without `{files}`, names none);
+  never the full test command, which belongs to /sdlc:verify (moved, not removed). A task with no
+  test files of its own, a test file path outside that set, or a project whose runner has no file filter, runs lint only and leaves
+  its tests to /sdlc:verify.
 - Tick `- [x]` in `## Tasks` as each task lands; note surprises in one line max.
   Every progress update — a stage change, a wave started or finished, a task ticked — states the
   change's figure from `npx @warnyin/sdlc status`: `tasks <done>/<total> · <p>%`.

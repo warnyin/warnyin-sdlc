@@ -60,8 +60,10 @@ In `/sdlc:auto`, `/sdlc:autopilot` and any `--auto` run, whatever model this ses
 - Every build task goes to its own `sdlc-builder` at the model of its `[tier:x]`, else the build
   tier from `harness.md § Stage routing` — whatever the task count; conductor mode is for
   attended runs. Fixes after a failed verify are build tasks too.
-- The verify test run goes to `sdlc-runner` with the test command and `contract/tests.md`; it
-  returns pass/fail per contract row plus failure excerpts. You decide what the result means.
+- The verify test run goes to `sdlc-runner` with the command the gate chose, its placeholders
+  already expanded, and `contract/tests.md`; it returns pass/fail per contract row plus failure
+  excerpts. A row it returns `uncovered` gets its own run of that row's test, through
+  `sdlc-runner` again. You decide what the result means.
 - Grill, confirmation and escalation decisions stay in the main session and are never delegated
   — a subagent cannot ask the human, and the mandate was given to this session.
 - When subagents are unavailable or cannot run, the unit runs in the main session and its

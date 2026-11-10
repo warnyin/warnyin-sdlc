@@ -11,7 +11,7 @@ policy the AI will then drive under.
 3. Open the gate: `node sdlc/.hooks/journal.mjs open-steer`, then write:
    - `sdlc/context/constitution.md` — replace template placeholders; ≤30 lines;
      SHALL/SHALL NOT rules only, stack facts ≤3 lines.
-   - `sdlc/harness.md` — fill tools, test command, sandbox notes; adjust the
+   - `sdlc/harness.md` — fill tools, the test commands (a fast or single command the project lacks stays `<cmd>`), sandbox notes; adjust the
      routing, triage, and Autonomy policy tables to this project.
    - 0–3 steering seeds in `sdlc/context/steering/` for areas with real
      conventions (prefer `inclusion: paths`; `always` needs strong justification).

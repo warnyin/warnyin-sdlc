@@ -9,6 +9,7 @@ import path from 'node:path';
 import { makeTempProject, runCli, writeChange, STANDARD_BODY, PKG_ROOT } from './helpers.mjs';
 import { buildReport } from '../lib/observe.mjs';
 import { CAPS, countEffectiveLines } from '../lib/caps.mjs';
+import { assertSentence } from './rule-pins.mjs';
 
 const read = (rel) => fs.readFileSync(path.join(PKG_ROOT, 'payload', rel), 'utf8');
 const pb = (n) => read(`playbook/${n}`);
@@ -48,10 +49,18 @@ test('row 2: the fast gate runs the harness fast test command when one is named'
   assert.match(gates().fast, /`?fast test command`?[^.]{0,80}harness/i);
 });
 
-test('row 3: without a fast command it derives the tests, falling back to the full command', () => {
-  const { fast } = gates();
-  assert.match(fast, /contract[^.]{0,40}rows?[^.]{0,60}touched paths/i);
-  assert.match(fast, /full test command[^.]{0,40}no (such )?subset/i);
+// V1: the fast gate's test ladder, verbatim from contract/tests.md.
+const V1 = "Take the first rung that can run: the `fast test command` from `sdlc/harness.md`; the tests related to the touched files and the contract rows; the tests of the touched packages; and the full test command only when none of those can be named, when the diff is cross-cutting, or when the human asks for it.";
+
+test('row 3: the fast gate takes the first test rung that can run, ending at the full test command', () => {
+  const text = pb('verify.md');
+  const start = text.search(GATE_START('Fast'));
+  const final = text.search(GATE_START('Final'));
+  assert.ok(start > -1 && final > start, 'verify.md has no fast gate section');
+  const section = text.slice(start, final);
+  assertSentence(section, V1, 'verify.md fast gate');
+  const fast = oneLine(section);
+  assert.equal(fast.indexOf(oneLine(V1)), fast.lastIndexOf(oneLine(V1)), 'verify.md fast gate states the test ladder more than once');
 });
 
 test('row 4: the fast gate exercises a runnable surface live and names what counts', () => {

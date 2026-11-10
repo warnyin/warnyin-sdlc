@@ -12,9 +12,11 @@
 - Quality — nothing weakened: the final gate is still the full test command, the 3-round
   budget and escalation are unchanged, and `mode=` provenance still rides every note.
 - Quality — works without the new key: with only `test command` in the harness, the fast gate
-  says how to derive its tests (contract rows, touched paths) and falls back to the full command
-  when it cannot; nothing asks the human to add the key. (5: both paths explicit; 3: derivation
-  vague; 1: silent when the key is absent.)
+  takes the first rung that can run (related tests, then touched packages) and runs the full
+  command only when none can be named, the diff is cross-cutting or the human asks, recording
+  why; nothing asks the human to add the key. (5: every rung explicit and the full run reasoned;
+  3: derivation vague; 1: falls back to the full command without a stated reason, or silent when
+  the key is absent.)
 - Quality — budget: verify.md grows by the gate rules only; review, next and ship change by
   their routing lines, not by restating the gates.
 

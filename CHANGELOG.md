@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- **A large project no longer runs its full suite while developing**: `sdlc/harness.md` can name
+  three test commands — `test command`, `fast test command` (may carry `{changed}`) and `single
+  test command` (may carry `{files}`) — and a stage expands a placeholder before running it, and
+  only with paths made of `[A-Za-z0-9._/-]` that do not start with `-`; a path with a space or any
+  other character makes that rung unusable and the next one is taken. Verify's fast gate now takes the first rung that can run: the fast command, the tests
+  related to the touched files and contract rows, the tests of the touched packages; the full test
+  command runs only when none can be named, the diff is cross-cutting or the human asks, and the
+  note says `scope=` and, for a full run, `reason=<no-subset|cross-cutting|human>`. A scoped pass
+  that never ran a contract row's test does not cover that row. A build task's self-check and the
+  contract's red check run only their own test files, through the single command or the runner's
+  file filter. `harness.md` is a seed, so an existing project adds the two lines by hand; without
+  them each stage uses the runner's own file filter.
+
 ## 0.31.1 (2026-11-04)
 
 - **The update notice speaks for the checkout, and a branch behind its base is sent to the base

@@ -9,6 +9,7 @@
 
 ## Sandbox & execution
 - test command: `npm test`. Its own exit code decides a pass; a pipe reports the last stage's exit, not the suite's. That holds on every platform run (Windows, and the WSL/Linux copy, which runs `node --test`), and grepped output is not a pass signal.
+- single test command: `node --test {files}` (test files only, for a build self-check and the contract red check)
 - sandbox notes: black-box tests spawn the real CLI into `mkdtemp` dirs; never write outside them.
 - contract rows: every row of `contract/tests.md` runs before a fast gate opens; a row added
   later (e.g. from review) is written red first, then built.

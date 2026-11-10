@@ -8,7 +8,8 @@
 
 ## Sandbox & execution
 - test command: `<cmd>`. Its own exit code decides a pass; a pipe reports the last stage's exit, not the suite's.
-- fast test command: `<cmd>` (optional — a quick scoped subset for verify fix rounds; without it verify derives one)
+- fast test command: `<cmd>` (optional — a quick scoped subset for verify fix rounds; `{changed}` expands to the files this change edited; without it verify takes the next rung)
+- single test command: `<cmd>` (optional — the tests of named files, for a build task's self-check and the contract's red check; `{files}` expands to those files; without it the stage uses the test runner's own file filter)
 - sandbox notes: <where code runs, what it cannot reach>
 
 ## Guardrails (mirror of installed hooks — deterministic, the agent cannot skip them)
