@@ -20,8 +20,7 @@
 - A free-text value that decides whether an escalation or a human's refusal applies SHALL be read
   in canonical form (trimmed, case-folded) against a closed set; anything outside it SHALL fail closed.
 - Every behavior change SHALL update BOTH the payload source and its tests in the same change.
-- A Delta that states playbook or template prose SHALL name the file carrying it, and every file
-  stating that rule SHALL have its own contract row.
+- A Delta that states playbook or template prose SHALL name the file carrying it, every file stating that rule SHALL have its own contract row, and a Delta that requires a note or journal value SHALL have a contract row asserting the step that writes it.
 - Caps SHALL change only in `lib/caps.mjs` + template comments together (caps-sync test).
 - The agent SHALL NOT add npm dependencies.
 - Human-written text SHALL NOT reach a shell as an argument — pass it on stdin, or
