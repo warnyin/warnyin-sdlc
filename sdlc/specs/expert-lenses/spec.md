@@ -43,12 +43,12 @@ skill, then the built-in lens, and record no lens when nothing signals one.
 
 ### Requirement: Later stages use the recorded lenses
 The system SHALL let the recorded lenses bring design in, add their bars to the contract,
-join the review panel alongside its core reviewers, and be scored at verify.
+join the review panel alongside the core reviewers it calls, and be scored at verify.
 
 #### Scenario: the stage playbooks
 - WHEN the design, contract, review and verify playbooks are read
 - THEN design runs when a recorded lens designs, contract carries each lens's bars, review
-  keeps its four core reviewers and adds one per lens, and verify scores each lens's bars
+  adds one per lens to the core reviewers it calls, and verify scores each lens's bars
 
 ### Requirement: A missing skill is suggested, never installed
 The system SHALL only suggest a skill or agent that is not installed, and SHALL treat

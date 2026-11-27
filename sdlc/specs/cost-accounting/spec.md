@@ -38,3 +38,18 @@ record is that session's running total; a record carrying no session is counted 
 #### Scenario: a session recorded at every turn
 - WHEN a change's journal holds three records of one session at 100, 250 and 400 input tokens
 - THEN the change reports 400 input tokens and one session, and cost from that record alone
+
+### Requirement: Tokens are reported per stage
+`lib/observe.mjs` SHALL add to each change's summary a `stages` list: for each stage event in journal time order, `{stage, input, output, cacheRead, cacheWrite}` (plus `source` when the event has one): the growth of the session totals since the previous stage event, summed over sessions, never below 0 per class. A session's total at an event is its latest record at or before it, 0 before its first. The first stage is measured from the journal's first session record when that is at or before the event, else from 0. It SHALL read live and archived journals alike. `renderReport` SHALL print under a change's line one `    · <stage> <in>in/<out>out` line per stage, and `payload/playbook/observe.md` SHALL tell the reader to show them.
+
+#### Scenario: contract, build, review, verify and ship events
+- WHEN the journal holds session records between them
+- THEN `stages` lists each in order with its own growth, and their output sums to the total at the last event minus the baseline
+
+#### Scenario: no stage event, or only a review skip note
+- WHEN the journal holds session records and no stage event
+- THEN `stages` is empty and no stage line is printed
+
+#### Scenario: an archived change, a stage before the first record, or two sessions
+- WHEN observe reads them
+- THEN the archived journal gives the same stages, an event before the first record grows 0, and each session is counted once

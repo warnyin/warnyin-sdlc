@@ -1,7 +1,7 @@
 ---
 id: smaller-review-stage-tokens
 tier: standard
-status: verified
+status: shipped
 ---
 # Change: Smaller review panel after the first round, and tokens reported per stage
 <!-- cap:100 · standard tier. Delta sections ARE the spec change — merged mechanically at ship, never re-narrated. -->

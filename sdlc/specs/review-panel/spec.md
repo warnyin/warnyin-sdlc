@@ -113,3 +113,25 @@ later is recorded as a miss of that deferral.
 #### Scenario: a deferral found incomplete
 - WHEN a later review finds an instance the deferral did not list
 - THEN it is recorded as a miss, not as new work
+
+### Requirement: A repeated panel calls only the reviewers it needs
+`payload/playbook/review.md` SHALL state that a repeated panel runs `sdlc-security`, every lens reviewer, and every other reviewer that raised a blocker last round or whose domain the fix diff touches, that it runs when unsure, and that a deep change's repeated panel runs all four. The sentence "the four core reviewers still run", the `mode=panel` words "the four and each lens" and the solo words "through those four lenses" SHALL be reworded to name the reviewers the step calls.
+
+#### Scenario: the quality reviewer raised the only blocker
+- WHEN review runs again on a standard change and the fix diff is a prose edit in one playbook file
+- THEN `sdlc-security` and `sdlc-quality` run, and `sdlc-architect` and `sdlc-ops` are skipped
+
+#### Scenario: unsure, or a deep change
+- WHEN the main loop cannot tell whether a fix touches a reviewer's domain, or the change is deep
+- THEN that reviewer runs, or all four run
+
+### Requirement: A first standard panel is sized by its signals
+`payload/playbook/review.md` SHALL state that a first panel on tier standard runs `sdlc-security` and `sdlc-quality`, adds `sdlc-architect` when change.md holds more than one `## Delta:` section or the diff changes more than 10 files, and adds `sdlc-ops` when the diff touches or may touch config, migrations or deploy files or the change has a `runbook.md`; tier deep runs all four.
+
+#### Scenario: a one-capability standard change with 4 files
+- WHEN the first panel runs
+- THEN only `sdlc-security` and `sdlc-quality` run
+
+#### Scenario: a deep change
+- WHEN the first panel runs
+- THEN all four core reviewers run
