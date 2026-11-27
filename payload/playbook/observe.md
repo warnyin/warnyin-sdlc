@@ -6,7 +6,8 @@
    - **Pending digests** — archived changes whose digest the human has not been
      shown yet (learner proposals awaiting a decision).
    - **Cost** — tokens/cost per active + recent change; retry waste (tokens spent
-     after the first verify fail).
+     after the first verify fail); per stage (`contract`, `build`, `verify`, `review`, `ship`): input and output
+     tokens grown since the previous stage event, from `stages`, printed under the change's line.
    - **Flow** — lead time per shipped change and per-phase breakdown (created →
      contracted → built → verified → shipped timestamps from the journal);
      AI-time vs wait-time; first-pass success trend; per change, `human-closed×N` (blockers a

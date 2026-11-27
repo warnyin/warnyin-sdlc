@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **A repeated review panel calls fewer reviewers, and `observe` shows tokens per stage (#16)**: a first
+  panel on tier standard runs `sdlc-security` and `sdlc-quality`, adding `sdlc-architect` when the change has
+  more than one `## Delta:` section or the diff changes more than 10 files, and `sdlc-ops` when the diff touches
+  or may touch config, migrations or deploy files; tier deep still runs all four. A repeated panel runs
+  `sdlc-security`, every lens reviewer, and any reviewer that raised a blocker or whose domain the fix touched,
+  and runs one whenever unsure. `observe` adds `stages` to each change: input, output and cache tokens grown
+  between consecutive stage events, printed as `· <stage> <in>in/<out>out` under the change line. Blur: a
+  stage's last turn can land in the next. No gate is removed.
+
 - **A large project no longer runs its full suite while developing**: `sdlc/harness.md` can name
   three test commands — `test command`, `fast test command` (may carry `{changed}`) and `single
   test command` (may carry `{files}`) — and a stage expands a placeholder before running it, and

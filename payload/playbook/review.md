@@ -38,10 +38,17 @@ verify re-checks the signals itself and never counts it as a review. Only this s
      `runbook.md` when it has one.
    - Plus one reviewer per recorded lens, only for lenses whose stages include review:
      its review focus from `lenses.md`, per `lenses.md` § Using a recorded lens.
-     Run it as a read-only subagent when possible; the four core reviewers still run.
+     Run it as a read-only subagent when possible; every reviewer this step calls still runs.
      A lens reviewer in a repeated panel gets the same brief and the same blocker rule.
      Each lens reviewer is handed this rule with its brief. A finding is a security, data-loss
      or contract defect by its effect, not by the label it carries; when unsure, it is one.
+   A first panel on tier standard runs `sdlc-security` and `sdlc-quality`, adds
+   `sdlc-architect` when change.md holds more than one `## Delta:` section or the diff changes more
+   than 10 files, and adds `sdlc-ops` when the diff touches or may touch config, migrations or deploy
+   files or the change has a `runbook.md`; tier deep runs all four. A repeated panel — one after a
+   review that recorded blockers — runs `sdlc-security`, every lens reviewer, and every other reviewer
+   that raised a blocker last round or whose domain the fix diff touches; when unsure whether one did,
+   it runs, and a deep change's repeated panel runs all four.
 1c. Hand every reviewer the change's `[UNVERIFIED]` assumptions and out-of-scope claims
    and have them attack those first: a claim nobody ran is where the bug hides, and the
    panel is the first stage that reads the code rather than the Delta.
@@ -64,10 +71,10 @@ verify re-checks the signals itself and never counts it as a review. Only this s
    its reason, and the note carries `closed=human`:
    `node sdlc/.hooks/journal.mjs note review blockers=0 mode=solo closed=human base=<tree>`. The human's
    reason line in change.md starts with `closed=human:` and says why.
-   `mode=panel` only when every reviewer that ran — the four and each lens — was an
+   `mode=panel` only when every reviewer that ran — core, and each lens — was an
    independent agent; `mode=solo` when the
    panel cannot run — subagents unavailable or disallowed — and the main loop
-   reviewed its own work through those four lenses instead. Run it that way
+   reviewed its own work through the lenses of the reviewers this step calls instead. Run it that way
    rather than skipping the review, and say so in the note: a self-review that
    is recorded as a panel is worse than no review, because it reads as
    independent evidence months later.
